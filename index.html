@@ -1,1 +1,207 @@
-test
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A visual record of Palam weather-radar rainfall products for Delhi and NCR.">
+    <title>Delhi Radar Rainfall Atlas</title>
+    <style>
+      :root {
+        --ink: #13202b;
+        --muted: #5d6d78;
+        --paper: #f6f5f1;
+        --surface: #ffffff;
+        --line: #dbe0dd;
+        --blue: #135f84;
+        --teal: #0e8077;
+        --gold: #e3a429;
+        --shadow: 0 16px 42px rgba(22, 45, 57, .10);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+      }
+      a { color: inherit; }
+      .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+      .masthead { background: var(--ink); color: #f9fcfb; padding: 18px 0; }
+      .masthead .shell { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+      .wordmark { font-weight: 760; letter-spacing: -.02em; text-decoration: none; }
+      .nav { display: flex; gap: 22px; font-size: .9rem; color: #c8d7d7; }
+      .nav a { text-decoration: none; }
+      .nav a:hover { color: #fff; }
+      .hero { background: radial-gradient(circle at 82% 8%, #207f98 0, #135f84 25%, #13202b 64%); color: white; padding: 88px 0 76px; }
+      .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #c4f1e2; text-transform: uppercase; letter-spacing: .13em; font-size: .72rem; font-weight: 750; }
+      .eyebrow::before { content: ""; display: block; width: 24px; height: 2px; background: var(--gold); }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { max-width: 800px; font-size: clamp(2.8rem, 7vw, 5.7rem); line-height: .97; letter-spacing: -.065em; margin: 18px 0 24px; }
+      .lede { max-width: 740px; color: #d6e6e6; font-size: clamp(1rem, 2vw, 1.23rem); }
+      .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
+      .chip { border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 7px 12px; color: #eef6f4; font-size: .82rem; }
+      main { padding: 68px 0; }
+      section { margin-bottom: 76px; scroll-margin-top: 22px; }
+      .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .65fr); gap: 48px; align-items: end; margin-bottom: 28px; }
+      h2 { font-size: clamp(2rem, 4vw, 3.3rem); letter-spacing: -.05em; line-height: 1.02; margin-bottom: 0; }
+      .section-head p { color: var(--muted); margin-bottom: 0; }
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+      .stat { background: var(--surface); padding: 24px 22px; }
+      .stat strong { display: block; font-size: clamp(1.6rem, 3vw, 2.35rem); line-height: 1; letter-spacing: -.055em; color: var(--blue); }
+      .stat span { color: var(--muted); display: block; font-size: .82rem; margin-top: 9px; }
+      .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
+      figure { margin: 0; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+      figure img { display: block; width: 100%; height: auto; background: #e8eded; }
+      figcaption { padding: 20px 22px 22px; }
+      figcaption strong { display: block; font-size: 1.08rem; margin-bottom: 5px; }
+      figcaption span { color: var(--muted); font-size: .9rem; }
+      .case-study { background: #e2f1ed; border-left: 5px solid var(--teal); padding: 27px 30px; }
+      .case-study p { margin-bottom: 0; max-width: 950px; }
+      .case-study strong { color: #075c55; }
+      .gallery { display: grid; grid-template-columns: 1.55fr 1fr; gap: 26px; align-items: start; }
+      .gallery-side { display: grid; gap: 26px; }
+      .gallery-side figcaption { padding: 16px 19px 18px; }
+      .method { display: grid; grid-template-columns: 1.15fr .85fr; gap: 26px; }
+      .panel { background: var(--surface); padding: 31px; border: 1px solid var(--line); }
+      .panel h3 { margin-bottom: 14px; font-size: 1.25rem; letter-spacing: -.025em; }
+      .panel p { color: var(--muted); }
+      dl { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px 20px; margin: 0; font-size: .92rem; }
+      dt { font-weight: 700; color: var(--blue); }
+      dd { margin: 0; color: var(--muted); }
+      .warning { background: #fff7de; border: 1px solid #f1dea5; padding: 25px 29px; }
+      .warning h3 { margin-bottom: 8px; }
+      .warning p { margin-bottom: 0; color: #655426; }
+      footer { background: #13202b; color: #cad8d5; padding: 35px 0; font-size: .87rem; }
+      footer p { margin: 0; }
+      @media (max-width: 760px) {
+        .shell { width: min(100% - 28px, 1180px); }
+        .masthead .shell { align-items: flex-start; }
+        .nav { gap: 13px; font-size: .78rem; }
+        .hero { padding: 66px 0 60px; }
+        main { padding: 46px 0; }
+        section { margin-bottom: 54px; }
+        .section-head, .method { grid-template-columns: 1fr; gap: 18px; }
+        .stats, .feature-grid, .gallery { grid-template-columns: 1fr; }
+        .panel { padding: 24px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="shell">
+        <a class="wordmark" href="#top">DELHI RADAR ATLAS</a>
+        <nav class="nav" aria-label="Primary navigation">
+          <a href="#archive">Archive</a>
+          <a href="#case-study">Case study</a>
+          <a href="#notes">Notes</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="hero" id="top">
+      <div class="shell">
+        <span class="eyebrow">Palam DWR · visual product collection</span>
+        <h1>Rainfall, seen through the radar record.</h1>
+        <p class="lede">A compact gallery of radar-derived precipitation products for Delhi and the National Capital Region: five years of accumulation patterns, a detailed monsoon-event calibration, and a transparent look at short-range persistence forecasts.</p>
+        <div class="hero-meta" aria-label="Dataset highlights">
+          <span class="chip">Coverage: 2021–2025</span>
+          <span class="chip">Event study: 29 Jul 2025 IST</span>
+          <span class="chip">Palam weather radar</span>
+        </div>
+      </div>
+    </div>
+
+    <main class="shell">
+      <section aria-label="Collection summary">
+        <div class="stats">
+          <div class="stat"><strong>5 years</strong><span>archive animation period</span></div>
+          <div class="stat"><strong>144</strong><span>10-minute event-study targets</span></div>
+          <div class="stat"><strong>13</strong><span>reflectivity layers in the composite</span></div>
+          <div class="stat"><strong>19</strong><span>AWS/ARG station files processed</span></div>
+        </div>
+      </section>
+
+      <section id="archive">
+        <div class="section-head">
+          <h2>2021–25 accumulation archive</h2>
+          <p>Monthly accumulation animations provide a broad view of timing and spatial pattern across the Delhi core and the wider NCR radar domain.</p>
+        </div>
+        <div class="feature-grid">
+          <figure>
+            <img src="assets/radar/delhi-monthly-2021-2025.gif" alt="Animated monthly radar rainfall accumulation maps for Delhi from 2021 through 2025">
+            <figcaption><strong>Delhi monthly accumulation</strong><span>500 m Delhi grid · one frame per month · 2021–2025</span></figcaption>
+          </figure>
+          <figure>
+            <img src="assets/radar/ncr-monthly-2021-2025.gif" alt="Animated monthly radar rainfall accumulation maps for the wider Delhi NCR region from 2021 through 2025">
+            <figcaption><strong>NCR monthly accumulation</strong><span>2 km regional grid · one frame per month · 2021–2025</span></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="case-study">
+        <div class="section-head">
+          <h2>29 July 2025: composite QPE</h2>
+          <p>A one-day monsoon case study using 129 IMD-B and 128 IMD-C volumes. Each regular target uses the nearest scan within ±7.5 minutes.</p>
+        </div>
+        <div class="case-study">
+          <strong>Calibration result, with context.</strong>
+          <p>For the nine eligible calibration stations, leave-one-station-out correction reduced matched-total MAE from 69.0 mm to 13.9 mm. This is an exploratory, one-day calibration—not an independently validated operational QPE model.</p>
+        </div>
+      </section>
+
+      <section aria-label="Detailed outputs">
+        <div class="gallery">
+          <figure>
+            <img src="assets/radar/imerg-radar-comparison.png" alt="Comparison plot between IMERG satellite precipitation and radar precipitation estimates">
+            <figcaption><strong>Radar and IMERG comparison</strong><span>Multi-year context for radar-derived precipitation estimates.</span></figcaption>
+          </figure>
+          <div class="gallery-side">
+            <figure>
+              <img src="assets/radar/lodhi-road-station-comparison.png" alt="Radar and gauge rainfall comparison at the Lodhi Road station">
+              <figcaption><strong>Lodhi Road station</strong><span>Observed radar–gauge comparison for the event day.</span></figcaption>
+            </figure>
+            <figure>
+              <img src="assets/radar/delhi-persistence-60min.png" alt="Delhi radar reflectivity persistence forecast map at a 60 minute lead time">
+              <figcaption><strong>60-minute persistence view</strong><span>Representative 20:00 IST initialization; dynamic-motion baseline.</span></figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="notes">
+        <div class="section-head">
+          <h2>How to read these products</h2>
+          <p>The visualizations are intentionally accompanied by their key assumptions, scope, and limits so they can be used responsibly.</p>
+        </div>
+        <div class="method">
+          <div class="panel">
+            <h3>Event-study method</h3>
+            <dl>
+              <dt>Composite</dt><dd>Pixelwise maximum across 13 radar elevation layers.</dd>
+              <dt>QPE relation</dt><dd>Marshall–Palmer Z = 200R<sup>1.6</sup>, with a 15 dBZ dry threshold and 53 dBZ cap.</dd>
+              <dt>Integration</dt><dd>10-minute rain-rate intervals over the complete IST civil day.</dd>
+              <dt>Bias correction</dt><dd>Gauge/radar ratios spatially interpolated using inverse-distance weighting.</dd>
+              <dt>Forecast reference</dt><dd>Dynamic persistence combines echo motion with low-elevation Doppler-velocity information.</dd>
+            </dl>
+          </div>
+          <figure>
+            <img src="assets/radar/persistence-skill.png" alt="Line chart showing dynamic persistence skill by forecast lead time">
+            <figcaption><strong>Persistence skill by lead time</strong><span>Full-region performance is stronger than the finite Delhi crop at longer leads, where echoes can enter from outside the boundary.</span></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="warning" aria-label="Important data caveats">
+        <h3>Important archive caveats</h3>
+        <p>The 2021–25 animations are raw, uncalibrated Marshall–Palmer QPE: use them for spatial pattern and timing, not absolute rainfall comparisons. The 2021–24 and 2025 radar formats are not calibration-consistent; values across the 2024|2025 boundary are not directly comparable. Near-radar clutter is interpolated within a 10 km cone, and dry-season near-radar signal can include non-meteorological echo. Monsoon frames are the most meaningful signal.</p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="shell"><p>Source collection: Palam DWR annual products experiment · Event date: 2025-07-29 IST · Satellite basemap attribution in the source products: Esri, Maxar, Earthstar Geographics, and the GIS User Community.</p></div>
+    </footer>
+  </body>
+</html>
