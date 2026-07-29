@@ -3,205 +3,662 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A visual record of Palam weather-radar rainfall products for Delhi and NCR.">
-    <title>Delhi Radar Rainfall Atlas</title>
-    <style>
-      :root {
-        --ink: #13202b;
-        --muted: #5d6d78;
-        --paper: #f6f5f1;
-        --surface: #ffffff;
-        --line: #dbe0dd;
-        --blue: #135f84;
-        --teal: #0e8077;
-        --gold: #e3a429;
-        --shadow: 0 16px 42px rgba(22, 45, 57, .10);
-      }
-
-      * { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
-      body {
-        margin: 0;
-        color: var(--ink);
-        background: var(--paper);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.55;
-      }
-      a { color: inherit; }
-      .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
-      .masthead { background: var(--ink); color: #f9fcfb; padding: 18px 0; }
-      .masthead .shell { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-      .wordmark { font-weight: 760; letter-spacing: -.02em; text-decoration: none; }
-      .nav { display: flex; gap: 22px; font-size: .9rem; color: #c8d7d7; }
-      .nav a { text-decoration: none; }
-      .nav a:hover { color: #fff; }
-      .hero { background: radial-gradient(circle at 82% 8%, #207f98 0, #135f84 25%, #13202b 64%); color: white; padding: 88px 0 76px; }
-      .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #c4f1e2; text-transform: uppercase; letter-spacing: .13em; font-size: .72rem; font-weight: 750; }
-      .eyebrow::before { content: ""; display: block; width: 24px; height: 2px; background: var(--gold); }
-      h1, h2, h3, p { margin-top: 0; }
-      h1 { max-width: 800px; font-size: clamp(2.8rem, 7vw, 5.7rem); line-height: .97; letter-spacing: -.065em; margin: 18px 0 24px; }
-      .lede { max-width: 740px; color: #d6e6e6; font-size: clamp(1rem, 2vw, 1.23rem); }
-      .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
-      .chip { border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 7px 12px; color: #eef6f4; font-size: .82rem; }
-      main { padding: 68px 0; }
-      section { margin-bottom: 76px; scroll-margin-top: 22px; }
-      .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .65fr); gap: 48px; align-items: end; margin-bottom: 28px; }
-      h2 { font-size: clamp(2rem, 4vw, 3.3rem); letter-spacing: -.05em; line-height: 1.02; margin-bottom: 0; }
-      .section-head p { color: var(--muted); margin-bottom: 0; }
-      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
-      .stat { background: var(--surface); padding: 24px 22px; }
-      .stat strong { display: block; font-size: clamp(1.6rem, 3vw, 2.35rem); line-height: 1; letter-spacing: -.055em; color: var(--blue); }
-      .stat span { color: var(--muted); display: block; font-size: .82rem; margin-top: 9px; }
-      .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px; }
-      figure { margin: 0; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
-      figure img { display: block; width: 100%; height: auto; background: #e8eded; }
-      figcaption { padding: 20px 22px 22px; }
-      figcaption strong { display: block; font-size: 1.08rem; margin-bottom: 5px; }
-      figcaption span { color: var(--muted); font-size: .9rem; }
-      .case-study { background: #e2f1ed; border-left: 5px solid var(--teal); padding: 27px 30px; }
-      .case-study p { margin-bottom: 0; max-width: 950px; }
-      .case-study strong { color: #075c55; }
-      .gallery { display: grid; grid-template-columns: 1.55fr 1fr; gap: 26px; align-items: start; }
-      .gallery-side { display: grid; gap: 26px; }
-      .gallery-side figcaption { padding: 16px 19px 18px; }
-      .method { display: grid; grid-template-columns: 1.15fr .85fr; gap: 26px; }
-      .panel { background: var(--surface); padding: 31px; border: 1px solid var(--line); }
-      .panel h3 { margin-bottom: 14px; font-size: 1.25rem; letter-spacing: -.025em; }
-      .panel p { color: var(--muted); }
-      dl { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px 20px; margin: 0; font-size: .92rem; }
-      dt { font-weight: 700; color: var(--blue); }
-      dd { margin: 0; color: var(--muted); }
-      .warning { background: #fff7de; border: 1px solid #f1dea5; padding: 25px 29px; }
-      .warning h3 { margin-bottom: 8px; }
-      .warning p { margin-bottom: 0; color: #655426; }
-      footer { background: #13202b; color: #cad8d5; padding: 35px 0; font-size: .87rem; }
-      footer p { margin: 0; }
-      @media (max-width: 760px) {
-        .shell { width: min(100% - 28px, 1180px); }
-        .masthead .shell { align-items: flex-start; }
-        .nav { gap: 13px; font-size: .78rem; }
-        .hero { padding: 66px 0 60px; }
-        main { padding: 46px 0; }
-        section { margin-bottom: 54px; }
-        .section-head, .method { grid-template-columns: 1fr; gap: 18px; }
-        .stats, .feature-grid, .gallery { grid-template-columns: 1fr; }
-        .panel { padding: 24px; }
-      }
-    </style>
+    <meta name="description" content="India-region temperature and precipitation forecasts from six global weather models, initialized 28 July 2026 at 00 UTC.">
+    <title>India Multi-Model Forecast Atlas</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <script defer src="assets/app.js"></script>
   </head>
   <body>
     <header class="masthead">
-      <div class="shell">
-        <a class="wordmark" href="#top">DELHI RADAR ATLAS</a>
-        <nav class="nav" aria-label="Primary navigation">
-          <a href="#archive">Archive</a>
-          <a href="#case-study">Case study</a>
-          <a href="#notes">Notes</a>
+      <div class="shell nav-shell">
+        <a class="brand" href="#top">FORECAST / INDIA</a>
+        <nav aria-label="Primary navigation">
+          <a href="#maps">Maps</a>
+          <a href="#method">Method</a>
+          <a href="#sources">Sources</a>
         </nav>
       </div>
     </header>
 
-    <div class="hero" id="top">
-      <div class="shell">
-        <span class="eyebrow">Palam DWR · visual product collection</span>
-        <h1>Rainfall, seen through the radar record.</h1>
-        <p class="lede">A compact gallery of radar-derived precipitation products for Delhi and the National Capital Region: five years of accumulation patterns, a detailed monsoon-event calibration, and a transparent look at short-range persistence forecasts.</p>
-        <div class="hero-meta" aria-label="Dataset highlights">
-          <span class="chip">Coverage: 2021–2025</span>
-          <span class="chip">Event study: 29 Jul 2025 IST</span>
-          <span class="chip">Palam weather radar</span>
-        </div>
-      </div>
-    </div>
-
-    <main class="shell">
-      <section aria-label="Collection summary">
-        <div class="stats">
-          <div class="stat"><strong>5 years</strong><span>archive animation period</span></div>
-          <div class="stat"><strong>144</strong><span>10-minute event-study targets</span></div>
-          <div class="stat"><strong>13</strong><span>reflectivity layers in the composite</span></div>
-          <div class="stat"><strong>19</strong><span>AWS/ARG station files processed</span></div>
-        </div>
-      </section>
-
-      <section id="archive">
-        <div class="section-head">
-          <h2>2021–25 accumulation archive</h2>
-          <p>Monthly accumulation animations provide a broad view of timing and spatial pattern across the Delhi core and the wider NCR radar domain.</p>
-        </div>
-        <div class="feature-grid">
-          <figure>
-            <img src="assets/radar/delhi-monthly-2021-2025.gif" alt="Animated monthly radar rainfall accumulation maps for Delhi from 2021 through 2025">
-            <figcaption><strong>Delhi monthly accumulation</strong><span>500 m Delhi grid · one frame per month · 2021–2025</span></figcaption>
-          </figure>
-          <figure>
-            <img src="assets/radar/ncr-monthly-2021-2025.gif" alt="Animated monthly radar rainfall accumulation maps for the wider Delhi NCR region from 2021 through 2025">
-            <figcaption><strong>NCR monthly accumulation</strong><span>2 km regional grid · one frame per month · 2021–2025</span></figcaption>
-          </figure>
+    <main id="top">
+      <section class="hero">
+        <div class="shell hero-grid">
+          <div>
+            <p class="eyebrow">Six global models · one common view</p>
+            <h1>India forecast atlas</h1>
+            <p class="lede">Temperature snapshots and cumulative rainfall from WeatherNext 2,
+            GenCast, GFS, GEFS, AIFS, and IFS-ENS—aligned to the same initialization,
+            forecast leads, map extent, units, and color scales.</p>
+            <div class="hero-actions">
+              <a class="primary-action" href="#maps">Explore the maps</a>
+              <a class="text-action" href="assets/forecast_manifest.json">View provenance JSON</a>
+            </div>
+          </div>
+          <dl class="run-card">
+            <div><dt>Initialized</dt><dd>28 Jul 2026 · 00:00 UTC</dd></div>
+            <div><dt>Forecast leads</dt><dd>T+24 · T+48 · T+72 hours</dd></div>
+            <div><dt>Region</dt><dd>67–99°E · 6–38°N</dd></div>
+            <div><dt>Products</dt><dd>42 downloadable PNG maps</dd></div>
+          </dl>
         </div>
       </section>
 
-      <section id="case-study">
-        <div class="section-head">
-          <h2>29 July 2025: composite QPE</h2>
-          <p>A one-day monsoon case study using 129 IMD-B and 128 IMD-C volumes. Each regular target uses the nearest scan within ±7.5 minutes.</p>
-        </div>
-        <div class="case-study">
-          <strong>Calibration result, with context.</strong>
-          <p>For the nine eligible calibration stations, leave-one-station-out correction reduced matched-total MAE from 69.0 mm to 13.9 mm. This is an exploratory, one-day calibration—not an independently validated operational QPE model.</p>
+      <section class="run-strip" aria-label="Forecast summary">
+        <div class="shell stats">
+          <div><strong>6</strong><span>forecast models</span></div>
+          <div><strong>3</strong><span>forecast days</span></div>
+          <div><strong>2</strong><span>surface variables</span></div>
+          <div><strong>42</strong><span>PNG products</span></div>
         </div>
       </section>
 
-      <section aria-label="Detailed outputs">
-        <div class="gallery">
-          <figure>
-            <img src="assets/radar/imerg-radar-comparison.png" alt="Comparison plot between IMERG satellite precipitation and radar precipitation estimates">
-            <figcaption><strong>Radar and IMERG comparison</strong><span>Multi-year context for radar-derived precipitation estimates.</span></figcaption>
-          </figure>
-          <div class="gallery-side">
-            <figure>
-              <img src="assets/radar/lodhi-road-station-comparison.png" alt="Radar and gauge rainfall comparison at the Lodhi Road station">
-              <figcaption><strong>Lodhi Road station</strong><span>Observed radar–gauge comparison for the event day.</span></figcaption>
-            </figure>
-            <figure>
-              <img src="assets/radar/delhi-persistence-60min.png" alt="Delhi radar reflectivity persistence forecast map at a 60 minute lead time">
-              <figcaption><strong>60-minute persistence view</strong><span>Representative 20:00 IST initialization; dynamic-motion baseline.</span></figcaption>
-            </figure>
+      <section class="maps shell" id="maps">
+        <div class="intro-row">
+          <div>
+            <p class="kicker">Forecast gallery</p>
+            <h2>Compare the same atmosphere, six ways.</h2>
+          </div>
+          <p>Select a variable and lead. Each comparison sheet and individual map uses
+          the same scale for that variable, making model differences immediately visible.</p>
+        </div>
+
+        <div class="controls" aria-label="Forecast map controls">
+          <fieldset>
+            <legend>Variable</legend>
+            <div class="segmented">
+              <button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button>
+              <button type="button" data-variable-button="precipitation" aria-pressed="false">Precipitation</button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Forecast lead</legend>
+            <div class="segmented">
+              <button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button>
+              <button type="button" data-day-button="2" aria-pressed="false">Day 2 · +48h</button>
+              <button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <div id="forecast-views" aria-live="polite">
+
+                <section class="forecast-view" data-variable="temperature" data-day="1">
+                  <div class="section-title">
+                    <div>
+                      <p class="kicker">Temperature · Forecast day 1</p>
+                      <h2>2 m Temperature</h2>
+                    </div>
+                    <p>Exact temperature snapshot at the selected forecast lead. Valid endpoint: 29 July 2026, 00:00 UTC.</p>
+                  </div>
+                  <figure class="comparison">
+                    <a class="image-link" href="assets/forecasts/20260728_00/comparisons/temperature_day1.png">
+                      <img loading="lazy" src="assets/forecasts/20260728_00/comparisons/temperature_day1.png" alt="Six-model comparison of 2 m temperature over the India region for forecast day 1">
+                    </a>
+                    <figcaption>
+                      <span>Six-model comparison · common color scale</span>
+                      <a class="download" href="assets/forecasts/20260728_00/comparisons/temperature_day1.png" download>Download comparison PNG</a>
+                    </figcaption>
+                  </figure>
+                  <div class="model-grid">
+
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/weathernext2/temperature_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/weathernext2/temperature_day1.png" alt="WeatherNext 2 / FGN 2 m temperature map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>WeatherNext 2 / FGN</h3>
+                        <p>Functional Generative Network; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/weathernext2/temperature_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gencast/temperature_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gencast/temperature_day1.png" alt="GenCast 2 m temperature map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GenCast</h3>
+                        <p>Probabilistic AI forecast; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gencast/temperature_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gfs/temperature_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gfs/temperature_day1.png" alt="GFS 2 m temperature map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GFS</h3>
+                        <p>NOAA deterministic Global Forecast System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gfs/temperature_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gefs/temperature_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gefs/temperature_day1.png" alt="GEFS 2 m temperature map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GEFS</h3>
+                        <p>NOAA ensemble forecast; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gefs/temperature_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/aifs/temperature_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/aifs/temperature_day1.png" alt="AIFS 2 m temperature map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>AIFS</h3>
+                        <p>ECMWF deterministic Artificial Intelligence Forecasting System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/aifs/temperature_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/ifs_ens/temperature_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/ifs_ens/temperature_day1.png" alt="IFS-ENS 2 m temperature map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>IFS-ENS</h3>
+                        <p>ECMWF physical-model ensemble; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/ifs_ens/temperature_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+                <section class="forecast-view" data-variable="temperature" data-day="2" hidden>
+                  <div class="section-title">
+                    <div>
+                      <p class="kicker">Temperature · Forecast day 2</p>
+                      <h2>2 m Temperature</h2>
+                    </div>
+                    <p>Exact temperature snapshot at the selected forecast lead. Valid endpoint: 30 July 2026, 00:00 UTC.</p>
+                  </div>
+                  <figure class="comparison">
+                    <a class="image-link" href="assets/forecasts/20260728_00/comparisons/temperature_day2.png">
+                      <img loading="lazy" src="assets/forecasts/20260728_00/comparisons/temperature_day2.png" alt="Six-model comparison of 2 m temperature over the India region for forecast day 2">
+                    </a>
+                    <figcaption>
+                      <span>Six-model comparison · common color scale</span>
+                      <a class="download" href="assets/forecasts/20260728_00/comparisons/temperature_day2.png" download>Download comparison PNG</a>
+                    </figcaption>
+                  </figure>
+                  <div class="model-grid">
+
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/weathernext2/temperature_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/weathernext2/temperature_day2.png" alt="WeatherNext 2 / FGN 2 m temperature map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>WeatherNext 2 / FGN</h3>
+                        <p>Functional Generative Network; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/weathernext2/temperature_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gencast/temperature_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gencast/temperature_day2.png" alt="GenCast 2 m temperature map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GenCast</h3>
+                        <p>Probabilistic AI forecast; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gencast/temperature_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gfs/temperature_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gfs/temperature_day2.png" alt="GFS 2 m temperature map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GFS</h3>
+                        <p>NOAA deterministic Global Forecast System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gfs/temperature_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gefs/temperature_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gefs/temperature_day2.png" alt="GEFS 2 m temperature map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GEFS</h3>
+                        <p>NOAA ensemble forecast; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gefs/temperature_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/aifs/temperature_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/aifs/temperature_day2.png" alt="AIFS 2 m temperature map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>AIFS</h3>
+                        <p>ECMWF deterministic Artificial Intelligence Forecasting System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/aifs/temperature_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/ifs_ens/temperature_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/ifs_ens/temperature_day2.png" alt="IFS-ENS 2 m temperature map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>IFS-ENS</h3>
+                        <p>ECMWF physical-model ensemble; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/ifs_ens/temperature_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+                <section class="forecast-view" data-variable="temperature" data-day="3" hidden>
+                  <div class="section-title">
+                    <div>
+                      <p class="kicker">Temperature · Forecast day 3</p>
+                      <h2>2 m Temperature</h2>
+                    </div>
+                    <p>Exact temperature snapshot at the selected forecast lead. Valid endpoint: 31 July 2026, 00:00 UTC.</p>
+                  </div>
+                  <figure class="comparison">
+                    <a class="image-link" href="assets/forecasts/20260728_00/comparisons/temperature_day3.png">
+                      <img loading="lazy" src="assets/forecasts/20260728_00/comparisons/temperature_day3.png" alt="Six-model comparison of 2 m temperature over the India region for forecast day 3">
+                    </a>
+                    <figcaption>
+                      <span>Six-model comparison · common color scale</span>
+                      <a class="download" href="assets/forecasts/20260728_00/comparisons/temperature_day3.png" download>Download comparison PNG</a>
+                    </figcaption>
+                  </figure>
+                  <div class="model-grid">
+
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/weathernext2/temperature_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/weathernext2/temperature_day3.png" alt="WeatherNext 2 / FGN 2 m temperature map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>WeatherNext 2 / FGN</h3>
+                        <p>Functional Generative Network; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/weathernext2/temperature_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gencast/temperature_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gencast/temperature_day3.png" alt="GenCast 2 m temperature map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GenCast</h3>
+                        <p>Probabilistic AI forecast; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gencast/temperature_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gfs/temperature_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gfs/temperature_day3.png" alt="GFS 2 m temperature map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GFS</h3>
+                        <p>NOAA deterministic Global Forecast System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gfs/temperature_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gefs/temperature_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gefs/temperature_day3.png" alt="GEFS 2 m temperature map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GEFS</h3>
+                        <p>NOAA ensemble forecast; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gefs/temperature_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/aifs/temperature_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/aifs/temperature_day3.png" alt="AIFS 2 m temperature map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>AIFS</h3>
+                        <p>ECMWF deterministic Artificial Intelligence Forecasting System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/aifs/temperature_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/ifs_ens/temperature_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/ifs_ens/temperature_day3.png" alt="IFS-ENS 2 m temperature map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>IFS-ENS</h3>
+                        <p>ECMWF physical-model ensemble; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/ifs_ens/temperature_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+                <section class="forecast-view" data-variable="precipitation" data-day="1" hidden>
+                  <div class="section-title">
+                    <div>
+                      <p class="kicker">Precipitation · Forecast day 1</p>
+                      <h2>Cumulative Precipitation</h2>
+                    </div>
+                    <p>Total precipitation accumulated from initialization through the selected lead. Valid endpoint: 29 July 2026, 00:00 UTC.</p>
+                  </div>
+                  <figure class="comparison">
+                    <a class="image-link" href="assets/forecasts/20260728_00/comparisons/precipitation_day1.png">
+                      <img loading="lazy" src="assets/forecasts/20260728_00/comparisons/precipitation_day1.png" alt="Six-model comparison of cumulative precipitation over the India region for forecast day 1">
+                    </a>
+                    <figcaption>
+                      <span>Six-model comparison · common color scale</span>
+                      <a class="download" href="assets/forecasts/20260728_00/comparisons/precipitation_day1.png" download>Download comparison PNG</a>
+                    </figcaption>
+                  </figure>
+                  <div class="model-grid">
+
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/weathernext2/precipitation_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/weathernext2/precipitation_day1.png" alt="WeatherNext 2 / FGN cumulative precipitation map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>WeatherNext 2 / FGN</h3>
+                        <p>Functional Generative Network; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/weathernext2/precipitation_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gencast/precipitation_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gencast/precipitation_day1.png" alt="GenCast cumulative precipitation map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GenCast</h3>
+                        <p>Probabilistic AI forecast; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gencast/precipitation_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gfs/precipitation_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gfs/precipitation_day1.png" alt="GFS cumulative precipitation map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GFS</h3>
+                        <p>NOAA deterministic Global Forecast System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gfs/precipitation_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gefs/precipitation_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gefs/precipitation_day1.png" alt="GEFS cumulative precipitation map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GEFS</h3>
+                        <p>NOAA ensemble forecast; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gefs/precipitation_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/aifs/precipitation_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/aifs/precipitation_day1.png" alt="AIFS cumulative precipitation map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>AIFS</h3>
+                        <p>ECMWF deterministic Artificial Intelligence Forecasting System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/aifs/precipitation_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/ifs_ens/precipitation_day1.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/ifs_ens/precipitation_day1.png" alt="IFS-ENS cumulative precipitation map over the India region for forecast day 1">
+                      </a>
+                      <div class="card-copy">
+                        <h3>IFS-ENS</h3>
+                        <p>ECMWF physical-model ensemble; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/ifs_ens/precipitation_day1.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+                <section class="forecast-view" data-variable="precipitation" data-day="2" hidden>
+                  <div class="section-title">
+                    <div>
+                      <p class="kicker">Precipitation · Forecast day 2</p>
+                      <h2>Cumulative Precipitation</h2>
+                    </div>
+                    <p>Total precipitation accumulated from initialization through the selected lead. Valid endpoint: 30 July 2026, 00:00 UTC.</p>
+                  </div>
+                  <figure class="comparison">
+                    <a class="image-link" href="assets/forecasts/20260728_00/comparisons/precipitation_day2.png">
+                      <img loading="lazy" src="assets/forecasts/20260728_00/comparisons/precipitation_day2.png" alt="Six-model comparison of cumulative precipitation over the India region for forecast day 2">
+                    </a>
+                    <figcaption>
+                      <span>Six-model comparison · common color scale</span>
+                      <a class="download" href="assets/forecasts/20260728_00/comparisons/precipitation_day2.png" download>Download comparison PNG</a>
+                    </figcaption>
+                  </figure>
+                  <div class="model-grid">
+
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/weathernext2/precipitation_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/weathernext2/precipitation_day2.png" alt="WeatherNext 2 / FGN cumulative precipitation map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>WeatherNext 2 / FGN</h3>
+                        <p>Functional Generative Network; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/weathernext2/precipitation_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gencast/precipitation_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gencast/precipitation_day2.png" alt="GenCast cumulative precipitation map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GenCast</h3>
+                        <p>Probabilistic AI forecast; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gencast/precipitation_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gfs/precipitation_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gfs/precipitation_day2.png" alt="GFS cumulative precipitation map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GFS</h3>
+                        <p>NOAA deterministic Global Forecast System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gfs/precipitation_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gefs/precipitation_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gefs/precipitation_day2.png" alt="GEFS cumulative precipitation map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GEFS</h3>
+                        <p>NOAA ensemble forecast; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gefs/precipitation_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/aifs/precipitation_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/aifs/precipitation_day2.png" alt="AIFS cumulative precipitation map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>AIFS</h3>
+                        <p>ECMWF deterministic Artificial Intelligence Forecasting System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/aifs/precipitation_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/ifs_ens/precipitation_day2.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/ifs_ens/precipitation_day2.png" alt="IFS-ENS cumulative precipitation map over the India region for forecast day 2">
+                      </a>
+                      <div class="card-copy">
+                        <h3>IFS-ENS</h3>
+                        <p>ECMWF physical-model ensemble; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/ifs_ens/precipitation_day2.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+                <section class="forecast-view" data-variable="precipitation" data-day="3" hidden>
+                  <div class="section-title">
+                    <div>
+                      <p class="kicker">Precipitation · Forecast day 3</p>
+                      <h2>Cumulative Precipitation</h2>
+                    </div>
+                    <p>Total precipitation accumulated from initialization through the selected lead. Valid endpoint: 31 July 2026, 00:00 UTC.</p>
+                  </div>
+                  <figure class="comparison">
+                    <a class="image-link" href="assets/forecasts/20260728_00/comparisons/precipitation_day3.png">
+                      <img loading="lazy" src="assets/forecasts/20260728_00/comparisons/precipitation_day3.png" alt="Six-model comparison of cumulative precipitation over the India region for forecast day 3">
+                    </a>
+                    <figcaption>
+                      <span>Six-model comparison · common color scale</span>
+                      <a class="download" href="assets/forecasts/20260728_00/comparisons/precipitation_day3.png" download>Download comparison PNG</a>
+                    </figcaption>
+                  </figure>
+                  <div class="model-grid">
+
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/weathernext2/precipitation_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/weathernext2/precipitation_day3.png" alt="WeatherNext 2 / FGN cumulative precipitation map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>WeatherNext 2 / FGN</h3>
+                        <p>Functional Generative Network; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/weathernext2/precipitation_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gencast/precipitation_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gencast/precipitation_day3.png" alt="GenCast cumulative precipitation map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GenCast</h3>
+                        <p>Probabilistic AI forecast; mean of an evenly spaced 8-member subset.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gencast/precipitation_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gfs/precipitation_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gfs/precipitation_day3.png" alt="GFS cumulative precipitation map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GFS</h3>
+                        <p>NOAA deterministic Global Forecast System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gfs/precipitation_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/gefs/precipitation_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/gefs/precipitation_day3.png" alt="GEFS cumulative precipitation map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>GEFS</h3>
+                        <p>NOAA ensemble forecast; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/gefs/precipitation_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/aifs/precipitation_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/aifs/precipitation_day3.png" alt="AIFS cumulative precipitation map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>AIFS</h3>
+                        <p>ECMWF deterministic Artificial Intelligence Forecasting System.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/aifs/precipitation_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                    <article class="model-card">
+                      <a class="image-link" href="assets/forecasts/20260728_00/ifs_ens/precipitation_day3.png">
+                        <img loading="lazy" src="assets/forecasts/20260728_00/ifs_ens/precipitation_day3.png" alt="IFS-ENS cumulative precipitation map over the India region for forecast day 3">
+                      </a>
+                      <div class="card-copy">
+                        <h3>IFS-ENS</h3>
+                        <p>ECMWF physical-model ensemble; mean of all available members.</p>
+                        <a class="download" href="assets/forecasts/20260728_00/ifs_ens/precipitation_day3.png" download>Download PNG</a>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+        </div>
+      </section>
+
+      <section class="method-band" id="method">
+        <div class="shell">
+          <div class="intro-row light">
+            <div>
+              <p class="kicker">Method</p>
+              <h2>A clean, comparable forecast slice.</h2>
+            </div>
+            <p>Every product is derived from the exact 28 July 00 UTC cycle. Missing
+            cycles or target leads stop publication; neighbouring runs are never substituted.</p>
+          </div>
+          <div class="method-grid">
+            <article><span>01</span><h3>Align</h3><p>All sources are cropped to the same India-region bounding box and exact lead endpoints.</p></article>
+            <article><span>02</span><h3>Normalize</h3><p>Temperature is converted to °C. Precipitation rates or buckets become millimetres accumulated since initialization.</p></article>
+            <article><span>03</span><h3>Reduce</h3><p>Ensemble products are shown as means. GCS sources use eight evenly spaced members; tiled sources use all members.</p></article>
+            <article><span>04</span><h3>Render</h3><p>Maps share projections, extents, geographic context, and fixed variable-specific color scales.</p></article>
+          </div>
+          <div class="definitions">
+            <div><strong>Temperature Day N</strong><span>2 m temperature at exactly T+24N hours.</span></div>
+            <div><strong>Precipitation Day N</strong><span>Total precipitation accumulated from init through T+24N hours.</span></div>
           </div>
         </div>
       </section>
 
-      <section id="notes">
-        <div class="section-head">
-          <h2>How to read these products</h2>
-          <p>The visualizations are intentionally accompanied by their key assumptions, scope, and limits so they can be used responsibly.</p>
-        </div>
-        <div class="method">
-          <div class="panel">
-            <h3>Event-study method</h3>
-            <dl>
-              <dt>Composite</dt><dd>Pixelwise maximum across 13 radar elevation layers.</dd>
-              <dt>QPE relation</dt><dd>Marshall–Palmer Z = 200R<sup>1.6</sup>, with a 15 dBZ dry threshold and 53 dBZ cap.</dd>
-              <dt>Integration</dt><dd>10-minute rain-rate intervals over the complete IST civil day.</dd>
-              <dt>Bias correction</dt><dd>Gauge/radar ratios spatially interpolated using inverse-distance weighting.</dd>
-              <dt>Forecast reference</dt><dd>Dynamic persistence combines echo motion with low-elevation Doppler-velocity information.</dd>
-            </dl>
+      <section class="sources shell" id="sources">
+        <div class="intro-row">
+          <div>
+            <p class="kicker">Data provenance</p>
+            <h2>Source by source.</h2>
           </div>
-          <figure>
-            <img src="assets/radar/persistence-skill.png" alt="Line chart showing dynamic persistence skill by forecast lead time">
-            <figcaption><strong>Persistence skill by lead time</strong><span>Full-region performance is stronger than the finite Delhi crop at longer leads, where echoes can enter from outside the boundary.</span></figcaption>
-          </figure>
+          <p>WeatherNext products are read from private GCS Zarr archives. NOAA and ECMWF
+          products are read from dynamical.org’s analysis-ready Icechunk archives.</p>
         </div>
-      </section>
-
-      <section class="warning" aria-label="Important data caveats">
-        <h3>Important archive caveats</h3>
-        <p>The 2021–25 animations are raw, uncalibrated Marshall–Palmer QPE: use them for spatial pattern and timing, not absolute rainfall comparisons. The 2021–24 and 2025 radar formats are not calibration-consistent; values across the 2024|2025 boundary are not directly comparable. Near-radar clutter is interpolated within a 10 km cone, and dry-season near-radar signal can include non-meteorological echo. Monsoon frames are the most meaningful signal.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Model</th><th>Archive</th><th>Map reduction</th><th>Documentation</th></tr></thead>
+            <tbody>
+            <tr>
+              <th scope="row">WeatherNext 2 / FGN</th>
+              <td>Google WeatherNext</td>
+              <td>8 / 64 members</td>
+              <td><a href="https://developers.google.com/weathernext/guides/model-specs-vmg">Source details</a></td>
+            </tr>
+            <tr>
+              <th scope="row">GenCast</th>
+              <td>Google WeatherNext</td>
+              <td>8 / 64 members</td>
+              <td><a href="https://developers.google.com/weathernext">Source details</a></td>
+            </tr>
+            <tr>
+              <th scope="row">GFS</th>
+              <td>dynamical.org / NOAA</td>
+              <td>Deterministic</td>
+              <td><a href="https://dynamical.org/catalog/noaa-gfs-forecast/">Source details</a></td>
+            </tr>
+            <tr>
+              <th scope="row">GEFS</th>
+              <td>dynamical.org / NOAA</td>
+              <td>31 / 31 members</td>
+              <td><a href="https://dynamical.org/catalog/noaa-gefs/">Source details</a></td>
+            </tr>
+            <tr>
+              <th scope="row">AIFS</th>
+              <td>dynamical.org / ECMWF</td>
+              <td>Deterministic</td>
+              <td><a href="https://dynamical.org/catalog/ecmwf-aifs/">Source details</a></td>
+            </tr>
+            <tr>
+              <th scope="row">IFS-ENS</th>
+              <td>dynamical.org / ECMWF</td>
+              <td>51 / 51 members</td>
+              <td><a href="https://dynamical.org/catalog/ecmwf-ifs/">Source details</a></td>
+            </tr></tbody>
+          </table>
+        </div>
+        <aside class="notice">
+          <strong>Experimental guidance.</strong>
+          <p>These maps are for visualization and research. They are not official forecasts,
+          warnings, or public-safety products. Consult the India Meteorological Department
+          and relevant authorities for operational guidance.</p>
+        </aside>
       </section>
     </main>
 
     <footer>
-      <div class="shell"><p>Source collection: Palam DWR annual products experiment · Event date: 2025-07-29 IST · Satellite basemap attribution in the source products: Esri, Maxar, Earthstar Geographics, and the GIS User Community.</p></div>
+      <div class="shell footer-row">
+        <p>India Multi-Model Forecast Atlas · init 2026-07-28 00 UTC</p>
+        <a href="#top">Back to top ↑</a>
+      </div>
     </footer>
   </body>
 </html>
