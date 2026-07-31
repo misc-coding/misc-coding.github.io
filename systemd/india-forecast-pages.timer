@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily 14:00 IST India forecast archive refresh
+
+[Timer]
+OnCalendar=*-*-* 14:00:00 Asia/Kolkata
+Persistent=true
+AccuracySec=1min
+Unit=india-forecast-pages.service
+
+[Install]
+WantedBy=timers.target
