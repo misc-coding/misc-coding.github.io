@@ -5,6 +5,8 @@
   const validationVariableButtons = [...document.querySelectorAll("[data-validation-variable]")];
   const validationImage = document.querySelector("#validation-image");
   const validationSummary = document.querySelector("#validation-summary");
+  const matchInitSelect = document.querySelector("#match-init-select");
+  const matchImage = document.querySelector("#match-image");
   const runSelect = document.querySelector("#run-select");
   const runSummary = document.querySelector("#run-summary");
   const views = [...document.querySelectorAll(".forecast-view")];
@@ -20,6 +22,7 @@
   let init = allowedInits.has(params.get("init")) ? params.get("init") : runs[0].id;
   let validationCity = Object.keys(validation.cities).includes(params.get("city")) ? params.get("city") : Object.keys(validation.cities)[0];
   let validationVariable = allowedVariables.has(params.get("validation")) ? params.get("validation") : "temperature";
+  let matchInit = allowedInits.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
 
   function render(updateUrl = true) {
     variableButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.variableButton === variable)));
@@ -52,6 +55,19 @@
       next.searchParams.set("validation", validationVariable);
       history.replaceState(null, "", next);
     }
+    renderMatchedTimeseries(updateUrl);
+  }
+
+  function renderMatchedTimeseries(updateUrl = true) {
+    const image = validation.cities[validationCity].timeseries[matchInit][validationVariable];
+    matchInitSelect.value = matchInit;
+    matchImage.src = image.path;
+    matchImage.alt = image.alt;
+    if (updateUrl) {
+      const next = new URL(window.location.href);
+      next.searchParams.set("match_init", matchInit);
+      history.replaceState(null, "", next);
+    }
   }
 
   variableButtons.forEach((button) => button.addEventListener("click", () => { variable = button.dataset.variableButton; render(); }));
@@ -59,6 +75,7 @@
   runSelect.addEventListener("change", () => { init = runSelect.value; render(); });
   validationCityButtons.forEach((button) => button.addEventListener("click", () => { validationCity = button.dataset.validationCity; renderValidation(); }));
   validationVariableButtons.forEach((button) => button.addEventListener("click", () => { validationVariable = button.dataset.validationVariable; renderValidation(); }));
+  matchInitSelect.addEventListener("change", () => { matchInit = matchInitSelect.value; renderMatchedTimeseries(); });
   render(false);
   renderValidation(false);
 })();

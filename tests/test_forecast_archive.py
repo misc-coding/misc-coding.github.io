@@ -51,6 +51,13 @@ def test_build_html_includes_each_run_in_the_selector():
         {**run, "id": f"202607{day:02d}_00", "initialization_utc": f"2026-07-{day:02d}T00:00:00Z"}
         for day in range(24, 31)
     ]
+    timeseries = {
+        f"202607{day:02d}_00": {
+            "temperature": {"path": f"assets/validation/timeseries/202607{day:02d}_00/delhi-temperature.png", "alt": "Delhi temperature"},
+            "precipitation": {"path": f"assets/validation/timeseries/202607{day:02d}_00/delhi-precipitation.png", "alt": "Delhi precipitation"},
+        }
+        for day in range(24, 31)
+    }
     validation = {
         "cities": {
             "Delhi": {
@@ -59,6 +66,7 @@ def test_build_html_includes_each_run_in_the_selector():
                     "precipitation": {"path": "assets/validation/delhi-precipitation.png", "alt": "Delhi precipitation"},
                 },
                 "summary": {"temperature": {"matched_points": 12}, "precipitation": {"matched_points": 12}},
+                "timeseries": timeseries,
             },
         },
     }
@@ -66,3 +74,4 @@ def test_build_html_includes_each_run_in_the_selector():
     assert 'id="run-select"' in html
     assert 'data-init="20260730_00"' in html
     assert 'id="validation-image"' in html
+    assert 'id="match-image"' in html

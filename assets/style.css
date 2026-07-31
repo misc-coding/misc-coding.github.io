@@ -147,4 +147,10 @@ footer a { color: #dceae8; }
 .validation { padding-top: 92px; padding-bottom: 96px; scroll-margin-top: 20px; }
 .validation-summary { margin: -25px 0 20px; color: var(--muted); font-size: .9rem; }
 .validation-figure { margin-bottom: 0; }
+.single-init-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin: 54px 0 20px; }
+.single-init-head .kicker { margin-bottom: 7px; }
+.single-init-head h3 { margin: 0; font-size: 1.6rem; letter-spacing: -.04em; }
+.single-init-head label { display: grid; gap: 7px; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.single-init-head select { min-width: 185px; border: 1px solid var(--line); border-radius: 2px; padding: 9px; color: var(--ink); background: white; font: inherit; font-size: .82rem; letter-spacing: normal; text-transform: none; }
+@media (max-width: 650px) { .single-init-head { display: grid; align-items: start; } }
 @media (max-width: 650px) { .validation { padding-top: 65px; padding-bottom: 68px; } }
