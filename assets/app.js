@@ -16,7 +16,7 @@
   const validation = siteData.validation;
   const params = new URLSearchParams(window.location.search);
   const allowedVariables = new Set(["temperature", "precipitation"]);
-  const allowedDays = new Set(["1", "2", "3"]);
+  const allowedDays = new Set(["1", "3", "5"]);
   const allowedInits = new Set(runs.map((run) => run.id));
   let variable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let day = allowedDays.has(params.get("day")) ? params.get("day") : "1";
