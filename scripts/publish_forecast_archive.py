@@ -324,6 +324,7 @@ ARCHIVE_JS = r"""
   const validationImage = document.querySelector("#validation-image");
   const validationSummary = document.querySelector("#validation-summary");
   const matchInitSelect = document.querySelector("#match-init-select");
+  const matchVariableButtons = [...document.querySelectorAll("[data-match-variable]")];
   const matchImage = document.querySelector("#match-image");
   const runSelect = document.querySelector("#run-select");
   const runSummary = document.querySelector("#run-summary");
@@ -341,6 +342,7 @@ ARCHIVE_JS = r"""
   let validationCity = Object.keys(validation.cities).includes(params.get("city")) ? params.get("city") : Object.keys(validation.cities)[0];
   let validationVariable = allowedVariables.has(params.get("validation")) ? params.get("validation") : "temperature";
   let matchInit = allowedInits.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
+  let matchVariable = allowedVariables.has(params.get("match_variable")) ? params.get("match_variable") : "precipitation";
 
   function render(updateUrl = true) {
     variableButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.variableButton === variable)));
@@ -377,13 +379,15 @@ ARCHIVE_JS = r"""
   }
 
   function renderMatchedTimeseries(updateUrl = true) {
-    const image = validation.cities[validationCity].timeseries[matchInit][validationVariable];
+    matchVariableButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.matchVariable === matchVariable)));
+    const image = validation.cities[validationCity].timeseries[matchInit][matchVariable];
     matchInitSelect.value = matchInit;
     matchImage.src = image.path;
     matchImage.alt = image.alt;
     if (updateUrl) {
       const next = new URL(window.location.href);
       next.searchParams.set("match_init", matchInit);
+      next.searchParams.set("match_variable", matchVariable);
       history.replaceState(null, "", next);
     }
   }
@@ -394,6 +398,7 @@ ARCHIVE_JS = r"""
   validationCityButtons.forEach((button) => button.addEventListener("click", () => { validationCity = button.dataset.validationCity; renderValidation(); }));
   validationVariableButtons.forEach((button) => button.addEventListener("click", () => { validationVariable = button.dataset.validationVariable; renderValidation(); }));
   matchInitSelect.addEventListener("change", () => { matchInit = matchInitSelect.value; renderMatchedTimeseries(); });
+  matchVariableButtons.forEach((button) => button.addEventListener("click", () => { matchVariable = button.dataset.matchVariable; renderMatchedTimeseries(); }));
   render(false);
   renderValidation(false);
 })();
@@ -428,7 +433,7 @@ def build_html(archive: dict, renderer, validation: dict) -> str:
         for city in validation_cities
     )
     default_image = validation["cities"][default_city]["images"]["temperature"]
-    default_match_image = validation["cities"][default_city]["timeseries"][archive["runs"][0]["id"]]["temperature"]
+    default_match_image = validation["cities"][default_city]["timeseries"][archive["runs"][0]["id"]]["precipitation"]
     data = json.dumps({
         "runs": [{"id": run["id"], "initialization_utc": run["initialization_utc"]} for run in archive["runs"]],
         "validation": validation,
@@ -444,7 +449,7 @@ def build_html(archive: dict, renderer, validation: dict) -> str:
   <main id="top"><section class="hero"><div class="shell hero-grid"><div><p class="eyebrow">Six global models · rolling seven-run archive</p><h1>India forecast atlas</h1><p class="lede">Temperature snapshots and cumulative rainfall from WeatherNext 2, GenCast, GFS, GEFS, AIFS, and IFS-ENS—aligned to the same initialization, forecast leads, map extent, units, and color scales.</p><div class="hero-actions"><a class="primary-action" href="#maps">Explore the maps</a><a class="text-action" href="assets/forecast_archive.json">View archive provenance</a></div></div><dl class="run-card"><div><dt>Initialization</dt><dd id="run-summary">Loading archive…</dd></div><div><dt>Archive run</dt><dd><label class="sr-only" for="run-select">Choose forecast initialization</label><select id="run-select">{options}</select></dd></div><div><dt>Forecast leads</dt><dd>T+24 · T+48 · T+72 hours</dd></div><div><dt>Products</dt><dd>42 maps per initialization</dd></div></dl></div></section>
   <section class="run-strip" aria-label="Forecast summary"><div class="shell stats"><div><strong>6</strong><span>forecast models</span></div><div><strong>7</strong><span>retained runs</span></div><div><strong>3</strong><span>forecast days</span></div><div><strong>294</strong><span>archived PNG products</span></div></div></section>
   <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Forecast gallery</p><h2>Compare the same atmosphere, six ways.</h2></div><p>Select an initialization, variable, and lead. Every comparison sheet and individual map uses a common scale within its selected variable.</p></div><div class="controls" aria-label="Forecast map controls"><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Precipitation</button></div></fieldset><fieldset><legend>Forecast lead</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="2" aria-pressed="false">Day 2 · +48h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button></div></fieldset></div><div id="forecast-views" aria-live="polite">{sections}</div></section>
-  <section class="validation shell" id="validation"><div class="intro-row"><div><p class="kicker">Realized forecast validation</p><h2>Forecasts matched to ground truth.</h2></div><p>Each point compares a published forecast with Open-Meteo observations at the same city and time. Rainfall is accumulated over the identical initialization-to-valid-time interval.</p></div><div class="controls validation-controls" aria-label="Validation chart controls"><fieldset><legend>City</legend><div class="segmented">{validation_city_controls}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Rainfall accumulation</button></div></fieldset></div><p class="validation-summary" id="validation-summary"></p><figure class="comparison validation-figure"><img id="validation-image" src="{default_image['path']}" alt="{default_image['alt']}"><figcaption><span>Left: matched forecast vs. observation. Right: mean absolute error by lead.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure><div class="single-init-head"><div><p class="kicker">One initialization at a time</p><h3>Forecast and ground truth over the horizon.</h3></div><label>Initialization <select id="match-init-select">{options}</select></label></div><figure class="comparison validation-figure"><img id="match-image" src="{default_match_image['path']}" alt="{default_match_image['alt']}"><figcaption><span>Each model trace is compared with the matched Open-Meteo observation at Day 1–3.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure></section>
+  <section class="validation shell" id="validation"><div class="intro-row"><div><p class="kicker">Realized forecast validation</p><h2>Forecasts matched to ground truth.</h2></div><p>Each point compares a published forecast with Open-Meteo observations at the same city and time. Rainfall is accumulated over the identical initialization-to-valid-time interval.</p></div><div class="controls validation-controls" aria-label="Validation chart controls"><fieldset><legend>City</legend><div class="segmented">{validation_city_controls}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Rainfall accumulation</button></div></fieldset></div><p class="validation-summary" id="validation-summary"></p><figure class="comparison validation-figure"><img id="validation-image" src="{default_image['path']}" alt="{default_image['alt']}"><figcaption><span>Left: matched forecast vs. observation. Right: mean absolute error by lead.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure><div class="single-init-head"><div><p class="kicker">One initialization at a time</p><h3>Forecast and ground truth over the horizon.</h3></div><label>Initialization <select id="match-init-select">{options}</select></label></div><div class="controls match-controls" aria-label="Single-initialization variable controls"><fieldset><legend>Matched variable</legend><div class="segmented"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Rainfall accumulation</button></div></fieldset></div><figure class="comparison validation-figure"><img id="match-image" src="{default_match_image['path']}" alt="{default_match_image['alt']}"><figcaption><span>Each model trace is compared with the matched Open-Meteo observation at Day 1–3.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure></section>
   <section class="method-band" id="method"><div class="shell"><div class="intro-row light"><div><p class="kicker">Method</p><h2>A clean, comparable forecast slice.</h2></div><p>Only common 00 UTC cycles with all required models and target leads are published. Missing data stops publication; a previous run is never silently substituted.</p></div><div class="method-grid"><article><span>01</span><h3>Align</h3><p>All sources are cropped to the same India-region bounding box and exact lead endpoints.</p></article><article><span>02</span><h3>Normalize</h3><p>Temperature is converted to °C. Precipitation becomes millimetres accumulated since initialization.</p></article><article><span>03</span><h3>Reduce</h3><p>Ensemble products are shown as means. Private GCS sources use eight evenly spaced members; tiled sources use all members.</p></article><article><span>04</span><h3>Validate</h3><p>Each map and every linked artifact is verified before a run can enter the archive.</p></article></div></div></section>
   <section class="sources shell" id="sources"><div class="intro-row"><div><p class="kicker">Data provenance</p><h2>Source by source.</h2></div><p>WeatherNext products are read from private GCS Zarr archives. NOAA and ECMWF products are read from dynamical.org’s analysis-ready Icechunk archives.</p></div><div class="table-wrap"><table><thead><tr><th>Model</th><th>Archive</th><th>Map reduction</th><th>Documentation</th></tr></thead><tbody>{source_rows}</tbody></table></div><aside class="notice"><strong>Experimental guidance.</strong><p>These maps are for visualization and research. They are not official forecasts, warnings, or public-safety products. Consult the India Meteorological Department and relevant authorities for operational guidance.</p></aside></section></main>
   <footer><div class="shell footer-row"><p>India Multi-Model Forecast Atlas · rolling seven-run archive</p><a href="#top">Back to top ↑</a></div></footer><script id="archive-data" type="application/json">{data}</script></body></html>\n'''
@@ -462,6 +467,7 @@ ARCHIVE_CSS = r"""
 .single-init-head h3 { margin: 0; font-size: 1.6rem; letter-spacing: -.04em; }
 .single-init-head label { display: grid; gap: 7px; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .single-init-head select { min-width: 185px; border: 1px solid var(--line); border-radius: 2px; padding: 9px; color: var(--ink); background: white; font: inherit; font-size: .82rem; letter-spacing: normal; text-transform: none; }
+.match-controls { margin-bottom: 20px; }
 @media (max-width: 650px) { .single-init-head { display: grid; align-items: start; } }
 @media (max-width: 650px) { .validation { padding-top: 65px; padding-bottom: 68px; } }
 """
