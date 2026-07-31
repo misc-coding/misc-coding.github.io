@@ -27,6 +27,11 @@ SITE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REALTIME_ROOT = Path("/home/saptarishi.dhanuka_asp25/weather/real_time")
 DEFAULT_PYTHON = Path("/Datastorage/saptarishi.dhanuka_asp25/conda_envs/realtime_dash/bin/python")
 LEAD_DAYS = (1, 3, 5)
+RANGE_VARIABLES = (
+    ("temperature_high", "Daily high 2 m temperature", "maximum"),
+    ("temperature_low", "Daily low 2 m temperature", "minimum"),
+)
+ARTIFACTS_PER_RUN = 84
 
 
 def stamp(init: pd.Timestamp) -> str:
@@ -88,7 +93,7 @@ def valid_existing_runs(site: Path, archive: dict, renderer) -> list[dict]:
         try:
             init = pd.Timestamp(run["initialization_utc"])
             run_leads = tuple(item["day"] for item in run.get("lead_days", []))
-            if stamp(init) != run["id"] or len(run["artifacts"]) != 42 or run_leads != LEAD_DAYS:
+            if stamp(init) != run["id"] or len(run["artifacts"]) not in (42, ARTIFACTS_PER_RUN) or run_leads != LEAD_DAYS:
                 continue
             for artifact in run["artifacts"]:
                 renderer.validate_png(site / artifact["path"])
@@ -98,7 +103,7 @@ def valid_existing_runs(site: Path, archive: dict, renderer) -> list[dict]:
     return runs
 
 
-def render_run(init, models, cfg, renderer, stage: Path, attempts: int) -> dict:
+def render_run(init, models, cfg, renderer, india_load, stage: Path, attempts: int) -> dict:
     datasets = {}
     for model in models:
         print(f"[{stamp(init)}] loading {renderer.MODEL_META[model]['label']}", flush=True)
@@ -106,10 +111,13 @@ def render_run(init, models, cfg, renderer, stage: Path, attempts: int) -> dict:
             model, cfg, init, max_members=8, attempts=attempts,
         )
     artifacts = renderer.render_all_maps(datasets, models, init, cfg, stage)
+    artifacts.extend(render_daily_temperature_ranges(init, datasets, models, cfg, renderer, india_load, stage))
     manifest = renderer.build_manifest(datasets, models, init, cfg, artifacts)
     manifest["lead_semantics"] = {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
         "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+        "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead.",
     }
     return {
         "id": stamp(init),
@@ -123,6 +131,185 @@ def render_run(init, models, cfg, renderer, stage: Path, attempts: int) -> dict:
         "disclaimer": manifest["disclaimer"],
         "artifacts": artifacts,
     }
+
+
+def _daily_temperature_ranges(model: str, init, cfg, india_load, reference: xr.Dataset) -> dict[str, xr.Dataset]:
+    """Derive daily extrema from every available forecast time step, not endpoints.
+
+    The public archive samples day 1, 3, and 5.  For each selected day, high and
+    low are calculated over that *calendar forecast day* (e.g. T+48..T+72 for
+    day 3), using the source model's native time steps after ensemble reduction.
+    """
+    series = india_load.load_india_series_cached(
+        model, cfg, init, horizon_days=max(LEAD_DAYS), max_members=8,
+    ).load()
+    valid = pd.to_datetime(series["valid_time"].values).tz_localize(None)
+    fields: dict[str, list[xr.DataArray]] = {"maximum": [], "minimum": []}
+    targets = []
+    init_time = pd.Timestamp(init).tz_localize(None)
+    for day in LEAD_DAYS:
+        start = init_time + pd.Timedelta(days=day - 1)
+        end = init_time + pd.Timedelta(days=day)
+        chosen = np.flatnonzero((valid > start) & (valid <= end))
+        if not len(chosen):
+            raise ValueError(f"{model}: no temperature samples in {start}..{end}")
+        daily = series["t2m_C"].isel(valid_time=chosen)
+        fields["maximum"].append(daily.max("valid_time"))
+        fields["minimum"].append(daily.min("valid_time"))
+        targets.append(np.datetime64(end, "ns"))
+
+    out = {}
+    for kind, values in fields.items():
+        data = xr.concat(
+            values,
+            dim=xr.DataArray(np.asarray(LEAD_DAYS, dtype=np.int16), dims="lead_day", name="lead_day"),
+        )
+        dataset = xr.Dataset({"t2m_C": data})
+        dataset = dataset.assign_coords(valid_time=("lead_day", np.asarray(targets)))
+        dataset.attrs = dict(reference.attrs)
+        dataset.attrs["temperature_range_definition"] = (
+            f"daily {kind} of native-step 2 m temperature over the 24 hours ending at each displayed lead"
+        )
+        out[kind] = dataset
+    return out
+
+
+def render_daily_temperature_ranges(init, datasets, models, cfg, renderer, india_load, stage: Path) -> list[dict]:
+    """Render daily high/low map layers while retaining the shared renderer style."""
+    extrema = {
+        model: _daily_temperature_ranges(model, init, cfg, india_load, datasets[model])
+        for model in models
+    }
+    tag = stamp(init)
+    records = []
+    original_meta = dict(renderer.VAR_META["temperature"])
+    original_caption = renderer._lead_caption
+    try:
+        for variable, label, kind in RANGE_VARIABLES:
+            renderer.VAR_META["temperature"].update({
+                "label": label,
+                "short_label": "Daily high" if kind == "maximum" else "Daily low",
+                "description": (
+                    "Maximum" if kind == "maximum" else "Minimum"
+                ) + " 2 m temperature over the 24 hours ending at the selected lead.",
+            })
+
+            def range_caption(_variable, run_init, day, *, _kind=kind):
+                start = pd.Timestamp(run_init) + pd.Timedelta(days=day - 1)
+                end = pd.Timestamp(run_init) + pd.Timedelta(days=day)
+                word = "maximum" if _kind == "maximum" else "minimum"
+                return f"Daily {word} · {start:%Y-%m-%d %H:%M} → {end:%Y-%m-%d %H:%M} UTC"
+
+            renderer._lead_caption = range_caption
+            range_datasets = {model: extrema[model][kind] for model in models}
+            for day in LEAD_DAYS:
+                rel = Path("assets") / "forecasts" / tag / "comparisons" / f"{variable}_day{day}.png"
+                out = stage / rel
+                renderer.render_comparison(
+                    range_datasets, models, "temperature", day,
+                    init=init, bbox=cfg.india_bbox, out=out,
+                )
+                renderer.validate_png(out)
+                records.append({"kind": "comparison", "variable": variable, "day": day, "path": rel.as_posix()})
+                for model in models:
+                    rel = Path("assets") / "forecasts" / tag / model / f"{variable}_day{day}.png"
+                    out = stage / rel
+                    renderer.render_individual(
+                        range_datasets[model], model, "temperature", day,
+                        init=init, bbox=cfg.india_bbox, out=out,
+                    )
+                    renderer.validate_png(out)
+                    records.append({
+                        "kind": "individual", "model": model, "variable": variable,
+                        "day": day, "path": rel.as_posix(),
+                    })
+    finally:
+        renderer.VAR_META["temperature"].clear()
+        renderer.VAR_META["temperature"].update(original_meta)
+        renderer._lead_caption = original_caption
+    if len(records) != 42:
+        raise AssertionError(f"expected 42 daily-range PNGs, produced {len(records)}")
+    return records
+
+
+def has_daily_temperature_ranges(run: dict) -> bool:
+    available = {artifact.get("variable") for artifact in run.get("artifacts", [])}
+    return all(variable in available for variable, _, _ in RANGE_VARIABLES)
+
+
+def add_available_daily_ranges(retained: list[dict], stage: Path, renderer) -> list[dict]:
+    """Register already-rendered range assets copied into the atomic stage."""
+    updated = []
+    for run in retained:
+        if has_daily_temperature_ranges(run):
+            updated.append(run)
+            continue
+        records = []
+        complete = True
+        for variable, _, _ in RANGE_VARIABLES:
+            for day in LEAD_DAYS:
+                comparison = Path("assets") / "forecasts" / run["id"] / "comparisons" / f"{variable}_day{day}.png"
+                if not (stage / comparison).is_file():
+                    complete = False
+                    break
+                renderer.validate_png(stage / comparison)
+                records.append({"kind": "comparison", "variable": variable, "day": day, "path": comparison.as_posix()})
+                for model in run["models"]:
+                    individual = Path("assets") / "forecasts" / run["id"] / model["id"] / f"{variable}_day{day}.png"
+                    if not (stage / individual).is_file():
+                        complete = False
+                        break
+                    renderer.validate_png(stage / individual)
+                    records.append({"kind": "individual", "model": model["id"], "variable": variable, "day": day, "path": individual.as_posix()})
+                if not complete:
+                    break
+            if not complete:
+                break
+        if complete and len(records) == 42:
+            refreshed = dict(run)
+            refreshed["artifacts"] = list(run["artifacts"]) + records
+            refreshed["lead_semantics"] = {
+                **run["lead_semantics"],
+                "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+                "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+            }
+            updated.append(refreshed)
+        else:
+            updated.append(run)
+    return updated
+
+
+def add_latest_daily_ranges(retained: list[dict], cfg, renderer, india_load, stage: Path) -> list[dict]:
+    """Add native-step high/low layers to the latest run without discarding history.
+
+    Historical endpoint products remain immediately available.  The range layer is
+    introduced on the latest initialization first, then is emitted for every new
+    initialization by ``render_run``.
+    """
+    if not retained:
+        return retained
+    latest = dict(retained[0])
+    if has_daily_temperature_ranges(latest):
+        latest["lead_semantics"] = {
+            **latest["lead_semantics"],
+            "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+            "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+        }
+        return [latest, *retained[1:]]
+    datasets = {
+        model["id"]: _open_run_dataset(cfg, latest, model["id"])
+        for model in latest["models"]
+    }
+    latest["artifacts"] = list(latest["artifacts"]) + render_daily_temperature_ranges(
+        pd.Timestamp(latest["initialization_utc"]), datasets,
+        tuple(model["id"] for model in latest["models"]), cfg, renderer, india_load, stage,
+    )
+    latest["lead_semantics"] = {
+        **latest["lead_semantics"],
+        "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+        "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+    }
+    return [latest, *retained[1:]]
 
 
 def archive_manifest(runs: list[dict]) -> dict:
@@ -315,6 +502,47 @@ def render_validation(archive: dict, cfg, openmeteo, stage: Path) -> dict:
     return validation
 
 
+def render_online_combination(cfg) -> dict:
+    """Publish a compact, city-level temperature blend from the online learner."""
+    from realtime_dash.combine import backtest  # type: ignore
+
+    models = ("weathernext2", "gencast", "aifs", "gefs", "ifs_ens")
+    cities = {}
+    for city in cfg.cities:
+        result = backtest.run(cfg, city.name, "t2m", models, window_days=10)
+        if not result.get("ok"):
+            continue
+        forward = backtest.live_forecast(cfg, city.name, "t2m", result["present"], result["final_weights"])
+        points = []
+        for valid_time, row in forward.iterrows():
+            expert_values = {model: float(row[model]) for model in result["present"] if model in row and pd.notna(row[model])}
+            if not expert_values or pd.isna(row.get("combined")):
+                continue
+            points.append({
+                "valid_time_utc": utc_text(valid_time),
+                "combined_c": float(row["combined"]),
+                "low_c": min(expert_values.values()),
+                "high_c": max(expert_values.values()),
+                "experts_c": expert_values,
+            })
+        cities[city.name] = {
+            "method": result["best"],
+            "backtest_steps": int(len(result["y"])),
+            "backtest_rmse_c": float(result["method_rmse"][result["best"]]),
+            "uniform_rmse_c": float(result["method_rmse"]["uniform"]),
+            "weights": {model: float(weight) for model, weight in result["final_weights"].items()},
+            "points": points,
+        }
+    return {
+        "schema_version": 1,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "variable": "2 m temperature",
+        "units": "degree_Celsius",
+        "definition": "Experimental online convex combination of city-level source-model forecasts. Weights are learned causally from the most recent 10-day matched history; the shaded range is the spread of contributing source-model forecasts.",
+        "cities": cities,
+    }
+
+
 def run_sections(run: dict, renderer) -> str:
     manifest = dict(run)
     html = renderer._view_sections(manifest)
@@ -323,6 +551,32 @@ def run_sections(run: dict, renderer) -> str:
         f'<section class="forecast-view" data-init="{run["id"]}"',
         html,
     )
+
+
+def range_sections(run: dict) -> str:
+    """HTML views for the daily extrema layers produced alongside base maps."""
+    if any("id" not in model for model in run["models"]) or not has_daily_temperature_ranges(run):
+        return ""
+    tag = run["id"]
+    sections = []
+    for variable, label, kind in RANGE_VARIABLES:
+        for day in LEAD_DAYS:
+            end = pd.Timestamp(run["initialization_utc"]) + pd.Timedelta(days=day)
+            start = end - pd.Timedelta(days=1)
+            cards = []
+            for model in run["models"]:
+                path = f"assets/forecasts/{tag}/{model['id']}/{variable}_day{day}.png"
+                cards.append(
+                    f'<article class="model-card"><a class="image-link" href="{path}"><img loading="lazy" src="{path}" alt="{model["label"]} {label.lower()} over India for forecast day {day}"></a><div class="card-copy"><h3>{model["label"]}</h3><p>{"Maximum" if kind == "maximum" else "Minimum"} 2 m temperature from native forecast steps.</p><a class="download" href="{path}" download>Download PNG</a></div></article>'
+                )
+            comparison = f"assets/forecasts/{tag}/comparisons/{variable}_day{day}.png"
+            sections.append(
+                f'<section class="forecast-view" data-init="{tag}" data-variable="{variable}" data-day="{day}" hidden>'
+                f'<div class="section-title"><div><p class="kicker">Derived temperature range · Day {day}</p><h2>{label}</h2></div>'
+                f'<p>Derived from every native forecast time step in the 24-hour window {start:%d %b %H:%M}–{end:%d %b %H:%M} UTC.</p></div>'
+                f'<figure class="comparison"><a class="image-link" href="{comparison}"><img loading="lazy" src="{comparison}" alt="Six-model comparison of {label.lower()} over India for forecast day {day}"></a><figcaption><span>Six-model comparison · common temperature scale</span><a class="download" href="{comparison}" download>Download comparison PNG</a></figcaption></figure><div class="model-grid">{"".join(cards)}</div></section>'
+            )
+    return "\n".join(sections)
 
 
 ARCHIVE_JS = r"""
@@ -342,8 +596,14 @@ ARCHIVE_JS = r"""
   const siteData = JSON.parse(document.querySelector("#archive-data").textContent);
   const runs = siteData.runs;
   const validation = siteData.validation;
+  const combination = siteData.combination || { cities: {} };
+  const combinationCityButtons = [...document.querySelectorAll("[data-combination-city]")];
+  const combinationTitle = document.querySelector("#combination-title");
+  const combinationSummary = document.querySelector("#combination-summary");
+  const combinationChart = document.querySelector("#combination-chart");
+  const combinationWeights = document.querySelector("#combination-weights");
   const params = new URLSearchParams(window.location.search);
-  const allowedVariables = new Set(["temperature", "precipitation"]);
+  const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
   const allowedDays = new Set(["1", "3", "5"]);
   const allowedInits = new Set(runs.map((run) => run.id));
   let variable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
@@ -353,14 +613,23 @@ ARCHIVE_JS = r"""
   let validationVariable = allowedVariables.has(params.get("validation")) ? params.get("validation") : "temperature";
   let matchInit = allowedInits.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
   let matchVariable = allowedVariables.has(params.get("match_variable")) ? params.get("match_variable") : "precipitation";
+  let combinationCity = Object.keys(combination.cities).includes(params.get("combination_city")) ? params.get("combination_city") : Object.keys(combination.cities)[0];
 
   function render(updateUrl = true) {
-    variableButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.variableButton === variable)));
+    const active = runs.find((run) => run.id === init);
+    if (["temperature_high", "temperature_low"].includes(variable) && !active.has_daily_ranges) {
+      variable = "temperature";
+    }
+    variableButtons.forEach((button) => {
+      const isRange = ["temperature_high", "temperature_low"].includes(button.dataset.variableButton);
+      button.disabled = isRange && !active.has_daily_ranges;
+      button.title = button.disabled ? "Daily ranges are published for the latest initialization; this historical run retains endpoint layers." : "";
+      button.setAttribute("aria-pressed", String(button.dataset.variableButton === variable));
+    });
     dayButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.dayButton === day)));
     views.forEach((view) => { view.hidden = !(view.dataset.init === init && view.dataset.variable === variable && view.dataset.day === day); });
-    const active = runs.find((run) => run.id === init);
     runSelect.value = init;
-    runSummary.textContent = `Initialized ${new Date(active.initialization_utc).toLocaleString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} UTC · 6 models · 3-day forecast`;
+    runSummary.textContent = `Initialized ${new Date(active.initialization_utc).toLocaleString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} UTC · 6 experts · 5-day horizon`;
     if (updateUrl) {
       const next = new URL(window.location.href);
       next.searchParams.set("init", init);
@@ -402,6 +671,37 @@ ARCHIVE_JS = r"""
     }
   }
 
+  function renderCombination(updateUrl = true) {
+    if (!combinationCity || !combination.cities[combinationCity]) return;
+    const active = combination.cities[combinationCity];
+    combinationCityButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.combinationCity === combinationCity)));
+    combinationTitle.textContent = `${combinationCity} · 2 m temperature`;
+    combinationSummary.textContent = `${active.method.toUpperCase()} learner · ${active.backtest_steps} matched steps · blend RMSE ${active.backtest_rmse_c.toFixed(2)} °C · uniform ${active.uniform_rmse_c.toFixed(2)} °C`;
+    const points = active.points;
+    if (!points.length) {
+      combinationChart.innerHTML = '<p class="tag">No forward points are currently available.</p>';
+    } else {
+      const width = 900, height = 290, pad = { left: 46, right: 18, top: 20, bottom: 42 };
+      const values = points.flatMap((point) => [point.low_c, point.high_c, point.combined_c]);
+      const lo = Math.floor((Math.min(...values) - 1) / 2) * 2;
+      const hi = Math.ceil((Math.max(...values) + 1) / 2) * 2;
+      const x = (i) => pad.left + (i / Math.max(points.length - 1, 1)) * (width - pad.left - pad.right);
+      const y = (value) => pad.top + (hi - value) / Math.max(hi - lo, 1) * (height - pad.top - pad.bottom);
+      const line = points.map((point, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(point.combined_c).toFixed(1)}`).join(" ");
+      const upper = points.map((point, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(point.high_c).toFixed(1)}`).join(" ");
+      const lower = [...points].reverse().map((point, reverseIndex) => `L${x(points.length - 1 - reverseIndex).toFixed(1)},${y(point.low_c).toFixed(1)}`).join(" ");
+      const grid = [lo, (lo + hi) / 2, hi].map((value) => `<g><line x1="${pad.left}" x2="${width - pad.right}" y1="${y(value)}" y2="${y(value)}"/><text x="${pad.left - 8}" y="${y(value) + 4}" text-anchor="end">${value.toFixed(0)}°</text></g>`).join("");
+      const labels = points.map((point, index) => `<text x="${x(index)}" y="${height - 16}" text-anchor="middle">${new Date(point.valid_time_utc).toLocaleDateString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short" })}</text>`).join("");
+      combinationChart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><g class="combo-grid">${grid}</g><path class="combo-range" d="${upper} ${lower} Z"/><path class="combo-line" d="${line}"/>${labels}</svg><p class="chart-key"><span></span>AdaWeather online blend <i></i>source-model spread</p>`;
+    }
+    combinationWeights.innerHTML = Object.entries(active.weights).map(([model, weight]) => `<div><span>${model.replace("weathernext2", "WeatherNext 2").replace("ifs_ens", "IFS-ENS").toUpperCase()}</span><strong>${(weight * 100).toFixed(1)}%</strong></div>`).join("");
+    if (updateUrl) {
+      const next = new URL(window.location.href);
+      next.searchParams.set("combination_city", combinationCity);
+      history.replaceState(null, "", next);
+    }
+  }
+
   variableButtons.forEach((button) => button.addEventListener("click", () => { variable = button.dataset.variableButton; render(); }));
   dayButtons.forEach((button) => button.addEventListener("click", () => { day = button.dataset.dayButton; render(); }));
   runSelect.addEventListener("change", () => { init = runSelect.value; render(); });
@@ -409,21 +709,65 @@ ARCHIVE_JS = r"""
   validationVariableButtons.forEach((button) => button.addEventListener("click", () => { validationVariable = button.dataset.validationVariable; renderValidation(); }));
   matchInitSelect.addEventListener("change", () => { matchInit = matchInitSelect.value; renderMatchedTimeseries(); });
   matchVariableButtons.forEach((button) => button.addEventListener("click", () => { matchVariable = button.dataset.matchVariable; renderMatchedTimeseries(); }));
+  combinationCityButtons.forEach((button) => button.addEventListener("click", () => { combinationCity = button.dataset.combinationCity; renderCombination(); }));
+
+  const pinLocations = [
+    ["Delhi", "31%", "38%"], ["Mumbai", "23%", "56%"],
+    ["Bengaluru", "35%", "70%"], ["Kolkata", "69%", "49%"],
+  ];
+  document.querySelectorAll("#forecast-views .comparison").forEach((figure) => {
+    const map = figure.querySelector(".image-link");
+    if (!map) return;
+    map.classList.add("map-canvas");
+    figure.classList.add("map-figure");
+    const controls = document.createElement("div");
+    controls.className = "map-tools";
+    controls.innerHTML = '<button type="button" data-map-zoom="in" aria-label="Enlarge map">+</button><button type="button" data-map-zoom="out" aria-label="Reduce map">−</button><button type="button" data-map-zoom="reset" aria-label="Reset map zoom">⌂</button>';
+    figure.append(controls);
+    const pins = document.createElement("div");
+    pins.className = "map-pins";
+    pinLocations.forEach(([city, left, top]) => {
+      const pin = document.createElement("button");
+      pin.type = "button"; pin.className = "map-pin"; pin.dataset.mapCity = city;
+      pin.style.left = left; pin.style.top = top; pin.textContent = city;
+      pins.append(pin);
+    });
+    figure.append(pins);
+    let zoom = 1;
+    controls.addEventListener("click", (event) => {
+      const action = event.target.closest("button")?.dataset.mapZoom;
+      if (!action) return;
+      zoom = action === "in" ? Math.min(1.7, zoom + .15) : action === "out" ? Math.max(1, zoom - .15) : 1;
+      map.querySelector("img").style.transform = `scale(${zoom})`;
+    });
+  });
+  document.querySelectorAll("[data-map-city]").forEach((pin) => pin.addEventListener("click", () => {
+    validationCity = pin.dataset.mapCity;
+    renderValidation();
+    document.querySelector("#validation").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
   render(false);
   renderValidation(false);
+  renderCombination(false);
 })();
 """
 
 
-def build_html(archive: dict, renderer, validation: dict) -> str:
+def build_html(archive: dict, renderer, validation: dict, combination: dict | None = None) -> str:
     latest = archive["runs"][0]
     validation_cities = list(validation["cities"])
     default_city = validation_cities[0]
+    combination = combination or {"cities": {}, "definition": "No combination data available."}
+    combination_cities = list(combination["cities"])
+    default_combination_city = combination_cities[0] if combination_cities else ""
     options = "".join(
         f'<option value="{run["id"]}">{pd.Timestamp(run["initialization_utc"]):%d %b %Y · 00 UTC}</option>'
         for run in archive["runs"]
     )
-    sections = "\n".join(run_sections(run, renderer) for run in archive["runs"])
+    sections = "\n".join(
+        run_sections(run, renderer) + "\n" + range_sections(run)
+        for run in archive["runs"]
+    )
     source_rows = "".join(
         "<tr><th scope=\"row\">{label}</th><td>{provider}</td><td>{members}</td>"
         "<td><a href=\"{url}\">Source details</a></td></tr>".format(
@@ -442,27 +786,35 @@ def build_html(archive: dict, renderer, validation: dict) -> str:
         f'<button type="button" data-validation-city="{city}" aria-pressed="{str(city == default_city).lower()}">{city}</button>'
         for city in validation_cities
     )
+    combination_city_controls = "".join(
+        f'<button type="button" data-combination-city="{city}" aria-pressed="{str(city == default_combination_city).lower()}">{city}</button>'
+        for city in combination_cities
+    ) or '<span class="tag">No learner output is currently available.</span>'
     default_image = validation["cities"][default_city]["images"]["temperature"]
     default_match_image = validation["cities"][default_city]["timeseries"][archive["runs"][0]["id"]]["precipitation"]
+    product_count = sum(len(run.get("artifacts", [])) for run in archive["runs"])
     data = json.dumps({
-        "runs": [{"id": run["id"], "initialization_utc": run["initialization_utc"]} for run in archive["runs"]],
+        "runs": [{"id": run["id"], "initialization_utc": run["initialization_utc"], "has_daily_ranges": has_daily_temperature_ranges(run)} for run in archive["runs"]],
         "validation": validation,
+        "combination": combination,
     })
     return f'''<!doctype html>
 <html lang="en"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Rolling India-region temperature and precipitation forecasts from six global models.">
-  <title>India Multi-Model Forecast Atlas</title><link rel="stylesheet" href="assets/style.css">
+  <meta name="description" content="AdaWeather experimental research system for India-region multi-model forecast analysis.">
+  <title>AdaWeather · India Forecast Research</title><link rel="stylesheet" href="assets/style.css">
   <script defer src="assets/app.js"></script>
 </head><body>
-  <header class="masthead"><div class="shell nav-shell"><a class="brand" href="#top">FORECAST / INDIA</a><nav aria-label="Primary navigation"><a href="#maps">Maps</a><a href="#validation">Validation</a><a href="#method">Method</a><a href="#sources">Sources</a></nav></div></header>
-  <main id="top"><section class="hero"><div class="shell hero-grid"><div><p class="eyebrow">Six global models · rolling seven-run archive</p><h1>India forecast atlas</h1><p class="lede">Temperature snapshots and cumulative rainfall from WeatherNext 2, GenCast, GFS, GEFS, AIFS, and IFS-ENS—aligned to the same initialization, forecast leads, map extent, units, and color scales.</p><div class="hero-actions"><a class="primary-action" href="#maps">Explore the maps</a><a class="text-action" href="assets/forecast_archive.json">View archive provenance</a></div></div><dl class="run-card"><div><dt>Initialization</dt><dd id="run-summary">Loading archive…</dd></div><div><dt>Archive run</dt><dd><label class="sr-only" for="run-select">Choose forecast initialization</label><select id="run-select">{options}</select></dd></div><div><dt>Forecast leads</dt><dd>T+24 · T+72 · T+120 hours</dd></div><div><dt>Products</dt><dd>42 maps per initialization</dd></div></dl></div></section>
-  <section class="run-strip" aria-label="Forecast summary"><div class="shell stats"><div><strong>6</strong><span>forecast models</span></div><div><strong>7</strong><span>retained runs</span></div><div><strong>3</strong><span>forecast days</span></div><div><strong>294</strong><span>archived PNG products</span></div></div></section>
-  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Forecast gallery</p><h2>Compare the same atmosphere, six ways.</h2></div><p>Select an initialization, variable, and lead. Every comparison sheet and individual map uses a common scale within its selected variable.</p></div><div class="controls" aria-label="Forecast map controls"><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Precipitation</button></div></fieldset><fieldset><legend>Forecast lead</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button><button type="button" data-day-button="5" aria-pressed="false">Day 5 · +120h</button></div></fieldset></div><div id="forecast-views" aria-live="polite">{sections}</div></section>
-  <section class="validation shell" id="validation"><div class="intro-row"><div><p class="kicker">Realized forecast validation</p><h2>Forecasts matched to ground truth.</h2></div><p>Each point compares a published forecast with Open-Meteo observations at the same city and time. Rainfall is accumulated over the identical initialization-to-valid-time interval.</p></div><div class="controls validation-controls" aria-label="Validation chart controls"><fieldset><legend>City</legend><div class="segmented">{validation_city_controls}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Rainfall accumulation</button></div></fieldset></div><p class="validation-summary" id="validation-summary"></p><figure class="comparison validation-figure"><img id="validation-image" src="{default_image['path']}" alt="{default_image['alt']}"><figcaption><span>Left: matched forecast vs. observation. Right: mean absolute error by lead.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure><div class="single-init-head"><div><p class="kicker">One initialization at a time</p><h3>Forecast and ground truth over the horizon.</h3></div><label>Initialization <select id="match-init-select">{options}</select></label></div><div class="controls match-controls" aria-label="Single-initialization variable controls"><fieldset><legend>Matched variable</legend><div class="segmented"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Rainfall accumulation</button></div></fieldset></div><figure class="comparison validation-figure"><img id="match-image" src="{default_match_image['path']}" alt="{default_match_image['alt']}"><figcaption><span>Each model trace is compared with the matched Open-Meteo observation at Day 1–3.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure></section>
-  <section class="method-band" id="method"><div class="shell"><div class="intro-row light"><div><p class="kicker">Method</p><h2>A clean, comparable forecast slice.</h2></div><p>Only common 00 UTC cycles with all required models and target leads are published. Missing data stops publication; a previous run is never silently substituted.</p></div><div class="method-grid"><article><span>01</span><h3>Align</h3><p>All sources are cropped to the same India-region bounding box and exact lead endpoints.</p></article><article><span>02</span><h3>Normalize</h3><p>Temperature is converted to °C. Precipitation becomes millimetres accumulated since initialization.</p></article><article><span>03</span><h3>Reduce</h3><p>Ensemble products are shown as means. Private GCS sources use eight evenly spaced members; tiled sources use all members.</p></article><article><span>04</span><h3>Validate</h3><p>Each map and every linked artifact is verified before a run can enter the archive.</p></article></div></div></section>
-  <section class="sources shell" id="sources"><div class="intro-row"><div><p class="kicker">Data provenance</p><h2>Source by source.</h2></div><p>WeatherNext products are read from private GCS Zarr archives. NOAA and ECMWF products are read from dynamical.org’s analysis-ready Icechunk archives.</p></div><div class="table-wrap"><table><thead><tr><th>Model</th><th>Archive</th><th>Map reduction</th><th>Documentation</th></tr></thead><tbody>{source_rows}</tbody></table></div><aside class="notice"><strong>Experimental guidance.</strong><p>These maps are for visualization and research. They are not official forecasts, warnings, or public-safety products. Consult the India Meteorological Department and relevant authorities for operational guidance.</p></aside></section></main>
-  <footer><div class="shell footer-row"><p>India Multi-Model Forecast Atlas · rolling seven-run archive</p><a href="#top">Back to top ↑</a></div></footer><script id="archive-data" type="application/json">{data}</script></body></html>\n'''
+  <header class="masthead"><div class="shell nav-shell"><a class="brand" href="#top">ADAWEATHER <span>RESEARCH</span></a><nav aria-label="Primary navigation"><a href="#maps">Explorer</a><a href="#combination">Combination</a><a href="#validation">Verification</a><a href="#method">Method</a><a href="#resources">Resources</a></nav></div></header>
+  <main id="top"><section class="experimental-banner"><div class="shell">EXPERIMENTAL RESEARCH SYSTEM · NOT AN OFFICIAL FORECAST, WARNING, OR SAFETY PRODUCT</div></section><section class="hero"><div class="shell hero-grid"><div><p class="eyebrow">India-region forecast research · rolling seven-initialization archive</p><h1>AdaWeather<br>forecast laboratory</h1><p class="lede">An experimental AI ensemble research system. AdaWeather examines a transparent, online-learned mixture of global forecast experts alongside the individual source models. Products are harmonized for research comparison, not operational decision-making.</p><div class="hero-actions"><a class="primary-action" href="#maps">Open map explorer</a><a class="text-action" href="#method">Read the method</a></div></div><dl class="run-card"><div><dt>Research status</dt><dd>Experimental · non-operational</dd></div><div><dt>Initialization</dt><dd id="run-summary">Loading archive…</dd></div><div><dt>Archive run</dt><dd><label class="sr-only" for="run-select">Choose forecast initialization</label><select id="run-select">{options}</select></dd></div><div><dt>Forecast windows</dt><dd>T+24 · T+72 · T+120 h</dd></div></dl></div></section>
+  <section class="run-strip" aria-label="Forecast summary"><div class="shell stats"><div><strong>6</strong><span>global forecast experts</span></div><div><strong>7</strong><span>retained initializations</span></div><div><strong>3</strong><span>sampled lead days</span></div><div><strong>{product_count}</strong><span>rendered research maps</span></div></div></section>
+  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Interactive archive explorer</p><h2>Inspect a shared forecast state.</h2></div><p>Use the layer, lead, and initialization controls. The map layer can be enlarged and city pins open the corresponding matched forecast–observation evidence below. Map imagery is a rendered research product, not a navigation chart.</p></div><div class="controls explorer-controls" aria-label="Forecast map controls"><fieldset><legend>Layer</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-variable-button="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Rain accumulation</button></div></fieldset><fieldset><legend>Forecast endpoint</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button><button type="button" data-day-button="5" aria-pressed="false">Day 5 · +120h</button></div></fieldset></div><div id="forecast-views" aria-live="polite">{sections}</div></section>
+  <section class="combination shell" id="combination"><div class="intro-row"><div><p class="kicker">Experimental online combination</p><h2>One learned blend, shown with its uncertainty.</h2></div><p>For each city, AdaWeather applies a causal online learner to recent matched 2 m-temperature forecasts. The line is the convex blend; the envelope is the contributing model range—not a calibrated prediction interval.</p></div><div class="controls combination-controls"><fieldset><legend>City</legend><div class="segmented">{combination_city_controls}</div></fieldset></div><div class="combination-panel"><div class="combination-head"><div><span class="kicker">Current research blend</span><h3 id="combination-title">{default_combination_city or "Combination unavailable"}</h3></div><p id="combination-summary"></p></div><div id="combination-chart" role="img" aria-label="Experimental online combination temperature forecast"></div><div id="combination-weights" class="weight-grid"></div><p class="combination-note">{combination["definition"]}</p></div></section>
+  <section class="validation shell" id="validation"><div class="intro-row"><div><p class="kicker">Realized forecast validation</p><h2>Test claims against observations.</h2></div><p>Each point pairs a published source-model forecast with Open-Meteo ground truth at the same city and valid time. Precipitation is accumulated over the identical initialization-to-endpoint window.</p></div><div class="controls validation-controls" aria-label="Validation chart controls"><fieldset><legend>City</legend><div class="segmented">{validation_city_controls}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Rain accumulation</button></div></fieldset></div><p class="validation-summary" id="validation-summary"></p><figure class="comparison validation-figure"><img id="validation-image" src="{default_image['path']}" alt="{default_image['alt']}"><figcaption><span>Left: forecast vs. matched observation. Right: mean absolute error by lead.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure><div class="single-init-head"><div><p class="kicker">Matched trajectory</p><h3>One initialization, matched leads.</h3></div><label>Initialization <select id="match-init-select">{options}</select></label></div><div class="controls match-controls" aria-label="Single-initialization variable controls"><fieldset><legend>Matched variable</legend><div class="segmented"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Rain accumulation</button></div></fieldset></div><figure class="comparison validation-figure"><img id="match-image" src="{default_match_image['path']}" alt="{default_match_image['alt']}"><figcaption><span>Each source-model trace is compared with the matched Open-Meteo observation at days 1, 3, and 5.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure></section>
+  <section class="method-band" id="method"><div class="shell"><div class="intro-row light"><div><p class="kicker">AdaWeather method</p><h2>Ensemble research with a visible audit trail.</h2></div><p>AdaWeather is an experimental mixture-of-experts study, not a claim of superior operational skill. It evaluates a convex, online-learned combination of available global-model experts against recent observations, while retaining every individual expert for comparison.</p></div><div class="method-grid"><article><span>01</span><h3>Align</h3><p>Only shared 00 UTC initializations are admitted. Fields use the same India-region box, endpoints, and units.</p></article><article><span>02</span><h3>Derive</h3><p>Daily high and low layers are maxima and minima of every available native 2 m-temperature step in each 24-hour forecast day.</p></article><article><span>03</span><h3>Combine</h3><p>The AdaWeather research combiner learns non-negative expert weights from recent matched history; weights sum to one.</p></article><article><span>04</span><h3>Verify</h3><p>Published city samples are matched to Open-Meteo ground truth. Missing source data rejects a run rather than silently substituting one.</p></article></div></div></section>
+  <section class="sources shell" id="sources"><div class="intro-row"><div><p class="kicker">Data provenance</p><h2>Source by source.</h2></div><p>WeatherNext products are read from private GCS Zarr archives. NOAA and ECMWF products are read from dynamical.org’s analysis-ready Icechunk archives.</p></div><div class="table-wrap"><table><thead><tr><th>Model</th><th>Archive</th><th>Map reduction</th><th>Documentation</th></tr></thead><tbody>{source_rows}</tbody></table></div><aside class="notice"><strong>Experimental guidance.</strong><p>All visualizations, prototype interfaces, and derived fields on this site are experimental research outputs. They are not official forecasts, warnings, or public-safety products. Consult the India Meteorological Department and relevant authorities for operational guidance.</p></aside></section>
+  <section class="resources shell" id="resources"><div class="intro-row"><div><p class="kicker">Learning resources</p><h2>Atmosphere, models, and evidence.</h2></div><p>Selected open educational references for readers who want to connect forecast products with the underlying physical and chemical atmosphere.</p></div><div class="resource-grid"><a href="https://www2.acom.ucar.edu/atmos-chem-class"><span>UCAR / ACOM</span><strong>Atmospheric chemistry class</strong><em>Lecture series spanning chemistry, kinetics, aerosols, and measurement.</em></a><a href="https://csl.noaa.gov/learn/"><span>NOAA CSL</span><strong>Atmospheric chemistry &amp; composition</strong><em>Research-grounded learning materials on air chemistry and atmospheric composition.</em></a><a href="https://www.nesdis.noaa.gov/about/k-12-education/atmosphere-educational-resources"><span>NOAA NESDIS</span><strong>Atmosphere educational resources</strong><em>Weather, rain, clouds, wind, and observation-oriented introductory material.</em></a><a href="https://www.nasa.gov/stem-content/aura-atmospheric-chemistry-education-and-outreach/"><span>NASA Aura</span><strong>Atmospheric chemistry education</strong><em>Satellite-era atmospheric chemistry resources and outreach links.</em></a></div></section></main>
+  <footer><div class="shell footer-row"><p>AdaWeather · experimental India forecast research system</p><a href="#top">Back to top ↑</a></div></footer><script id="archive-data" type="application/json">{data}</script></body></html>\n'''
 
 
 ARCHIVE_CSS = r"""
@@ -478,12 +830,62 @@ ARCHIVE_CSS = r"""
 .single-init-head label { display: grid; gap: 7px; color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .single-init-head select { min-width: 185px; border: 1px solid var(--line); border-radius: 2px; padding: 9px; color: var(--ink); background: white; font: inherit; font-size: .82rem; letter-spacing: normal; text-transform: none; }
 .match-controls { margin-bottom: 20px; }
+.brand span { color: #8fd7c4; font-weight: 620; }
+.experimental-banner { padding: 9px 0; color: #1b2528; background: #f6bd3b; font-size: .69rem; font-weight: 850; letter-spacing: .1em; text-align: center; }
+.hero { padding-top: 78px; background: radial-gradient(circle at 80% 16%, rgba(71, 143, 168, .52), transparent 26%), radial-gradient(circle at 44% 110%, rgba(17, 144, 126, .35), transparent 34%), linear-gradient(132deg, #07121a, #0b2735 57%, #123d50); }
+.hero h1 { max-width: 850px; letter-spacing: -.075em; }
+.hero .lede { max-width: 780px; }
+.run-card { border-color: rgba(162, 226, 215, .36); background: rgba(5, 19, 27, .66); }
+.run-card dt { color: #8fd7c4; }
+.explorer-controls { position: sticky; top: 10px; z-index: 3; border-color: #aebdc2; box-shadow: 0 12px 34px rgba(6, 22, 30, .12); }
+.segmented button:disabled { color: #8b999d; border-color: #dbe1e2; background: #edf0f0; cursor: not-allowed; }
+.combination { padding: 90px 0 96px; scroll-margin-top: 20px; }
+.combination-controls { margin-bottom: 18px; }
+.combination-panel { border: 1px solid #1a3943; color: #eaf3f2; background: linear-gradient(125deg, #081c25, #103947); box-shadow: var(--shadow); }
+.combination-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; padding: 25px 28px 20px; border-bottom: 1px solid rgba(255,255,255,.16); }
+.combination-head .kicker { margin-bottom: 4px; color: #83d3bb; }
+.combination-head h3 { margin: 0; color: white; font-size: 1.65rem; letter-spacing: -.04em; }
+.combination-head p { max-width: 440px; margin: 0; color: #b8ccce; font-size: .82rem; text-align: right; }
+#combination-chart { padding: 12px 20px 0; }
+#combination-chart svg { display: block; width: 100%; height: 290px; overflow: visible; }
+.combo-grid line { stroke: rgba(211,236,232,.18); stroke-width: 1; }
+.combo-grid text, #combination-chart svg text { fill: #a9c2c2; font: 12px Inter, sans-serif; }
+.combo-range { fill: rgba(106, 216, 180, .18); stroke: none; }
+.combo-line { fill: none; stroke: #79e1bd; stroke-width: 3.2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-key { margin: 0; padding: 0 28px 22px; color: #b8ccce; font-size: .78rem; }
+.chart-key span, .chart-key i { display: inline-block; width: 20px; height: 3px; margin: 0 7px 2px 0; background: #79e1bd; vertical-align: middle; }
+.chart-key i { height: 10px; margin-left: 18px; background: rgba(106, 216, 180, .3); }
+.weight-grid { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid rgba(255,255,255,.16); }
+.weight-grid div { padding: 17px 20px; border-right: 1px solid rgba(255,255,255,.16); }
+.weight-grid div:last-child { border-right: 0; }
+.weight-grid span { display: block; color: #9eb8bb; font-size: .65rem; font-weight: 800; letter-spacing: .07em; }
+.weight-grid strong { display: block; margin-top: 3px; color: white; font-size: 1.45rem; letter-spacing: -.05em; }
+.combination-note { margin: 0; padding: 16px 28px; color: #aac2c2; border-top: 1px solid rgba(255,255,255,.16); font-size: .77rem; }
+.map-figure { position: relative; border-color: #b7c5c8; background: #dce8e8; }
+.map-canvas { overflow: hidden; cursor: zoom-in; }
+.map-canvas img { transform-origin: 50% 50%; transition: transform .2s ease; }
+.map-tools { position: absolute; top: 14px; left: 14px; z-index: 2; display: grid; overflow: hidden; border: 1px solid #8aa0a4; border-radius: 4px; box-shadow: 0 3px 14px rgba(0,0,0,.2); }
+.map-tools button { width: 32px; height: 30px; padding: 0; border: 0; border-bottom: 1px solid #c7d2d4; color: #102a34; background: rgba(255,255,255,.94); font-size: 1.1rem; cursor: pointer; }
+.map-tools button:last-child { border-bottom: 0; font-size: .9rem; }
+.map-tools button:hover { color: white; background: var(--blue); }
+.map-pins { position: absolute; inset: 0 0 44px; z-index: 2; pointer-events: none; }
+.map-pin { position: absolute; transform: translate(-50%, -50%); padding: 4px 7px 4px 17px; border: 1px solid rgba(7,38,47,.65); border-radius: 999px; color: #0b2833; background: rgba(255,255,255,.92); box-shadow: 0 2px 7px rgba(0,0,0,.24); font: 700 .67rem/1 Inter, sans-serif; cursor: pointer; pointer-events: auto; }
+.map-pin::before { content: ""; position: absolute; left: 6px; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: #ee5a3f; transform: translateY(-50%); }
+.map-pin:hover { color: white; background: #0c4354; }
+.method-band { background: linear-gradient(120deg, #061820, #0c3544); }
+.resource-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.resource-grid a { min-height: 190px; display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--line); background: white; box-shadow: 0 8px 25px rgba(17,43,53,.06); text-decoration: none; transition: transform .18s ease, border-color .18s ease; }
+.resource-grid a:hover { border-color: var(--teal); transform: translateY(-3px); }
+.resource-grid span { margin-bottom: 35px; color: var(--teal); font-size: .7rem; font-weight: 800; letter-spacing: .1em; }
+.resource-grid strong { font-size: 1.08rem; line-height: 1.18; }
+.resource-grid em { margin-top: auto; color: var(--muted); font-size: .82rem; font-style: normal; }
+@media (max-width: 900px) { .resource-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 650px) { .single-init-head { display: grid; align-items: start; } }
-@media (max-width: 650px) { .validation { padding-top: 65px; padding-bottom: 68px; } }
+@media (max-width: 650px) { .validation, .combination { padding-top: 65px; padding-bottom: 68px; } .experimental-banner { font-size: .58rem; } .resource-grid { grid-template-columns: 1fr; } .map-pin { font-size: .58rem; } .combination-head { display: block; } .combination-head p { margin-top: 12px; text-align: left; } .weight-grid { grid-template-columns: repeat(2, 1fr); } .weight-grid div:nth-child(2) { border-right: 0; } .weight-grid div:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.16); } #combination-chart { padding-inline: 8px; } }
 """
 
 
-def write_stage(stage: Path, archive: dict, validation: dict, renderer) -> None:
+def write_stage(stage: Path, archive: dict, validation: dict, combination: dict, renderer) -> None:
     assets = stage / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     (assets / "style.css").write_text(renderer.CSS.strip() + "\n" + ARCHIVE_CSS.strip() + "\n")
@@ -491,7 +893,8 @@ def write_stage(stage: Path, archive: dict, validation: dict, renderer) -> None:
     (assets / "forecast_archive.json").write_text(json.dumps(archive, indent=2) + "\n")
     (assets / "forecast_manifest.json").write_text(json.dumps(archive["runs"][0], indent=2) + "\n")
     (assets / "validation_manifest.json").write_text(json.dumps(validation, indent=2) + "\n")
-    (stage / "index.html").write_text(build_html(archive, renderer, validation))
+    (assets / "online_combination.json").write_text(json.dumps(combination, indent=2) + "\n")
+    (stage / "index.html").write_text(build_html(archive, renderer, validation, combination))
     (stage / "README.md").write_text(
         "# India Multi-Model Forecast Atlas\n\n"
         "A rolling seven-initialization static forecast archive. Each retained run has six "
@@ -506,7 +909,7 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
     html = (stage / "index.html").read_text()
     seen = set()
     for run in archive["runs"]:
-        if run["id"] in seen or len(run["artifacts"]) != 42:
+        if run["id"] in seen or len(run["artifacts"]) not in (42, ARTIFACTS_PER_RUN):
             raise RuntimeError(f"invalid artifact record for run {run.get('id')}")
         seen.add(run["id"])
         for artifact in run["artifacts"]:
@@ -514,7 +917,7 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
             renderer.validate_png(path)
             if artifact["path"] not in html:
                 raise RuntimeError(f"unlinked artifact: {artifact['path']}")
-    for relative in ("assets/style.css", "assets/app.js", "assets/forecast_archive.json", "assets/forecast_manifest.json"):
+    for relative in ("assets/style.css", "assets/app.js", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
     for city in validation["cities"].values():
@@ -593,9 +996,11 @@ def main():
         for run in retained:
             source = args.output_site / "assets" / "forecasts" / run["id"]
             shutil.copytree(source, stage_forecasts / run["id"])
+        retained = add_available_daily_ranges(retained, stage, renderer)
+        retained = add_latest_daily_ranges(retained, cfg, renderer, india_load, stage)
         for init in candidates:
             try:
-                run = render_run(init, models, cfg, renderer, stage, args.attempts)
+                run = render_run(init, models, cfg, renderer, india_load, stage, args.attempts)
             except Exception as exc:  # noqa: BLE001 - keep last good archive intact
                 print(f"[{stamp(init)}] rejected: {exc}", file=sys.stderr, flush=True)
                 continue
@@ -609,7 +1014,8 @@ def main():
             raise RuntimeError(f"could not build a complete seven-run archive (have {len(retained)})")
         archive = archive_manifest(retained)
         validation = render_validation(archive, cfg, openmeteo, stage)
-        write_stage(stage, archive, validation, renderer)
+        combination = render_online_combination(cfg)
+        write_stage(stage, archive, validation, combination, renderer)
         validate_stage(stage, archive, validation, renderer)
         if args.dry_run:
             print("validated archive build; dry-run leaves the site unchanged")
