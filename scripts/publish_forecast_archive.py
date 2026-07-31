@@ -26,6 +26,7 @@ import xarray as xr
 SITE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REALTIME_ROOT = Path("/home/saptarishi.dhanuka_asp25/weather/real_time")
 DEFAULT_PYTHON = Path("/Datastorage/saptarishi.dhanuka_asp25/conda_envs/realtime_dash/bin/python")
+LEAD_DAYS = (1, 3, 5)
 
 
 def stamp(init: pd.Timestamp) -> str:
@@ -47,6 +48,10 @@ def load_renderer(realtime_root: Path):
     from realtime_dash.config import load_config  # type: ignore
     from realtime_dash.india import load as india_load  # type: ignore
     from realtime_dash.sources import openmeteo  # type: ignore
+    # The shared renderer is intentionally parameterized by this module-level
+    # sequence; retain its tested rendering machinery while publishing 1/3/5-day
+    # products instead of its historical 1/2/3-day default.
+    renderer.LEAD_DAYS = LEAD_DAYS
     return renderer, load_config, india_load, openmeteo
 
 
@@ -82,7 +87,8 @@ def valid_existing_runs(site: Path, archive: dict, renderer) -> list[dict]:
     for run in archive["runs"]:
         try:
             init = pd.Timestamp(run["initialization_utc"])
-            if stamp(init) != run["id"] or len(run["artifacts"]) != 42:
+            run_leads = tuple(item["day"] for item in run.get("lead_days", []))
+            if stamp(init) != run["id"] or len(run["artifacts"]) != 42 or run_leads != LEAD_DAYS:
                 continue
             for artifact in run["artifacts"]:
                 renderer.validate_png(site / artifact["path"])
@@ -101,6 +107,10 @@ def render_run(init, models, cfg, renderer, stage: Path, attempts: int) -> dict:
         )
     artifacts = renderer.render_all_maps(datasets, models, init, cfg, stage)
     manifest = renderer.build_manifest(datasets, models, init, cfg, artifacts)
+    manifest["lead_semantics"] = {
+        "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
+        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+    }
     return {
         "id": stamp(init),
         "initialization_utc": manifest["initialization_utc"],
@@ -141,7 +151,7 @@ def _truth_lookup(frame: pd.DataFrame, time_col: str, value_col: str) -> dict:
 
 
 def _open_run_dataset(cfg, run: dict, model: str):
-    path = cfg.cache_root / "india" / run["id"] / f"{model}_lead_days_1-2-3.nc"
+    path = cfg.cache_root / "india" / run["id"] / f"{model}_lead_days_1-3-5.nc"
     if not path.is_file():
         raise RuntimeError(f"missing cached map data for validation: {path}")
     with xr.open_dataset(path) as opened:
@@ -161,7 +171,7 @@ def _validation_records(archive: dict, cfg, openmeteo) -> dict:
             init = pd.Timestamp(run["initialization_utc"]).tz_localize(None)
             datasets = {model["id"]: _open_run_dataset(cfg, run, model["id"])
                         for model in run["models"]}
-            for day in (1, 2, 3):
+            for day in LEAD_DAYS:
                 valid = init + pd.Timedelta(days=day)
                 temp_obs = temperatures.get(valid)
                 rain_days = pd.date_range(init.floor("D"), valid.floor("D"), inclusive="left")
@@ -206,7 +216,7 @@ def _plot_validation(records: list[dict], city, variable: str, models: list[dict
         skill[model_id] = {
             "label": model["label"], "n": int(len(obs)),
             "mae_by_lead": {str(lead): float(np.mean(np.abs(forecast[leads == lead] - obs[leads == lead])))
-                            for lead in (1, 2, 3) if np.any(leads == lead)},
+                            for lead in LEAD_DAYS if np.any(leads == lead)},
         }
     if values:
         lo, hi = min(values), max(values)
@@ -225,7 +235,7 @@ def _plot_validation(records: list[dict], city, variable: str, models: list[dict
         leads = sorted(int(key) for key in item["mae_by_lead"])
         skill_ax.plot(leads, [item["mae_by_lead"][str(lead)] for lead in leads], marker="o", lw=2,
                       color=MODEL_COLORS[model["id"]], label=model["label"])
-    skill_ax.set_xticks([1, 2, 3], ["Day 1", "Day 2", "Day 3"])
+    skill_ax.set_xticks(LEAD_DAYS, ["Day 1", "Day 3", "Day 5"])
     skill_ax.set_xlabel("Forecast lead")
     skill_ax.set_ylabel(f"Mean absolute error ({unit})")
     skill_ax.grid(alpha=.2)
@@ -256,7 +266,7 @@ def _plot_matched_timeseries(records: list[dict], city, variable: str, run: dict
         if len(values):
             ax.plot(leads, values, color=MODEL_COLORS[model["id"]], marker="o", markersize=4.5,
                     lw=1.7, alpha=.92, label=model["label"])
-    ax.set_xticks([1, 2, 3], ["Day 1 · +24h", "Day 2 · +48h", "Day 3 · +72h"])
+    ax.set_xticks(LEAD_DAYS, ["Day 1 · +24h", "Day 3 · +72h", "Day 5 · +120h"])
     ax.set_xlabel("Matched valid time")
     ax.set_ylabel(f"{label} ({unit})")
     ax.grid(alpha=.22)
@@ -334,7 +344,7 @@ ARCHIVE_JS = r"""
   const validation = siteData.validation;
   const params = new URLSearchParams(window.location.search);
   const allowedVariables = new Set(["temperature", "precipitation"]);
-  const allowedDays = new Set(["1", "2", "3"]);
+  const allowedDays = new Set(["1", "3", "5"]);
   const allowedInits = new Set(runs.map((run) => run.id));
   let variable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let day = allowedDays.has(params.get("day")) ? params.get("day") : "1";
@@ -446,9 +456,9 @@ def build_html(archive: dict, renderer, validation: dict) -> str:
   <script defer src="assets/app.js"></script>
 </head><body>
   <header class="masthead"><div class="shell nav-shell"><a class="brand" href="#top">FORECAST / INDIA</a><nav aria-label="Primary navigation"><a href="#maps">Maps</a><a href="#validation">Validation</a><a href="#method">Method</a><a href="#sources">Sources</a></nav></div></header>
-  <main id="top"><section class="hero"><div class="shell hero-grid"><div><p class="eyebrow">Six global models · rolling seven-run archive</p><h1>India forecast atlas</h1><p class="lede">Temperature snapshots and cumulative rainfall from WeatherNext 2, GenCast, GFS, GEFS, AIFS, and IFS-ENS—aligned to the same initialization, forecast leads, map extent, units, and color scales.</p><div class="hero-actions"><a class="primary-action" href="#maps">Explore the maps</a><a class="text-action" href="assets/forecast_archive.json">View archive provenance</a></div></div><dl class="run-card"><div><dt>Initialization</dt><dd id="run-summary">Loading archive…</dd></div><div><dt>Archive run</dt><dd><label class="sr-only" for="run-select">Choose forecast initialization</label><select id="run-select">{options}</select></dd></div><div><dt>Forecast leads</dt><dd>T+24 · T+48 · T+72 hours</dd></div><div><dt>Products</dt><dd>42 maps per initialization</dd></div></dl></div></section>
+  <main id="top"><section class="hero"><div class="shell hero-grid"><div><p class="eyebrow">Six global models · rolling seven-run archive</p><h1>India forecast atlas</h1><p class="lede">Temperature snapshots and cumulative rainfall from WeatherNext 2, GenCast, GFS, GEFS, AIFS, and IFS-ENS—aligned to the same initialization, forecast leads, map extent, units, and color scales.</p><div class="hero-actions"><a class="primary-action" href="#maps">Explore the maps</a><a class="text-action" href="assets/forecast_archive.json">View archive provenance</a></div></div><dl class="run-card"><div><dt>Initialization</dt><dd id="run-summary">Loading archive…</dd></div><div><dt>Archive run</dt><dd><label class="sr-only" for="run-select">Choose forecast initialization</label><select id="run-select">{options}</select></dd></div><div><dt>Forecast leads</dt><dd>T+24 · T+72 · T+120 hours</dd></div><div><dt>Products</dt><dd>42 maps per initialization</dd></div></dl></div></section>
   <section class="run-strip" aria-label="Forecast summary"><div class="shell stats"><div><strong>6</strong><span>forecast models</span></div><div><strong>7</strong><span>retained runs</span></div><div><strong>3</strong><span>forecast days</span></div><div><strong>294</strong><span>archived PNG products</span></div></div></section>
-  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Forecast gallery</p><h2>Compare the same atmosphere, six ways.</h2></div><p>Select an initialization, variable, and lead. Every comparison sheet and individual map uses a common scale within its selected variable.</p></div><div class="controls" aria-label="Forecast map controls"><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Precipitation</button></div></fieldset><fieldset><legend>Forecast lead</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="2" aria-pressed="false">Day 2 · +48h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button></div></fieldset></div><div id="forecast-views" aria-live="polite">{sections}</div></section>
+  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Forecast gallery</p><h2>Compare the same atmosphere, six ways.</h2></div><p>Select an initialization, variable, and lead. Every comparison sheet and individual map uses a common scale within its selected variable.</p></div><div class="controls" aria-label="Forecast map controls"><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Precipitation</button></div></fieldset><fieldset><legend>Forecast lead</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button><button type="button" data-day-button="5" aria-pressed="false">Day 5 · +120h</button></div></fieldset></div><div id="forecast-views" aria-live="polite">{sections}</div></section>
   <section class="validation shell" id="validation"><div class="intro-row"><div><p class="kicker">Realized forecast validation</p><h2>Forecasts matched to ground truth.</h2></div><p>Each point compares a published forecast with Open-Meteo observations at the same city and time. Rainfall is accumulated over the identical initialization-to-valid-time interval.</p></div><div class="controls validation-controls" aria-label="Validation chart controls"><fieldset><legend>City</legend><div class="segmented">{validation_city_controls}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Rainfall accumulation</button></div></fieldset></div><p class="validation-summary" id="validation-summary"></p><figure class="comparison validation-figure"><img id="validation-image" src="{default_image['path']}" alt="{default_image['alt']}"><figcaption><span>Left: matched forecast vs. observation. Right: mean absolute error by lead.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure><div class="single-init-head"><div><p class="kicker">One initialization at a time</p><h3>Forecast and ground truth over the horizon.</h3></div><label>Initialization <select id="match-init-select">{options}</select></label></div><div class="controls match-controls" aria-label="Single-initialization variable controls"><fieldset><legend>Matched variable</legend><div class="segmented"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Rainfall accumulation</button></div></fieldset></div><figure class="comparison validation-figure"><img id="match-image" src="{default_match_image['path']}" alt="{default_match_image['alt']}"><figcaption><span>Each model trace is compared with the matched Open-Meteo observation at Day 1–3.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure></section>
   <section class="method-band" id="method"><div class="shell"><div class="intro-row light"><div><p class="kicker">Method</p><h2>A clean, comparable forecast slice.</h2></div><p>Only common 00 UTC cycles with all required models and target leads are published. Missing data stops publication; a previous run is never silently substituted.</p></div><div class="method-grid"><article><span>01</span><h3>Align</h3><p>All sources are cropped to the same India-region bounding box and exact lead endpoints.</p></article><article><span>02</span><h3>Normalize</h3><p>Temperature is converted to °C. Precipitation becomes millimetres accumulated since initialization.</p></article><article><span>03</span><h3>Reduce</h3><p>Ensemble products are shown as means. Private GCS sources use eight evenly spaced members; tiled sources use all members.</p></article><article><span>04</span><h3>Validate</h3><p>Each map and every linked artifact is verified before a run can enter the archive.</p></article></div></div></section>
   <section class="sources shell" id="sources"><div class="intro-row"><div><p class="kicker">Data provenance</p><h2>Source by source.</h2></div><p>WeatherNext products are read from private GCS Zarr archives. NOAA and ECMWF products are read from dynamical.org’s analysis-ready Icechunk archives.</p></div><div class="table-wrap"><table><thead><tr><th>Model</th><th>Archive</th><th>Map reduction</th><th>Documentation</th></tr></thead><tbody>{source_rows}</tbody></table></div><aside class="notice"><strong>Experimental guidance.</strong><p>These maps are for visualization and research. They are not official forecasts, warnings, or public-safety products. Consult the India Meteorological Department and relevant authorities for operational guidance.</p></aside></section></main>
