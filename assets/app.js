@@ -1,10 +1,16 @@
 (() => {
   const variableButtons = [...document.querySelectorAll("[data-variable-button]")];
   const dayButtons = [...document.querySelectorAll("[data-day-button]")];
+  const validationCityButtons = [...document.querySelectorAll("[data-validation-city]")];
+  const validationVariableButtons = [...document.querySelectorAll("[data-validation-variable]")];
+  const validationImage = document.querySelector("#validation-image");
+  const validationSummary = document.querySelector("#validation-summary");
   const runSelect = document.querySelector("#run-select");
   const runSummary = document.querySelector("#run-summary");
   const views = [...document.querySelectorAll(".forecast-view")];
-  const runs = JSON.parse(document.querySelector("#archive-data").textContent).runs;
+  const siteData = JSON.parse(document.querySelector("#archive-data").textContent);
+  const runs = siteData.runs;
+  const validation = siteData.validation;
   const params = new URLSearchParams(window.location.search);
   const allowedVariables = new Set(["temperature", "precipitation"]);
   const allowedDays = new Set(["1", "2", "3"]);
@@ -12,6 +18,8 @@
   let variable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let day = allowedDays.has(params.get("day")) ? params.get("day") : "1";
   let init = allowedInits.has(params.get("init")) ? params.get("init") : runs[0].id;
+  let validationCity = Object.keys(validation.cities).includes(params.get("city")) ? params.get("city") : Object.keys(validation.cities)[0];
+  let validationVariable = allowedVariables.has(params.get("validation")) ? params.get("validation") : "temperature";
 
   function render(updateUrl = true) {
     variableButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.variableButton === variable)));
@@ -29,8 +37,28 @@
     }
   }
 
+  function renderValidation(updateUrl = true) {
+    validationCityButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.validationCity === validationCity)));
+    validationVariableButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.validationVariable === validationVariable)));
+    const active = validation.cities[validationCity];
+    const image = active.images[validationVariable];
+    const points = active.summary[validationVariable].matched_points;
+    validationImage.src = image.path;
+    validationImage.alt = image.alt;
+    validationSummary.textContent = `${validationCity} · ${points} matched forecast–observation pairs per model · Open-Meteo ground truth`;
+    if (updateUrl) {
+      const next = new URL(window.location.href);
+      next.searchParams.set("city", validationCity);
+      next.searchParams.set("validation", validationVariable);
+      history.replaceState(null, "", next);
+    }
+  }
+
   variableButtons.forEach((button) => button.addEventListener("click", () => { variable = button.dataset.variableButton; render(); }));
   dayButtons.forEach((button) => button.addEventListener("click", () => { day = button.dataset.dayButton; render(); }));
   runSelect.addEventListener("change", () => { init = runSelect.value; render(); });
+  validationCityButtons.forEach((button) => button.addEventListener("click", () => { validationCity = button.dataset.validationCity; renderValidation(); }));
+  validationVariableButtons.forEach((button) => button.addEventListener("click", () => { validationVariable = button.dataset.validationVariable; renderValidation(); }));
   render(false);
+  renderValidation(false);
 })();

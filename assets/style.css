@@ -144,3 +144,7 @@ footer a { color: #dceae8; }
 .run-card select { width: 100%; border: 1px solid rgba(255,255,255,.3); border-radius: 2px; padding: 8px; color: #eef7f5; background: #0d3a48; font: inherit; font-size: .82rem; }
 .run-card label { display: block; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.validation { padding-top: 92px; padding-bottom: 96px; scroll-margin-top: 20px; }
+.validation-summary { margin: -25px 0 20px; color: var(--muted); font-size: .9rem; }
+.validation-figure { margin-bottom: 0; }
+@media (max-width: 650px) { .validation { padding-top: 65px; padding-bottom: 68px; } }

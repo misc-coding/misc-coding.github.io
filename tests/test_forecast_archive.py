@@ -51,6 +51,18 @@ def test_build_html_includes_each_run_in_the_selector():
         {**run, "id": f"202607{day:02d}_00", "initialization_utc": f"2026-07-{day:02d}T00:00:00Z"}
         for day in range(24, 31)
     ]
-    html = archive.build_html(archive.archive_manifest(runs), Renderer)
+    validation = {
+        "cities": {
+            "Delhi": {
+                "images": {
+                    "temperature": {"path": "assets/validation/delhi-temperature.png", "alt": "Delhi temperature"},
+                    "precipitation": {"path": "assets/validation/delhi-precipitation.png", "alt": "Delhi precipitation"},
+                },
+                "summary": {"temperature": {"matched_points": 12}, "precipitation": {"matched_points": 12}},
+            },
+        },
+    }
+    html = archive.build_html(archive.archive_manifest(runs), Renderer, validation)
     assert 'id="run-select"' in html
     assert 'data-init="20260730_00"' in html
+    assert 'id="validation-image"' in html
