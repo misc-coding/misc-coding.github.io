@@ -108,7 +108,9 @@
   },
   "lead_semantics": {
     "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-    "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours."
+    "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+    "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+    "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
   },
   "bounding_box": {
     "lat_min": 6.0,
@@ -119,580 +121,68 @@
   "disclaimer": "Experimental model guidance for visualization and research. Not an official warning or public-safety product.",
   "artifacts": [
     {
-      "kind": "comparison",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_day1.png"
-    },
-    {
-      "kind": "individual",
+      "kind": "grid",
       "model": "weathernext2",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_day1.png"
+      "path": "assets/map_data/20260729_00/weathernext2.bin",
+      "bytes": 399384
     },
     {
-      "kind": "individual",
+      "kind": "grid",
       "model": "gencast",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_day1.png"
+      "path": "assets/map_data/20260729_00/gencast.bin",
+      "bytes": 399384
     },
     {
-      "kind": "individual",
+      "kind": "grid",
       "model": "gfs",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_day1.png"
+      "path": "assets/map_data/20260729_00/gfs.bin",
+      "bytes": 399384
     },
     {
-      "kind": "individual",
+      "kind": "grid",
       "model": "gefs",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_day1.png"
+      "path": "assets/map_data/20260729_00/gefs.bin",
+      "bytes": 399384
     },
     {
-      "kind": "individual",
+      "kind": "grid",
       "model": "aifs",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_day1.png"
+      "path": "assets/map_data/20260729_00/aifs.bin",
+      "bytes": 399384
     },
     {
-      "kind": "individual",
+      "kind": "grid",
       "model": "ifs_ens",
-      "variable": "temperature",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_day1.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_day3.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_day5.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/comparisons/precipitation_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/weathernext2/precipitation_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gencast/precipitation_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gfs/precipitation_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gefs/precipitation_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/aifs/precipitation_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "precipitation",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/ifs_ens/precipitation_day1.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/comparisons/precipitation_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/weathernext2/precipitation_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gencast/precipitation_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gfs/precipitation_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gefs/precipitation_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/aifs/precipitation_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "precipitation",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/ifs_ens/precipitation_day3.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/comparisons/precipitation_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/weathernext2/precipitation_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gencast/precipitation_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gfs/precipitation_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gefs/precipitation_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/aifs/precipitation_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "precipitation",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/ifs_ens/precipitation_day5.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_high_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_high_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_high_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_high_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_high_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_high_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature_high",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_high_day1.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_high_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_high_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_high_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_high_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_high_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_high_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature_high",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_high_day3.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_high_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_high_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_high_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_high_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_high_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_high_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature_high",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_high_day5.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_low_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_low_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_low_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_low_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_low_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_low_day1.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature_low",
-      "day": 1,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_low_day1.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_low_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_low_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_low_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_low_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_low_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_low_day3.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature_low",
-      "day": 3,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_low_day3.png"
-    },
-    {
-      "kind": "comparison",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/comparisons/temperature_low_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "weathernext2",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/weathernext2/temperature_low_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gencast",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gencast/temperature_low_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gfs",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gfs/temperature_low_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "gefs",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/gefs/temperature_low_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "aifs",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/aifs/temperature_low_day5.png"
-    },
-    {
-      "kind": "individual",
-      "model": "ifs_ens",
-      "variable": "temperature_low",
-      "day": 5,
-      "path": "assets/forecasts/20260729_00/ifs_ens/temperature_low_day5.png"
+      "path": "assets/map_data/20260729_00/ifs_ens.bin",
+      "bytes": 399384
     }
-  ]
+  ],
+  "grid_metadata": {
+    "variables": [
+      "temperature",
+      "precipitation",
+      "temperature_high",
+      "temperature_low"
+    ],
+    "lead_days": [
+      1,
+      3,
+      5
+    ],
+    "shape": [
+      3,
+      129,
+      129
+    ],
+    "bounding_box": {
+      "lat_min": 6.0,
+      "lat_max": 38.0,
+      "lon_min": 67.0,
+      "lon_max": 99.0
+    },
+    "encoding": {
+      "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
+      "precipitation": "uint16: value / 10 mm; 65535 = missing"
+    }
+  }
 }

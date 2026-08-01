@@ -32,6 +32,8 @@ RANGE_VARIABLES = (
     ("temperature_low", "Daily low 2 m temperature", "minimum"),
 )
 ARTIFACTS_PER_RUN = 84
+GRID_VARIABLES = ("temperature", "precipitation", "temperature_high", "temperature_low")
+GRID_ARTIFACTS_PER_RUN = 6
 
 
 def stamp(init: pd.Timestamp) -> str:
@@ -93,10 +95,12 @@ def valid_existing_runs(site: Path, archive: dict, renderer) -> list[dict]:
         try:
             init = pd.Timestamp(run["initialization_utc"])
             run_leads = tuple(item["day"] for item in run.get("lead_days", []))
-            if stamp(init) != run["id"] or len(run["artifacts"]) not in (42, ARTIFACTS_PER_RUN) or run_leads != LEAD_DAYS:
+            if stamp(init) != run["id"] or len(run["artifacts"]) != GRID_ARTIFACTS_PER_RUN or run_leads != LEAD_DAYS:
                 continue
             for artifact in run["artifacts"]:
-                renderer.validate_png(site / artifact["path"])
+                path = site / artifact["path"]
+                if artifact.get("kind") != "grid" or not path.is_file() or path.stat().st_size < 50_000:
+                    raise ValueError(f"invalid map payload: {path}")
             runs.append(run)
         except (KeyError, OSError, ValueError):
             continue
@@ -110,8 +114,7 @@ def render_run(init, models, cfg, renderer, india_load, stage: Path, attempts: i
         datasets[model] = renderer.load_with_retries(
             model, cfg, init, max_members=8, attempts=attempts,
         )
-    artifacts = renderer.render_all_maps(datasets, models, init, cfg, stage)
-    artifacts.extend(render_daily_temperature_ranges(init, datasets, models, cfg, renderer, india_load, stage))
+    artifacts, grid_metadata = write_map_payloads(init, datasets, models, cfg, india_load, stage)
     manifest = renderer.build_manifest(datasets, models, init, cfg, artifacts)
     manifest["lead_semantics"] = {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
@@ -127,6 +130,7 @@ def render_run(init, models, cfg, renderer, india_load, stage: Path, attempts: i
         "models": manifest["models"],
         "variables": manifest["variables"],
         "lead_semantics": manifest["lead_semantics"],
+        "grid_metadata": grid_metadata,
         "bounding_box": manifest["bounding_box"],
         "disclaimer": manifest["disclaimer"],
         "artifacts": artifacts,
@@ -230,6 +234,44 @@ def render_daily_temperature_ranges(init, datasets, models, cfg, renderer, india
     if len(records) != 42:
         raise AssertionError(f"expected 42 daily-range PNGs, produced {len(records)}")
     return records
+
+
+def _encode_grid(values: np.ndarray, variable: str) -> np.ndarray:
+    """Quantize map fields to compact uint16 payloads for client-side rendering."""
+    values = np.asarray(values, dtype=np.float32)
+    if variable == "precipitation":
+        encoded = np.rint(np.clip(values, 0, 6500.0) * 10.0)
+    else:
+        encoded = np.rint(np.clip(values, -50.0, 65.0) * 100.0 + 5000.0)
+    encoded = np.where(np.isfinite(values), encoded, 65535).astype("<u2")
+    return encoded
+
+
+def write_map_payloads(init, datasets, models, cfg, india_load, stage: Path) -> tuple[list[dict], dict]:
+    """Write compact browser payloads instead of pre-rendered PNG map galleries."""
+    tag = stamp(init)
+    target = stage / "assets" / "map_data" / tag
+    target.mkdir(parents=True, exist_ok=True)
+    records = []
+    for model in models:
+        ranges = _daily_temperature_ranges(model, init, cfg, india_load, datasets[model])
+        fields = {
+            "temperature": datasets[model]["t2m_C"].values,
+            "precipitation": datasets[model]["precip_cumulative_mm"].values,
+            "temperature_high": ranges["maximum"]["t2m_C"].values,
+            "temperature_low": ranges["minimum"]["t2m_C"].values,
+        }
+        payload = np.concatenate([_encode_grid(fields[variable], variable).reshape(-1) for variable in GRID_VARIABLES])
+        relative = Path("assets") / "map_data" / tag / f"{model}.bin"
+        (stage / relative).write_bytes(payload.tobytes())
+        records.append({"kind": "grid", "model": model, "path": relative.as_posix(), "bytes": int(payload.nbytes)})
+    metadata = {
+        "variables": list(GRID_VARIABLES), "lead_days": list(LEAD_DAYS),
+        "shape": [len(LEAD_DAYS), int(datasets[models[0]].sizes["lat"]), int(datasets[models[0]].sizes["lon"])],
+        "bounding_box": {"lat_min": cfg.india_bbox.lat_min, "lat_max": cfg.india_bbox.lat_max, "lon_min": cfg.india_bbox.lon_min, "lon_max": cfg.india_bbox.lon_max},
+        "encoding": {"temperature": "uint16: (value - 5000) / 100 °C; 65535 = missing", "precipitation": "uint16: value / 10 mm; 65535 = missing"},
+    }
+    return records, metadata
 
 
 def has_daily_temperature_ranges(run: dict) -> bool:
@@ -596,6 +638,12 @@ ARCHIVE_JS = r"""
   const siteData = JSON.parse(document.querySelector("#archive-data").textContent);
   const runs = siteData.runs;
   const validation = siteData.validation;
+  const mapModelButtons = [...document.querySelectorAll("[data-map-model]")];
+  const canvas = document.querySelector("#forecast-canvas");
+  const mapTitle = document.querySelector("#map-title");
+  const mapDescription = document.querySelector("#map-description");
+  const mapReadout = document.querySelector("#map-readout");
+  const cityReadout = document.querySelector("#city-readout");
   const combination = siteData.combination || { cities: {} };
   const combinationCityButtons = [...document.querySelectorAll("[data-combination-city]")];
   const combinationTitle = document.querySelector("#combination-title");
@@ -614,20 +662,20 @@ ARCHIVE_JS = r"""
   let matchInit = allowedInits.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
   let matchVariable = allowedVariables.has(params.get("match_variable")) ? params.get("match_variable") : "precipitation";
   let combinationCity = Object.keys(combination.cities).includes(params.get("combination_city")) ? params.get("combination_city") : Object.keys(combination.cities)[0];
+  let mapModel = params.get("model") || mapModelButtons[0]?.dataset.mapModel;
+  let payload = null;
+  let view = { scale: 1, x: 0, y: 0 };
+  let drag = null;
 
   function render(updateUrl = true) {
     const active = runs.find((run) => run.id === init);
-    if (["temperature_high", "temperature_low"].includes(variable) && !active.has_daily_ranges) {
-      variable = "temperature";
-    }
     variableButtons.forEach((button) => {
-      const isRange = ["temperature_high", "temperature_low"].includes(button.dataset.variableButton);
-      button.disabled = isRange && !active.has_daily_ranges;
-      button.title = button.disabled ? "Daily ranges are published for the latest initialization; this historical run retains endpoint layers." : "";
+      button.disabled = false;
+      button.title = "";
       button.setAttribute("aria-pressed", String(button.dataset.variableButton === variable));
     });
     dayButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.dayButton === day)));
-    views.forEach((view) => { view.hidden = !(view.dataset.init === init && view.dataset.variable === variable && view.dataset.day === day); });
+    mapModelButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.mapModel === mapModel)));
     runSelect.value = init;
     runSummary.textContent = `Initialized ${new Date(active.initialization_utc).toLocaleString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })} UTC · 6 experts · 5-day horizon`;
     if (updateUrl) {
@@ -635,8 +683,84 @@ ARCHIVE_JS = r"""
       next.searchParams.set("init", init);
       next.searchParams.set("variable", variable);
       next.searchParams.set("day", day);
+      next.searchParams.set("model", mapModel);
       history.replaceState(null, "", next);
     }
+    loadMap(active);
+  }
+
+  function color(value) {
+    if (variable === "precipitation") {
+      const t = Math.max(0, Math.min(1, value / 120));
+      return `hsl(${205 - t * 150} 78% ${92 - t * 47}%)`;
+    }
+    const t = Math.max(0, Math.min(1, (value - 5) / 40));
+    return `hsl(${235 - t * 235} 82% ${35 + 27 * t}%)`;
+  }
+
+  function rgb(value) {
+    const hsl = color(value).match(/([\d.]+)/g).map(Number);
+    let [h, s, l] = hsl; h /= 360; s /= 100; l /= 100;
+    const hue = (n) => { const k = (n + h * 12) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    return [Math.round(255 * hue(0)), Math.round(255 * hue(8)), Math.round(255 * hue(4))];
+  }
+
+  async function loadMap(active) {
+    if (!canvas || !active.grid_metadata?.shape) return;
+    const url = `assets/map_data/${init}/${mapModel}.bin`;
+    mapReadout.textContent = "Loading compact grid…";
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(response.statusText);
+      payload = new Uint16Array(await response.arrayBuffer());
+      drawMap(active);
+    } catch (error) {
+      mapReadout.textContent = "Grid unavailable for this selection.";
+      console.error(error);
+    }
+  }
+
+  function drawMap(active) {
+    if (!payload || !canvas) return;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(640, Math.round(rect.width * devicePixelRatio));
+    const height = Math.max(420, Math.round(rect.height * devicePixelRatio));
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    const metadata = active.grid_metadata;
+    const [nLead, nLat, nLon] = metadata.shape;
+    const variableIndex = metadata.variables.indexOf(variable);
+    const dayIndex = metadata.lead_days.indexOf(Number(day));
+    const count = nLead * nLat * nLon;
+    const start = variableIndex * count + dayIndex * nLat * nLon;
+    const image = ctx.createImageData(nLon, nLat);
+    for (let y = 0; y < nLat; y++) for (let x = 0; x < nLon; x++) {
+      const encoded = payload[start + y * nLon + x];
+      const offset = ((nLat - 1 - y) * nLon + x) * 4;
+      if (encoded === 65535) { image.data[offset + 3] = 0; continue; }
+      const value = variable === "precipitation" ? encoded / 10 : (encoded - 5000) / 100;
+      const pixel = rgb(value);
+      image.data[offset] = pixel[0]; image.data[offset + 1] = pixel[1]; image.data[offset + 2] = pixel[2]; image.data[offset + 3] = 255;
+    }
+    const raster = document.createElement("canvas"); raster.width = nLon; raster.height = nLat; raster.getContext("2d").putImageData(image, 0, 0);
+    ctx.fillStyle = "#071923"; ctx.fillRect(0, 0, width, height);
+    const scale = view.scale; const x0 = view.x; const y0 = view.y;
+    ctx.save(); ctx.translate(x0, y0); ctx.scale(scale, scale); ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(raster, 0, 0, width, height);
+    ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1 / scale;
+    for (let fraction = .2; fraction < 1; fraction += .2) { ctx.beginPath(); ctx.moveTo(width * fraction, 0); ctx.lineTo(width * fraction, height); ctx.moveTo(0, height * fraction); ctx.lineTo(width, height * fraction); ctx.stroke(); }
+    const cities = Object.entries(validation.cities);
+    cities.forEach(([name, city]) => {
+      const x = width * (city.longitude - metadata.bounding_box.lon_min) / (metadata.bounding_box.lon_max - metadata.bounding_box.lon_min);
+      const y = height * (metadata.bounding_box.lat_max - city.latitude) / (metadata.bounding_box.lat_max - metadata.bounding_box.lat_min);
+      ctx.beginPath(); ctx.arc(x, y, 7 / scale, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#f2553d"; ctx.lineWidth = 3 / scale; ctx.stroke();
+      ctx.fillStyle = "#fff"; ctx.font = `${13 / scale}px Inter, sans-serif`; ctx.fillText(name, x + 10 / scale, y - 9 / scale);
+    });
+    ctx.restore();
+    const label = variable.replace("temperature_high", "daily high").replace("temperature_low", "daily low").replace("precipitation", "rain accumulation");
+    mapTitle.textContent = `${label} · Day ${day}`;
+    mapDescription.textContent = `${mapModelButtons.find((button) => button.dataset.mapModel === mapModel)?.textContent || mapModel} · ${metadata.shape[1]} × ${metadata.shape[2]} grid · drag / scroll to navigate`;
+    mapReadout.textContent = `T+${Number(day) * 24} h · ${metadata.bounding_box.lat_min}–${metadata.bounding_box.lat_max}°N · ${metadata.bounding_box.lon_min}–${metadata.bounding_box.lon_max}°E`;
   }
 
   function renderValidation(updateUrl = true) {
@@ -710,6 +834,22 @@ ARCHIVE_JS = r"""
   matchInitSelect.addEventListener("change", () => { matchInit = matchInitSelect.value; renderMatchedTimeseries(); });
   matchVariableButtons.forEach((button) => button.addEventListener("click", () => { matchVariable = button.dataset.matchVariable; renderMatchedTimeseries(); }));
   combinationCityButtons.forEach((button) => button.addEventListener("click", () => { combinationCity = button.dataset.combinationCity; renderCombination(); }));
+  mapModelButtons.forEach((button) => button.addEventListener("click", () => { mapModel = button.dataset.mapModel; view = { scale: 1, x: 0, y: 0 }; render(); }));
+  document.querySelector("#map-reset")?.addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(runs.find((run) => run.id === init)); });
+  canvas?.addEventListener("pointerdown", (event) => { drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
+  canvas?.addEventListener("pointermove", (event) => { if (!drag) return; const dx = (event.clientX - drag.x) * devicePixelRatio; const dy = (event.clientY - drag.y) * devicePixelRatio; if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true; view.x += dx; view.y += dy; drag.x = event.clientX; drag.y = event.clientY; drawMap(runs.find((run) => run.id === init)); });
+  canvas?.addEventListener("pointerup", (event) => {
+    if (!drag?.moved) {
+      const active = runs.find((run) => run.id === init); const meta = active.grid_metadata; const box = canvas.getBoundingClientRect();
+      const px = (event.clientX - box.left) * devicePixelRatio; const py = (event.clientY - box.top) * devicePixelRatio;
+      const gx = (px - view.x) / view.scale / canvas.width; const gy = (py - view.y) / view.scale / canvas.height;
+      const lon = meta.bounding_box.lon_min + gx * (meta.bounding_box.lon_max - meta.bounding_box.lon_min); const lat = meta.bounding_box.lat_max - gy * (meta.bounding_box.lat_max - meta.bounding_box.lat_min);
+      const nearest = Object.entries(validation.cities).map(([name, city]) => [name, Math.hypot((city.longitude - lon) * .9, city.latitude - lat)]).sort((a, b) => a[1] - b[1])[0];
+      if (nearest && nearest[1] < 1.5) { validationCity = nearest[0]; combinationCity = nearest[0]; renderValidation(); renderCombination(); cityReadout.innerHTML = `<dt>${nearest[0]}</dt><dd>Matched validation and online-combination panel selected.</dd>`; document.querySelector("#combination").scrollIntoView({ behavior: "smooth", block: "start" }); }
+    }
+    drag = null;
+  });
+  canvas?.addEventListener("wheel", (event) => { event.preventDefault(); const factor = event.deltaY < 0 ? 1.15 : .87; view.scale = Math.max(1, Math.min(4, view.scale * factor)); drawMap(runs.find((run) => run.id === init)); }, { passive: false });
 
   const pinLocations = [
     ["Delhi", "31%", "38%"], ["Mumbai", "23%", "56%"],
@@ -764,9 +904,9 @@ def build_html(archive: dict, renderer, validation: dict, combination: dict | No
         f'<option value="{run["id"]}">{pd.Timestamp(run["initialization_utc"]):%d %b %Y · 00 UTC}</option>'
         for run in archive["runs"]
     )
-    sections = "\n".join(
-        run_sections(run, renderer) + "\n" + range_sections(run)
-        for run in archive["runs"]
+    map_model_controls = "".join(
+        f'<button type="button" data-map-model="{model.get("id", model["label"].lower())}" aria-pressed="{str(index == 0).lower()}">{model["label"]}</button>'
+        for index, model in enumerate(latest["models"])
     )
     source_rows = "".join(
         "<tr><th scope=\"row\">{label}</th><td>{provider}</td><td>{members}</td>"
@@ -794,7 +934,7 @@ def build_html(archive: dict, renderer, validation: dict, combination: dict | No
     default_match_image = validation["cities"][default_city]["timeseries"][archive["runs"][0]["id"]]["precipitation"]
     product_count = sum(len(run.get("artifacts", [])) for run in archive["runs"])
     data = json.dumps({
-        "runs": [{"id": run["id"], "initialization_utc": run["initialization_utc"], "has_daily_ranges": has_daily_temperature_ranges(run)} for run in archive["runs"]],
+        "runs": [{"id": run["id"], "initialization_utc": run["initialization_utc"], "grid_metadata": run.get("grid_metadata", {})} for run in archive["runs"]],
         "validation": validation,
         "combination": combination,
     })
@@ -808,7 +948,8 @@ def build_html(archive: dict, renderer, validation: dict, combination: dict | No
   <header class="masthead"><div class="shell nav-shell"><a class="brand" href="#top">ADAWEATHER <span>RESEARCH</span></a><nav aria-label="Primary navigation"><a href="#maps">Explorer</a><a href="#combination">Combination</a><a href="#validation">Verification</a><a href="#method">Method</a><a href="#resources">Resources</a></nav></div></header>
   <main id="top"><section class="experimental-banner"><div class="shell">EXPERIMENTAL RESEARCH SYSTEM · NOT AN OFFICIAL FORECAST, WARNING, OR SAFETY PRODUCT</div></section><section class="hero"><div class="shell hero-grid"><div><p class="eyebrow">India-region forecast research · rolling seven-initialization archive</p><h1>AdaWeather<br>forecast laboratory</h1><p class="lede">An experimental AI ensemble research system. AdaWeather examines a transparent, online-learned mixture of global forecast experts alongside the individual source models. Products are harmonized for research comparison, not operational decision-making.</p><div class="hero-actions"><a class="primary-action" href="#maps">Open map explorer</a><a class="text-action" href="#method">Read the method</a></div></div><dl class="run-card"><div><dt>Research status</dt><dd>Experimental · non-operational</dd></div><div><dt>Initialization</dt><dd id="run-summary">Loading archive…</dd></div><div><dt>Archive run</dt><dd><label class="sr-only" for="run-select">Choose forecast initialization</label><select id="run-select">{options}</select></dd></div><div><dt>Forecast windows</dt><dd>T+24 · T+72 · T+120 h</dd></div></dl></div></section>
   <section class="run-strip" aria-label="Forecast summary"><div class="shell stats"><div><strong>6</strong><span>global forecast experts</span></div><div><strong>7</strong><span>retained initializations</span></div><div><strong>3</strong><span>sampled lead days</span></div><div><strong>{product_count}</strong><span>rendered research maps</span></div></div></section>
-  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Interactive archive explorer</p><h2>Inspect a shared forecast state.</h2></div><p>Use the layer, lead, and initialization controls. The map layer can be enlarged and city pins open the corresponding matched forecast–observation evidence below. Map imagery is a rendered research product, not a navigation chart.</p></div><div class="controls explorer-controls" aria-label="Forecast map controls"><fieldset><legend>Layer</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-variable-button="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Rain accumulation</button></div></fieldset><fieldset><legend>Forecast endpoint</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button><button type="button" data-day-button="5" aria-pressed="false">Day 5 · +120h</button></div></fieldset></div><div id="forecast-views" aria-live="polite">{sections}</div></section>
+  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Interactive archive explorer</p><h2>Explore the forecast field.</h2></div><p>Canvas-rendered model fields replace the image gallery. Drag to pan, use the wheel to zoom, and select a city marker to open matched evidence. Coordinates and marker placement use the published India-region bounding box.</p></div><div class="controls explorer-controls" aria-label="Forecast map controls"><fieldset><legend>Layer</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-variable-button="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Rain accumulation</button></div></fieldset><fieldset><legend>Forecast endpoint</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button><button type="button" data-day-button="5" aria-pressed="false">Day 5 · +120h</button></div></fieldset><fieldset><legend>Expert model</legend><div class="segmented model-select">{map_model_controls}</div></fieldset></div><div class="map-workbench"><canvas id="forecast-canvas" aria-label="Interactive India forecast map"></canvas><div class="canvas-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading field…</span></div><aside><p class="kicker">Field explorer</p><h3 id="map-title">2 m temperature</h3><p id="map-description">Model field at selected valid time.</p><dl id="city-readout"><dt>Click a city marker</dt><dd>Open its verification and online-combination evidence.</dd></dl></aside></div></section>
+  <section class="maps shell" id="maps"><div class="intro-row"><div><p class="kicker">Interactive archive explorer</p><h2>Explore the forecast field.</h2></div><p>Canvas-rendered model fields replace the image gallery. Drag to pan, use the wheel to zoom, and select a city marker to open matched evidence. Coordinates and marker placement use the published India-region bounding box.</p></div><div class="controls explorer-controls" aria-label="Forecast map controls"><fieldset><legend>Layer</legend><div class="segmented"><button type="button" data-variable-button="temperature" aria-pressed="true">Temperature</button><button type="button" data-variable-button="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-variable-button="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-variable-button="precipitation" aria-pressed="false">Rain accumulation</button></div></fieldset><fieldset><legend>Forecast endpoint</legend><div class="segmented"><button type="button" data-day-button="1" aria-pressed="true">Day 1 · +24h</button><button type="button" data-day-button="3" aria-pressed="false">Day 3 · +72h</button><button type="button" data-day-button="5" aria-pressed="false">Day 5 · +120h</button></div></fieldset><fieldset><legend>Expert model</legend><div class="segmented model-select">{map_model_controls}</div></fieldset></div><div class="map-workbench"><canvas id="forecast-canvas" aria-label="Interactive India forecast map"></canvas><div class="canvas-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading field…</span></div><aside><p class="kicker">Field explorer</p><h3 id="map-title">2 m temperature</h3><p id="map-description">Model field at selected valid time.</p><dl id="city-readout"><dt>Click a city marker</dt><dd>Open its verification and online-combination evidence.</dd></dl></aside></div><div class="sr-only">{"".join(f'<span data-init="{run["id"]}"></span>' for run in archive["runs"])}</div></section>
   <section class="combination shell" id="combination"><div class="intro-row"><div><p class="kicker">Experimental online combination</p><h2>One learned blend, shown with its uncertainty.</h2></div><p>For each city, AdaWeather applies a causal online learner to recent matched 2 m-temperature forecasts. The line is the convex blend; the envelope is the contributing model range—not a calibrated prediction interval.</p></div><div class="controls combination-controls"><fieldset><legend>City</legend><div class="segmented">{combination_city_controls}</div></fieldset></div><div class="combination-panel"><div class="combination-head"><div><span class="kicker">Current research blend</span><h3 id="combination-title">{default_combination_city or "Combination unavailable"}</h3></div><p id="combination-summary"></p></div><div id="combination-chart" role="img" aria-label="Experimental online combination temperature forecast"></div><div id="combination-weights" class="weight-grid"></div><p class="combination-note">{combination["definition"]}</p></div></section>
   <section class="validation shell" id="validation"><div class="intro-row"><div><p class="kicker">Realized forecast validation</p><h2>Test claims against observations.</h2></div><p>Each point pairs a published source-model forecast with Open-Meteo ground truth at the same city and valid time. Precipitation is accumulated over the identical initialization-to-endpoint window.</p></div><div class="controls validation-controls" aria-label="Validation chart controls"><fieldset><legend>City</legend><div class="segmented">{validation_city_controls}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Rain accumulation</button></div></fieldset></div><p class="validation-summary" id="validation-summary"></p><figure class="comparison validation-figure"><img id="validation-image" src="{default_image['path']}" alt="{default_image['alt']}"><figcaption><span>Left: forecast vs. matched observation. Right: mean absolute error by lead.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure><div class="single-init-head"><div><p class="kicker">Matched trajectory</p><h3>One initialization, matched leads.</h3></div><label>Initialization <select id="match-init-select">{options}</select></label></div><div class="controls match-controls" aria-label="Single-initialization variable controls"><fieldset><legend>Matched variable</legend><div class="segmented"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Rain accumulation</button></div></fieldset></div><figure class="comparison validation-figure"><img id="match-image" src="{default_match_image['path']}" alt="{default_match_image['alt']}"><figcaption><span>Each source-model trace is compared with the matched Open-Meteo observation at days 1, 3, and 5.</span><a class="download" href="assets/validation_manifest.json">Validation metadata</a></figcaption></figure></section>
   <section class="method-band" id="method"><div class="shell"><div class="intro-row light"><div><p class="kicker">AdaWeather method</p><h2>Ensemble research with a visible audit trail.</h2></div><p>AdaWeather is an experimental mixture-of-experts study, not a claim of superior operational skill. It evaluates a convex, online-learned combination of available global-model experts against recent observations, while retaining every individual expert for comparison.</p></div><div class="method-grid"><article><span>01</span><h3>Align</h3><p>Only shared 00 UTC initializations are admitted. Fields use the same India-region box, endpoints, and units.</p></article><article><span>02</span><h3>Derive</h3><p>Daily high and low layers are maxima and minima of every available native 2 m-temperature step in each 24-hour forecast day.</p></article><article><span>03</span><h3>Combine</h3><p>The AdaWeather research combiner learns non-negative expert weights from recent matched history; weights sum to one.</p></article><article><span>04</span><h3>Verify</h3><p>Published city samples are matched to Open-Meteo ground truth. Missing source data rejects a run rather than silently substituting one.</p></article></div></div></section>
@@ -839,6 +980,18 @@ ARCHIVE_CSS = r"""
 .run-card dt { color: #8fd7c4; }
 .explorer-controls { position: sticky; top: 10px; z-index: 3; border-color: #aebdc2; box-shadow: 0 12px 34px rgba(6, 22, 30, .12); }
 .segmented button:disabled { color: #8b999d; border-color: #dbe1e2; background: #edf0f0; cursor: not-allowed; }
+.map-workbench { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 260px; overflow: hidden; border: 1px solid #173d49; background: #071923; box-shadow: var(--shadow); }
+#forecast-canvas { display: block; width: 100%; min-height: 590px; touch-action: none; cursor: grab; }
+#forecast-canvas:active { cursor: grabbing; }
+.map-workbench aside { padding: 26px 22px; color: #d7e8e7; background: #0b2b36; }
+.map-workbench aside .kicker { color: #80d2bb; }
+.map-workbench h3 { color: white; font-size: 1.35rem; line-height: 1.05; }
+.map-workbench aside p { color: #abc2c2; font-size: .84rem; }
+#city-readout { margin-top: 38px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.17); }
+#city-readout dt { color: #83d3bb; font-size: .78rem; font-weight: 800; }
+#city-readout dd { margin: 7px 0 0; color: #bed1d1; font-size: .82rem; }
+.canvas-tools { position: absolute; z-index: 2; display: flex; align-items: center; gap: 10px; margin: 14px; padding: 7px; border: 1px solid rgba(255,255,255,.3); color: #d8e9e8; background: rgba(4,20,27,.78); font-size: .72rem; }
+.canvas-tools button { border: 1px solid rgba(255,255,255,.32); padding: 6px 9px; color: white; background: transparent; font: inherit; cursor: pointer; }
 .combination { padding: 90px 0 96px; scroll-margin-top: 20px; }
 .combination-controls { margin-bottom: 18px; }
 .combination-panel { border: 1px solid #1a3943; color: #eaf3f2; background: linear-gradient(125deg, #081c25, #103947); box-shadow: var(--shadow); }
@@ -879,7 +1032,7 @@ ARCHIVE_CSS = r"""
 .resource-grid span { margin-bottom: 35px; color: var(--teal); font-size: .7rem; font-weight: 800; letter-spacing: .1em; }
 .resource-grid strong { font-size: 1.08rem; line-height: 1.18; }
 .resource-grid em { margin-top: auto; color: var(--muted); font-size: .82rem; font-style: normal; }
-@media (max-width: 900px) { .resource-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) { .resource-grid { grid-template-columns: repeat(2, 1fr); } .map-workbench { grid-template-columns: 1fr; } #forecast-canvas { min-height: 470px; } }
 @media (max-width: 650px) { .single-init-head { display: grid; align-items: start; } }
 @media (max-width: 650px) { .validation, .combination { padding-top: 65px; padding-bottom: 68px; } .experimental-banner { font-size: .58rem; } .resource-grid { grid-template-columns: 1fr; } .map-pin { font-size: .58rem; } .combination-head { display: block; } .combination-head p { margin-top: 12px; text-align: left; } .weight-grid { grid-template-columns: repeat(2, 1fr); } .weight-grid div:nth-child(2) { border-right: 0; } .weight-grid div:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.16); } #combination-chart { padding-inline: 8px; } }
 """
@@ -898,7 +1051,7 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
     (stage / "README.md").write_text(
         "# India Multi-Model Forecast Atlas\n\n"
         "A rolling seven-initialization static forecast archive. Each retained run has six "
-        "models, two variables, three forecast days, and 42 validated PNG products.\n\n"
+        "compact browser grid payloads with temperature, daily high/low, and precipitation layers.\n\n"
         "See [`assets/forecast_archive.json`](assets/forecast_archive.json) for provenance.\n"
     )
 
@@ -909,14 +1062,13 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
     html = (stage / "index.html").read_text()
     seen = set()
     for run in archive["runs"]:
-        if run["id"] in seen or len(run["artifacts"]) not in (42, ARTIFACTS_PER_RUN):
+        if run["id"] in seen or len(run["artifacts"]) != GRID_ARTIFACTS_PER_RUN:
             raise RuntimeError(f"invalid artifact record for run {run.get('id')}")
         seen.add(run["id"])
         for artifact in run["artifacts"]:
             path = stage / artifact["path"]
-            renderer.validate_png(path)
-            if artifact["path"] not in html:
-                raise RuntimeError(f"unlinked artifact: {artifact['path']}")
+            if artifact.get("kind") != "grid" or not path.is_file() or path.stat().st_size < 50_000:
+                raise RuntimeError(f"invalid grid artifact: {artifact['path']}")
     for relative in ("assets/style.css", "assets/app.js", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
@@ -974,7 +1126,8 @@ def main():
     renderer, load_config, india_load, openmeteo = load_renderer(args.realtime_root.resolve())
     cfg = load_config()
     models = tuple(renderer.DEFAULT_MODELS)
-    existing = valid_existing_runs(args.output_site, read_archive(args.output_site), renderer)
+    prior_archive = read_archive(args.output_site)
+    existing = prior_archive["runs"] if args.validation_only else valid_existing_runs(args.output_site, prior_archive, renderer)
     if args.backfill and args.validation_only:
         raise SystemExit("--backfill and --validation-only cannot be combined")
     available = [] if args.validation_only else common_midnight_inits(models, cfg, india_load)
@@ -990,14 +1143,30 @@ def main():
 
     with tempfile.TemporaryDirectory(prefix="forecast-archive-", dir="/tmp") as tmp:
         stage = Path(tmp)
-        stage_forecasts = stage / "assets" / "forecasts"
-        stage_forecasts.mkdir(parents=True)
+        stage_map_data = stage / "assets" / "map_data"
+        stage_map_data.mkdir(parents=True)
         retained = existing[:7]
-        for run in retained:
-            source = args.output_site / "assets" / "forecasts" / run["id"]
-            shutil.copytree(source, stage_forecasts / run["id"])
-        retained = add_available_daily_ranges(retained, stage, renderer)
-        retained = add_latest_daily_ranges(retained, cfg, renderer, india_load, stage)
+        if args.validation_only:
+            rebuilt = []
+            for run in retained:
+                run_init = pd.Timestamp(run["initialization_utc"])
+                run_models = tuple(model["id"] for model in run["models"])
+                datasets = {model: _open_run_dataset(cfg, run, model) for model in run_models}
+                artifacts, grid_metadata = write_map_payloads(run_init, datasets, run_models, cfg, india_load, stage)
+                rebuilt.append({
+                    **run, "artifacts": artifacts, "grid_metadata": grid_metadata,
+                    "lead_semantics": {
+                        **run["lead_semantics"],
+                        "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+                        "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+                    },
+                })
+            retained = rebuilt
+        else:
+            for run in retained:
+                source = args.output_site / "assets" / "map_data" / run["id"]
+                if source.is_dir():
+                    shutil.copytree(source, stage_map_data / run["id"])
         for init in candidates:
             try:
                 run = render_run(init, models, cfg, renderer, india_load, stage, args.attempts)
