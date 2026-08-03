@@ -12,6 +12,7 @@
   const qa = (selector) => [...document.querySelectorAll(selector)];
   const allowedTabs = new Set(["weather", "maps", "validation", "method"]);
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
+  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
@@ -84,6 +85,7 @@
     });
     renderWeather();
     loadMap();
+    renderAnimation();
     setUrl();
   }
 
@@ -139,6 +141,11 @@
     return [45 + 205 * t, 110 + 70 * (1 - Math.abs(t - .5) * 2), 190 - 145 * t];
   }
 
+  function decodeMapValue(encoded) {
+    if (encoded === 65535) return null;
+    return mapVariable === "precipitation" ? encoded / 10 : (encoded - 5000) / 100;
+  }
+
   function loadCoastlines() {
     if (!coastlinePromise) {
       coastlinePromise = fetch("assets/coastlines.json")
@@ -150,6 +157,17 @@
         .catch((error) => { console.warn("Coastline overlay unavailable.", error); });
     }
     return coastlinePromise;
+  }
+
+  function renderAnimation() {
+    const label = mapVariableLabels[mapVariable];
+    const model = modelLabel(mapModel);
+    const source = `assets/map_animations/${init}/${mapModel}/${mapVariable}.gif`;
+    const image = q("#map-animation");
+    if (image.getAttribute("src") !== source) image.src = source;
+    image.alt = `Animated ${label.toLowerCase()} forecast for ${model} from Day 1 through Day 5`;
+    q("#animation-title").textContent = `${label} · ${model}`;
+    q("#animation-description").textContent = "Animated Day 1, Day 3, and Day 5 forecast endpoints.";
   }
 
   async function loadMap() {
@@ -192,6 +210,57 @@
     });
   }
 
+  function mapCoordinates(event, run = activeRun()) {
+    const canvas = q("#forecast-canvas");
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const gx = ((event.clientX - rect.left) * ratio - view.x) / view.scale / canvas.width;
+    const gy = ((event.clientY - rect.top) * ratio - view.y) / view.scale / canvas.height;
+    if (gx < 0 || gx > 1 || gy < 0 || gy > 1) return null;
+    const bounds = run.grid_metadata.bounding_box;
+    return {
+      gx,
+      gy,
+      cssX: event.clientX - rect.left,
+      cssY: event.clientY - rect.top,
+      rect,
+      longitude: bounds.lon_min + gx * (bounds.lon_max - bounds.lon_min),
+      latitude: bounds.lat_max - gy * (bounds.lat_max - bounds.lat_min),
+    };
+  }
+
+  function mapValueAt(run, point) {
+    const meta = run.grid_metadata;
+    const [nLead, nLat, nLon] = meta.shape;
+    const variableIndex = meta.variables.indexOf(mapVariable);
+    const dayIndex = meta.lead_days.indexOf(Number(mapDay));
+    if (variableIndex < 0 || dayIndex < 0) return null;
+    const xIndex = Math.max(0, Math.min(nLon - 1, Math.round(point.gx * (nLon - 1))));
+    const yIndex = Math.max(0, Math.min(nLat - 1, Math.round((1 - point.gy) * (nLat - 1))));
+    const count = nLead * nLat * nLon;
+    const start = variableIndex * count + dayIndex * nLat * nLon;
+    return decodeMapValue(payload[start + yIndex * nLon + xIndex]);
+  }
+
+  function hideMapTooltip() {
+    q("#map-tooltip").hidden = true;
+  }
+
+  function showMapTooltip(event) {
+    if (!payload) return;
+    const run = activeRun();
+    const point = mapCoordinates(event, run);
+    const value = point && mapValueAt(run, point);
+    if (!point || value === null) { hideMapTooltip(); return; }
+    const tooltip = q("#map-tooltip");
+    const units = mapVariable === "precipitation" ? "mm" : "°C";
+    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · Day ${mapDay}</small>`;
+    tooltip.style.left = `${Math.max(8, Math.min(point.rect.width - 185, point.cssX + 12))}px`;
+    tooltip.style.top = `${point.cssY > 90 ? point.cssY - 12 : point.cssY + 12}px`;
+    tooltip.dataset.side = point.cssY > 90 ? "above" : "below";
+    tooltip.hidden = false;
+  }
+
   function drawMap(run = activeRun()) {
     const canvas = q("#forecast-canvas");
     if (!payload || !canvas || !run.grid_metadata?.shape) return;
@@ -212,7 +281,7 @@
       const encoded = payload[start + yIndex * nLon + xIndex];
       const offset = ((nLat - 1 - yIndex) * nLon + xIndex) * 4;
       if (encoded === 65535) { image.data[offset + 3] = 0; continue; }
-      const number = mapVariable === "precipitation" ? encoded / 10 : (encoded - 5000) / 100;
+      const number = decodeMapValue(encoded);
       const rgb = mapColor(number);
       image.data[offset] = rgb[0]; image.data[offset + 1] = rgb[1]; image.data[offset + 2] = rgb[2]; image.data[offset + 3] = 255;
     }
@@ -231,8 +300,7 @@
       ctx.fillStyle = "#173f63"; ctx.font = `${12 / view.scale}px system-ui`; ctx.fillText(name, x + 10 / view.scale, y - 8 / view.scale);
     });
     ctx.restore();
-    const names = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
-    q("#map-title").textContent = `${names[mapVariable]} · Day ${mapDay}`;
+    q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
     q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
   }
@@ -240,8 +308,10 @@
   function renderMapControls() {
     selectButton("[data-map-variable]", mapVariable, "mapVariable");
     selectButton("[data-map-day]", mapDay, "mapDay");
+    selectButton("[data-map-model]", mapModel, "mapModel");
     view = { scale: 1, x: 0, y: 0 };
     loadMap();
+    renderAnimation();
     setUrl();
   }
 
@@ -273,21 +343,18 @@
   q("#match-init-select").addEventListener("change", (event) => { matchInit = event.target.value; renderValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
-  canvas.addEventListener("pointerdown", (event) => { drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
-  canvas.addEventListener("pointermove", (event) => { if (!drag) return; const ratio = window.devicePixelRatio || 1; const dx = (event.clientX - drag.x) * ratio; const dy = (event.clientY - drag.y) * ratio; if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true; view.x += dx; view.y += dy; drag.x = event.clientX; drag.y = event.clientY; drawMap(); });
+  canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
+  canvas.addEventListener("pointermove", (event) => { if (!drag) { showMapTooltip(event); return; } const ratio = window.devicePixelRatio || 1; const dx = (event.clientX - drag.x) * ratio; const dy = (event.clientY - drag.y) * ratio; if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true; view.x += dx; view.y += dy; drag.x = event.clientX; drag.y = event.clientY; drawMap(); });
+  canvas.addEventListener("pointerleave", () => { if (!drag) hideMapTooltip(); });
   canvas.addEventListener("pointerup", (event) => {
     if (!drag?.moved) {
-      const run = activeRun(), meta = run.grid_metadata, box = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
-      const gx = ((event.clientX - box.left) * ratio - view.x) / view.scale / canvas.width;
-      const gy = ((event.clientY - box.top) * ratio - view.y) / view.scale / canvas.height;
-      const lon = meta.bounding_box.lon_min + gx * (meta.bounding_box.lon_max - meta.bounding_box.lon_min);
-      const lat = meta.bounding_box.lat_max - gy * (meta.bounding_box.lat_max - meta.bounding_box.lat_min);
-      const nearest = Object.entries(validation.cities).map(([name, item]) => [name, Math.hypot((item.longitude - lon) * .9, item.latitude - lat)]).sort((a, b) => a[1] - b[1])[0];
+      const point = mapCoordinates(event);
+      const nearest = point && Object.entries(validation.cities).map(([name, item]) => [name, Math.hypot((item.longitude - point.longitude) * .9, item.latitude - point.latitude)]).sort((a, b) => a[1] - b[1])[0];
       if (nearest && nearest[1] < 1.5) { city = nearest[0]; q("#city-select").value = city; renderWeather(); renderValidation(); activateTab("validation"); }
     }
     drag = null;
   });
-  canvas.addEventListener("wheel", (event) => { event.preventDefault(); view.scale = Math.max(1, Math.min(4, view.scale * (event.deltaY < 0 ? 1.15 : .87))); drawMap(); }, { passive: false });
+  canvas.addEventListener("wheel", (event) => { event.preventDefault(); hideMapTooltip(); view.scale = Math.max(1, Math.min(4, view.scale * (event.deltaY < 0 ? 1.15 : .87))); drawMap(); }, { passive: false });
   window.addEventListener("resize", () => { if (tab === "maps") drawMap(); });
 
   activateTab(tab, false);

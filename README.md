@@ -1,6 +1,6 @@
 # India Weather Forecasts
 
-A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, interactive India maps, and Open-Meteo validation.
+A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, hoverable India maps, animated model forecasts, and Open-Meteo validation.
 
 - Last successful build: `2026-08-03T09:13:54.522972Z`
 - Latest initialization: `2026-08-03T00:00:00Z`

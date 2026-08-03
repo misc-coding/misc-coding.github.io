@@ -90,10 +90,29 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.equal(document.querySelector('[data-panel="maps"]').hidden, false);
   assert.ok(stats.fetches.includes("assets/coastlines.json"));
   assert.ok(stats.strokes > 20, "coastline segments should be drawn over the field");
+  const canvas = document.querySelector("#forecast-canvas");
+  canvas.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 450, clientY: 260, bubbles: true }));
+  const tooltip = document.querySelector("#map-tooltip");
+  assert.equal(tooltip.hidden, false);
+  assert.match(tooltip.textContent, /°C/);
+  assert.match(tooltip.textContent, /° N.*° E/);
+  canvas.dispatchEvent(new window.MouseEvent("pointerleave", { bubbles: true }));
+  assert.equal(tooltip.hidden, true);
+
   document.querySelector('[data-map-variable="precipitation"]').click();
   document.querySelector('[data-map-day="5"]').click();
   await new Promise((resolve) => setTimeout(resolve, 50));
   assert.match(document.querySelector("#map-title").textContent, /Accumulated rainfall · Day 5/);
+  assert.match(document.querySelector("#map-animation").getAttribute("src"), /precipitation\.gif$/);
+  canvas.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 450, clientY: 260, bubbles: true }));
+  assert.match(tooltip.textContent, /mm/);
+  const gfs = document.querySelector('[data-map-model="gfs"]');
+  if (!gfs.disabled) {
+    gfs.click();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(gfs.getAttribute("aria-pressed"), "true");
+    assert.match(document.querySelector("#map-animation").getAttribute("src"), /\/gfs\/precipitation\.gif$/);
+  }
   document.querySelector("#map-reset").click();
 
   document.querySelector('[data-tab="validation"]').click();

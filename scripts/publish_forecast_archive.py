@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
+from PIL import Image, ImageDraw
 
 SITE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REALTIME_ROOT = Path("/home/saptarishi.dhanuka_asp25/weather/real_time")
@@ -361,6 +362,82 @@ def write_map_payloads(init, datasets, models, cfg, india_load, stage: Path) -> 
         "encoding": {"temperature": "uint16: (value - 5000) / 100 °C; 65535 = missing", "precipitation": "uint16: value / 10 mm; 65535 = missing"},
     }
     return records, metadata
+
+
+def _animation_rgb(encoded: np.ndarray, variable: str) -> np.ndarray:
+    """Decode one compact grid into the same light color scale used by the canvas."""
+    missing = encoded == 65535
+    if variable == "precipitation":
+        values = encoded.astype(np.float32) / 10.0
+        fraction = np.clip(values / 120.0, 0, 1)
+        channels = (
+            225 - 185 * fraction,
+            241 - 80 * fraction,
+            248 - 25 * fraction,
+        )
+    else:
+        values = (encoded.astype(np.float32) - 5000.0) / 100.0
+        fraction = np.clip((values - 5.0) / 40.0, 0, 1)
+        channels = (
+            45 + 205 * fraction,
+            110 + 70 * (1 - np.abs(fraction - 0.5) * 2),
+            190 - 145 * fraction,
+        )
+    rgb = np.stack(channels, axis=-1).clip(0, 255).astype(np.uint8)
+    rgb[missing] = (232, 241, 245)
+    return np.flipud(rgb)
+
+
+def render_map_animations(stage: Path, archive: dict, coastline_path: Path) -> int:
+    """Render Day 1/3/5 GIFs for every retained run, model, and map variable."""
+    coastline_data = json.loads(coastline_path.read_text())
+    coastlines = coastline_data["lines"]
+    width, map_height, caption_height = 520, 330, 34
+    resampling = getattr(Image, "Resampling", Image).BILINEAR
+    created = 0
+    for run in archive["runs"]:
+        meta = run["grid_metadata"]
+        n_lead, n_lat, n_lon = meta["shape"]
+        bounds = meta["bounding_box"]
+        grid_size = n_lead * n_lat * n_lon
+        for model in (item["id"] for item in run["models"]):
+            payload_path = stage / "assets" / "map_data" / run["id"] / f"{model}.bin"
+            payload = np.fromfile(payload_path, dtype="<u2")
+            expected = len(meta["variables"]) * grid_size
+            if payload.size != expected:
+                raise RuntimeError(f"invalid map payload for animation: {payload_path}")
+            for variable_index, variable in enumerate(meta["variables"]):
+                frames = []
+                for lead_index, day in enumerate(meta["lead_days"]):
+                    start = variable_index * grid_size + lead_index * n_lat * n_lon
+                    encoded = payload[start:start + n_lat * n_lon].reshape(n_lat, n_lon)
+                    field = Image.fromarray(_animation_rgb(encoded, variable), mode="RGB").resize(
+                        (width, map_height), resampling,
+                    )
+                    draw = ImageDraw.Draw(field)
+                    for line in coastlines:
+                        points = [
+                            (
+                                round(width * (longitude - bounds["lon_min"]) / (bounds["lon_max"] - bounds["lon_min"])),
+                                round(map_height * (bounds["lat_max"] - latitude) / (bounds["lat_max"] - bounds["lat_min"])),
+                            )
+                            for longitude, latitude in line
+                        ]
+                        if len(points) > 1:
+                            draw.line(points, fill=(19, 44, 57), width=2, joint="curve")
+                    frame = Image.new("RGB", (width, map_height + caption_height), "white")
+                    frame.paste(field, (0, 0))
+                    label = f"Day {day}  |  T+{day * 24} h"
+                    ImageDraw.Draw(frame).text((12, map_height + 10), label, fill=(23, 43, 58))
+                    frames.append(frame)
+                target = stage / "assets" / "map_animations" / run["id"] / model / f"{variable}.gif"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                frames[0].save(
+                    target, save_all=True, append_images=frames[1:], duration=(900, 900, 1300),
+                    loop=0, optimize=True, disposal=2,
+                )
+                created += 1
+    return created
 
 
 def has_daily_temperature_ranges(run: dict) -> bool:
@@ -894,6 +971,7 @@ LEGACY_ARCHIVE_JS = r"""
   const combinationWeights = document.querySelector("#combination-weights");
   const params = new URLSearchParams(window.location.search);
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
+  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
   const allowedInits = new Set(runs.map((run) => run.id));
   let variable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
@@ -1150,6 +1228,7 @@ ARCHIVE_JS = r"""
   const qa = (selector) => [...document.querySelectorAll(selector)];
   const allowedTabs = new Set(["weather", "maps", "validation", "method"]);
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
+  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
@@ -1222,6 +1301,7 @@ ARCHIVE_JS = r"""
     });
     renderWeather();
     loadMap();
+    renderAnimation();
     setUrl();
   }
 
@@ -1277,6 +1357,11 @@ ARCHIVE_JS = r"""
     return [45 + 205 * t, 110 + 70 * (1 - Math.abs(t - .5) * 2), 190 - 145 * t];
   }
 
+  function decodeMapValue(encoded) {
+    if (encoded === 65535) return null;
+    return mapVariable === "precipitation" ? encoded / 10 : (encoded - 5000) / 100;
+  }
+
   function loadCoastlines() {
     if (!coastlinePromise) {
       coastlinePromise = fetch("assets/coastlines.json")
@@ -1288,6 +1373,17 @@ ARCHIVE_JS = r"""
         .catch((error) => { console.warn("Coastline overlay unavailable.", error); });
     }
     return coastlinePromise;
+  }
+
+  function renderAnimation() {
+    const label = mapVariableLabels[mapVariable];
+    const model = modelLabel(mapModel);
+    const source = `assets/map_animations/${init}/${mapModel}/${mapVariable}.gif`;
+    const image = q("#map-animation");
+    if (image.getAttribute("src") !== source) image.src = source;
+    image.alt = `Animated ${label.toLowerCase()} forecast for ${model} from Day 1 through Day 5`;
+    q("#animation-title").textContent = `${label} · ${model}`;
+    q("#animation-description").textContent = "Animated Day 1, Day 3, and Day 5 forecast endpoints.";
   }
 
   async function loadMap() {
@@ -1330,6 +1426,57 @@ ARCHIVE_JS = r"""
     });
   }
 
+  function mapCoordinates(event, run = activeRun()) {
+    const canvas = q("#forecast-canvas");
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const gx = ((event.clientX - rect.left) * ratio - view.x) / view.scale / canvas.width;
+    const gy = ((event.clientY - rect.top) * ratio - view.y) / view.scale / canvas.height;
+    if (gx < 0 || gx > 1 || gy < 0 || gy > 1) return null;
+    const bounds = run.grid_metadata.bounding_box;
+    return {
+      gx,
+      gy,
+      cssX: event.clientX - rect.left,
+      cssY: event.clientY - rect.top,
+      rect,
+      longitude: bounds.lon_min + gx * (bounds.lon_max - bounds.lon_min),
+      latitude: bounds.lat_max - gy * (bounds.lat_max - bounds.lat_min),
+    };
+  }
+
+  function mapValueAt(run, point) {
+    const meta = run.grid_metadata;
+    const [nLead, nLat, nLon] = meta.shape;
+    const variableIndex = meta.variables.indexOf(mapVariable);
+    const dayIndex = meta.lead_days.indexOf(Number(mapDay));
+    if (variableIndex < 0 || dayIndex < 0) return null;
+    const xIndex = Math.max(0, Math.min(nLon - 1, Math.round(point.gx * (nLon - 1))));
+    const yIndex = Math.max(0, Math.min(nLat - 1, Math.round((1 - point.gy) * (nLat - 1))));
+    const count = nLead * nLat * nLon;
+    const start = variableIndex * count + dayIndex * nLat * nLon;
+    return decodeMapValue(payload[start + yIndex * nLon + xIndex]);
+  }
+
+  function hideMapTooltip() {
+    q("#map-tooltip").hidden = true;
+  }
+
+  function showMapTooltip(event) {
+    if (!payload) return;
+    const run = activeRun();
+    const point = mapCoordinates(event, run);
+    const value = point && mapValueAt(run, point);
+    if (!point || value === null) { hideMapTooltip(); return; }
+    const tooltip = q("#map-tooltip");
+    const units = mapVariable === "precipitation" ? "mm" : "°C";
+    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · Day ${mapDay}</small>`;
+    tooltip.style.left = `${Math.max(8, Math.min(point.rect.width - 185, point.cssX + 12))}px`;
+    tooltip.style.top = `${point.cssY > 90 ? point.cssY - 12 : point.cssY + 12}px`;
+    tooltip.dataset.side = point.cssY > 90 ? "above" : "below";
+    tooltip.hidden = false;
+  }
+
   function drawMap(run = activeRun()) {
     const canvas = q("#forecast-canvas");
     if (!payload || !canvas || !run.grid_metadata?.shape) return;
@@ -1350,7 +1497,7 @@ ARCHIVE_JS = r"""
       const encoded = payload[start + yIndex * nLon + xIndex];
       const offset = ((nLat - 1 - yIndex) * nLon + xIndex) * 4;
       if (encoded === 65535) { image.data[offset + 3] = 0; continue; }
-      const number = mapVariable === "precipitation" ? encoded / 10 : (encoded - 5000) / 100;
+      const number = decodeMapValue(encoded);
       const rgb = mapColor(number);
       image.data[offset] = rgb[0]; image.data[offset + 1] = rgb[1]; image.data[offset + 2] = rgb[2]; image.data[offset + 3] = 255;
     }
@@ -1369,8 +1516,7 @@ ARCHIVE_JS = r"""
       ctx.fillStyle = "#173f63"; ctx.font = `${12 / view.scale}px system-ui`; ctx.fillText(name, x + 10 / view.scale, y - 8 / view.scale);
     });
     ctx.restore();
-    const names = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
-    q("#map-title").textContent = `${names[mapVariable]} · Day ${mapDay}`;
+    q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
     q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
   }
@@ -1378,8 +1524,10 @@ ARCHIVE_JS = r"""
   function renderMapControls() {
     selectButton("[data-map-variable]", mapVariable, "mapVariable");
     selectButton("[data-map-day]", mapDay, "mapDay");
+    selectButton("[data-map-model]", mapModel, "mapModel");
     view = { scale: 1, x: 0, y: 0 };
     loadMap();
+    renderAnimation();
     setUrl();
   }
 
@@ -1411,21 +1559,18 @@ ARCHIVE_JS = r"""
   q("#match-init-select").addEventListener("change", (event) => { matchInit = event.target.value; renderValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
-  canvas.addEventListener("pointerdown", (event) => { drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
-  canvas.addEventListener("pointermove", (event) => { if (!drag) return; const ratio = window.devicePixelRatio || 1; const dx = (event.clientX - drag.x) * ratio; const dy = (event.clientY - drag.y) * ratio; if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true; view.x += dx; view.y += dy; drag.x = event.clientX; drag.y = event.clientY; drawMap(); });
+  canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
+  canvas.addEventListener("pointermove", (event) => { if (!drag) { showMapTooltip(event); return; } const ratio = window.devicePixelRatio || 1; const dx = (event.clientX - drag.x) * ratio; const dy = (event.clientY - drag.y) * ratio; if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true; view.x += dx; view.y += dy; drag.x = event.clientX; drag.y = event.clientY; drawMap(); });
+  canvas.addEventListener("pointerleave", () => { if (!drag) hideMapTooltip(); });
   canvas.addEventListener("pointerup", (event) => {
     if (!drag?.moved) {
-      const run = activeRun(), meta = run.grid_metadata, box = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
-      const gx = ((event.clientX - box.left) * ratio - view.x) / view.scale / canvas.width;
-      const gy = ((event.clientY - box.top) * ratio - view.y) / view.scale / canvas.height;
-      const lon = meta.bounding_box.lon_min + gx * (meta.bounding_box.lon_max - meta.bounding_box.lon_min);
-      const lat = meta.bounding_box.lat_max - gy * (meta.bounding_box.lat_max - meta.bounding_box.lat_min);
-      const nearest = Object.entries(validation.cities).map(([name, item]) => [name, Math.hypot((item.longitude - lon) * .9, item.latitude - lat)]).sort((a, b) => a[1] - b[1])[0];
+      const point = mapCoordinates(event);
+      const nearest = point && Object.entries(validation.cities).map(([name, item]) => [name, Math.hypot((item.longitude - point.longitude) * .9, item.latitude - point.latitude)]).sort((a, b) => a[1] - b[1])[0];
       if (nearest && nearest[1] < 1.5) { city = nearest[0]; q("#city-select").value = city; renderWeather(); renderValidation(); activateTab("validation"); }
     }
     drag = null;
   });
-  canvas.addEventListener("wheel", (event) => { event.preventDefault(); view.scale = Math.max(1, Math.min(4, view.scale * (event.deltaY < 0 ? 1.15 : .87))); drawMap(); }, { passive: false });
+  canvas.addEventListener("wheel", (event) => { event.preventDefault(); hideMapTooltip(); view.scale = Math.max(1, Math.min(4, view.scale * (event.deltaY < 0 ? 1.15 : .87))); drawMap(); }, { passive: false });
   window.addEventListener("resize", () => { if (tab === "maps") drawMap(); });
 
   activateTab(tab, false);
@@ -1536,6 +1681,9 @@ def build_html(
     )
     default_overview = validation["cities"][default_city]["images"]["temperature"]
     default_match = validation["cities"][default_city]["timeseries"][latest["id"]]["precipitation"]
+    default_model_id = latest["available_models"][0]
+    default_model_label = next(model["label"] for model in models if model["id"] == default_model_id)
+    default_animation = f"assets/map_animations/{latest['id']}/{default_model_id}/temperature.gif"
     embedded = json.dumps({
         "archive": archive,
         "validation": validation,
@@ -1580,7 +1728,8 @@ def build_html(
         <fieldset><legend>Endpoint</legend><div class="segmented"><button type="button" data-map-day="1" aria-pressed="true">Day 1</button><button type="button" data-map-day="3" aria-pressed="false">Day 3</button><button type="button" data-map-day="5" aria-pressed="false">Day 5</button></div></fieldset>
         <fieldset class="model-fieldset"><legend>Model</legend><div class="segmented">{model_buttons}</div></fieldset>
       </div>
-      <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field with coastline overlay"></canvas><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · Day 1</h3><p id="map-description"></p><small>Click a city marker to open its validation. Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>.</small></aside></div>
+      <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field with coastline overlay" aria-describedby="map-tooltip"></canvas><div id="map-tooltip" class="map-tooltip" role="tooltip" hidden></div><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · Day 1</h3><p id="map-description"></p><small>Hover anywhere for the nearest grid value. Click a city marker to open validation. Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>.</small></aside></div>
+      <figure class="map-animation"><figcaption><p class="eyebrow">Forecast evolution</p><h3 id="animation-title">Temperature · {default_model_label}</h3><p id="animation-description">Animated Day 1, Day 3, and Day 5 forecast endpoints.</p></figcaption><img id="map-animation" src="{default_animation}" alt="Animated temperature forecast for {default_model_label} from Day 1 through Day 5"></figure>
     </section>
 
     <section class="panel" data-panel="validation" hidden aria-label="Forecast validation">
@@ -1769,11 +1918,22 @@ legend { margin-bottom: 8px; }
 .map-frame { position: relative; min-width: 0; background: #e8f1f5; }
 #forecast-canvas { display: block; width: 100%; min-height: 520px; touch-action: none; cursor: grab; }
 #forecast-canvas:active { cursor: grabbing; }
+.map-tooltip { position: absolute; z-index: 4; display: grid; min-width: 165px; gap: 2px; padding: 9px 11px; color: white; background: rgba(19,43,58,.94); border-radius: 5px; box-shadow: 0 5px 16px rgba(20,42,57,.24); pointer-events: none; }
+.map-tooltip[hidden] { display: none; }
+.map-tooltip[data-side="above"] { transform: translateY(-100%); }
+.map-tooltip strong { font-size: .9rem; }
+.map-tooltip span, .map-tooltip small { color: #dbe7ed; font-size: .68rem; }
 .map-tools { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; padding: 7px; color: #45606f; background: rgba(255,255,255,.92); border: 1px solid #becbd3; border-radius: 5px; font-size: .7rem; box-shadow: 0 3px 12px rgba(29,51,66,.12); }
 .map-tools button { padding: 6px 9px; color: var(--blue-dark); background: white; border: 1px solid #aebec9; border-radius: 4px; cursor: pointer; }
 .map-layout aside { padding: 25px 20px; background: #f8fafb; border-left: 1px solid var(--line); }
 .map-layout aside h3 { font-size: 1.25rem; }
 .map-layout aside p, .map-layout aside small { color: var(--muted); }
+.map-layout aside a { color: var(--blue); }
+.map-animation { display: grid; grid-template-columns: minmax(220px, .42fr) minmax(0, 1fr); align-items: center; margin: 18px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: #f8fafb; }
+.map-animation figcaption { padding: 24px; }
+.map-animation h3 { margin-bottom: 8px; font-size: 1.25rem; }
+.map-animation figcaption p:last-child { margin: 0; color: var(--muted); font-size: .8rem; }
+.map-animation img { display: block; width: 100%; height: auto; border-left: 1px solid var(--line); }
 .chart-image { margin: 18px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; }
 .chart-image img { display: block; width: 100%; height: auto; background: #f5f8f7; }
 .chart-image figcaption { padding: 11px 15px; color: var(--muted); border-top: 1px solid var(--line); font-size: .75rem; }
@@ -1803,6 +1963,8 @@ footer a { color: var(--blue); }
   .panel-heading, .subheading { align-items: start; flex-direction: column; }
   .map-layout { grid-template-columns: 1fr; }
   .map-layout aside { border-top: 1px solid var(--line); border-left: 0; }
+  .map-animation { grid-template-columns: 1fr; }
+  .map-animation img { border-top: 1px solid var(--line); border-left: 0; }
   .method-grid { grid-template-columns: 1fr; }
   .method-grid article { min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .method-grid article:last-child { border-bottom: 0; }
@@ -1845,7 +2007,7 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
     (stage / "README.md").write_text(
         "# India Weather Forecasts\n\n"
         "A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, "
-        "interactive India maps, and Open-Meteo validation.\n\n"
+        "hoverable India maps, animated model forecasts, and Open-Meteo validation.\n\n"
         f"- Last successful build: `{archive['generated_at_utc']}`\n"
         f"- Latest initialization: `{latest['initialization_utc']}`\n"
         f"- Available models: {available}\n"
@@ -1883,6 +2045,14 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
             path = stage / artifact["path"]
             if artifact.get("kind") != "grid" or not path.is_file() or path.stat().st_size < 50_000:
                 raise RuntimeError(f"invalid grid artifact: {artifact['path']}")
+        for model in model_ids:
+            for variable in GRID_VARIABLES:
+                animation = stage / "assets" / "map_animations" / run["id"] / model / f"{variable}.gif"
+                if not animation.is_file() or animation.stat().st_size < 5_000:
+                    raise RuntimeError(f"missing map animation: {animation}")
+                with Image.open(animation) as opened:
+                    if getattr(opened, "n_frames", 1) != len(LEAD_DAYS):
+                        raise RuntimeError(f"incomplete map animation: {animation}")
     for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/weather_forecast.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
@@ -2028,6 +2198,8 @@ def main():
         validation = render_validation(archive, cfg, openmeteo, stage)
         combination = render_online_combination(cfg)
         weather = render_weather_forecasts(archive, cfg, india_load)
+        animation_count = render_map_animations(stage, archive, SITE_ROOT / "assets" / "coastlines.json")
+        print(f"rendered {animation_count} model-variable forecast animations", flush=True)
         write_stage(stage, archive, validation, combination, weather, renderer)
         validate_stage(stage, archive, validation, renderer)
         if args.dry_run:

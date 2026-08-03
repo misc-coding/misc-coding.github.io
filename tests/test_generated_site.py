@@ -2,6 +2,8 @@ import json
 import re
 from pathlib import Path
 
+from PIL import Image
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +21,8 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('data-panel="maps"') == 1
     assert html.count('data-panel="validation"') == 1
     assert html.count('data-panel="method"') == 1
+    assert html.count('id="map-tooltip"') == 1
+    assert html.count('id="map-animation"') == 1
     assert "assets/scdlds-logo.jpeg" in html
     assert "coastline overlay" in html
     assert "Natural Earth" in html
@@ -80,6 +84,23 @@ def test_local_coastline_overlay_covers_the_forecast_domain():
     assert "drawCoastlines(ctx, meta, width, height)" in javascript
 
 
+def test_every_model_and_historical_run_has_animated_forecast_gifs():
+    archive = load_json("assets/forecast_archive.json")
+    expected = 0
+    for run in archive["runs"]:
+        for model in run["models"]:
+            for variable in run["grid_metadata"]["variables"]:
+                expected += 1
+                animation = ROOT / "assets" / "map_animations" / run["id"] / model["id"] / f"{variable}.gif"
+                assert animation.is_file()
+                assert animation.stat().st_size > 5_000
+                with Image.open(animation) as opened:
+                    assert opened.format == "GIF"
+                    assert opened.n_frames == 3
+                    assert opened.size == (520, 364)
+    assert expected >= 7 * 4
+
+
 def test_validation_has_temperature_and_matched_accumulated_rainfall():
     validation = load_json("assets/validation_manifest.json")
     archive = load_json("assets/forecast_archive.json")
@@ -106,6 +127,7 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     assert "node --check assets/app.js" in publisher
     assert "git push origin main" in publisher
     assert 'shutil.copy2(coastlines, assets / coastlines.name)' in (ROOT / "scripts/publish_forecast_archive.py").read_text()
+    assert "render_map_animations(stage, archive" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
 
 
 def test_readme_records_build_status_and_counter_decision():
