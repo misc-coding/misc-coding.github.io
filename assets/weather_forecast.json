@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-08-03T20:21:32.581481Z",
+  "generated_at_utc": "2026-08-03T20:29:34.085554Z",
   "temperature_definition": "Online-weighted daily 2 m temperature high and low from native forecast steps.",
   "precipitation_definition": "Online-weighted precipitation accumulated within each 24-hour forecast day.",
   "runs": {

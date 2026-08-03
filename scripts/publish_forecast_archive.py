@@ -724,10 +724,10 @@ def _combination_weights(
     rows: list[dict], models: tuple[str, ...], variable: str, as_of, candidate: dict,
 ) -> tuple[dict[str, float], int]:
     """Fit regularized exponential weights using only observations available at ``as_of``."""
-    if candidate["id"] == "uniform":
-        return _normalized_weights({}, list(models)), 0
     cutoff = pd.Timestamp(as_of).tz_localize(None)
     eligible = [row for row in rows if pd.Timestamp(row["valid_time_utc"]).tz_localize(None) <= cutoff]
+    if candidate["id"] == "uniform":
+        return _normalized_weights({}, list(models)), len(eligible)
     if candidate["window_days"] is not None:
         start = cutoff - pd.Timedelta(days=int(candidate["window_days"]))
         eligible = [row for row in eligible if pd.Timestamp(row["valid_time_utc"]).tz_localize(None) > start]

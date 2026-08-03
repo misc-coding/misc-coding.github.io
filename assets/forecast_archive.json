@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "title": "India Multi-Model Forecast Archive",
-  "generated_at_utc": "2026-08-03T20:21:22.203033Z",
+  "generated_at_utc": "2026-08-03T20:29:24.411500Z",
   "retention_runs": 7,
   "latest_initialization_utc": "2026-08-03T00:00:00Z",
   "runs": [

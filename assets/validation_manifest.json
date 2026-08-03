@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-08-03T20:21:24.440788Z",
+  "generated_at_utc": "2026-08-03T20:29:26.646176Z",
   "truth_source": "Open-Meteo hourly temperature_2m and precipitation",
   "temperature_definition": "Forecast 2 m temperature at the exact valid time, matched to Open-Meteo hourly temperature.",
   "precipitation_definition": "Forecast precipitation accumulated from initialization through each valid endpoint, matched to the sum of Open-Meteo hourly precipitation over the same interval.",
@@ -80,7 +80,7 @@
                 "aifs": 0.16666666666666666,
                 "ifs_ens": 0.16666666666666666
               },
-              "training_samples": 0,
+              "training_samples": 4,
               "selection_rmse": 0.6615867928409488
             },
             "20260728_00": {
@@ -123,7 +123,7 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 0,
+              "training_samples": 16,
               "selection_rmse": 0.8137564810458183
             },
             "20260802_00": {
@@ -131,7 +131,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 12,
               "selection_rmse": 0.7294531301146312
             },
             "20260801_00": {
@@ -139,7 +139,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 8,
               "selection_rmse": 0.6993700972319341
             },
             "20260731_00": {
@@ -147,7 +147,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 4,
               "selection_rmse": 0.4270465532753865
             },
             "20260730_00": {
@@ -211,7 +211,7 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 0,
+              "training_samples": 8,
               "selection_rmse": 0.6048973854230234
             },
             "20260802_00": {
@@ -219,7 +219,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 4,
               "selection_rmse": 0.7441921066095338
             },
             "20260801_00": {
@@ -350,7 +350,7 @@
                 "aifs": 0.16666666666666666,
                 "ifs_ens": 0.16666666666666666
               },
-              "training_samples": 0,
+              "training_samples": 4,
               "selection_rmse": 5.411544370161659
             },
             "20260728_00": {
@@ -393,7 +393,7 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 0,
+              "training_samples": 16,
               "selection_rmse": 22.63852870619097
             },
             "20260802_00": {
@@ -401,7 +401,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 12,
               "selection_rmse": 23.584593346183215
             },
             "20260801_00": {
@@ -409,7 +409,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 8,
               "selection_rmse": 22.82393760836162
             },
             "20260731_00": {
@@ -417,7 +417,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 4,
               "selection_rmse": 16.765850610129004
             },
             "20260730_00": {
@@ -481,7 +481,7 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 0,
+              "training_samples": 8,
               "selection_rmse": 30.631240293651427
             },
             "20260802_00": {
@@ -489,7 +489,7 @@
               "weights": {
                 "weathernext2": 1.0
               },
-              "training_samples": 0,
+              "training_samples": 4,
               "selection_rmse": 29.428744215866
             },
             "20260801_00": {
