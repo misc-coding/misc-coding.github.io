@@ -29,6 +29,9 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert "assets/scdlds-logo.jpeg" in html
     assert "coastline overlay" in html
     assert "Natural Earth" in html
+    assert 'data-map-model="combined"' in html
+    assert "strictly prequential combined model" in html
+    assert "https://doi.org/10.1111/rssc.12455" in html
     assert "https://scdlds.ashoka.edu.in/" in html
     assert "precipitation probability" not in html.lower()
 
@@ -110,6 +113,29 @@ def test_every_model_and_historical_run_has_animated_forecast_gifs():
     assert expected >= 7 * 4
 
 
+def test_combined_model_has_maps_animations_and_causal_recent_error_metadata():
+    archive = load_json("assets/forecast_archive.json")
+    combination = load_json("assets/combination_manifest.json")
+    assert combination["schema_version"] == 2
+    assert "only observations" in combination["method"]["causality"]
+    assert combination["method"]["fallback"].startswith("Equal weights")
+    assert len(combination["method"]["research_sources"]) >= 2
+    for run in archive["runs"]:
+        item = combination["runs"][run["id"]]
+        payload = ROOT / item["map_payload"]
+        assert payload.is_file()
+        assert payload.stat().st_size > 50_000
+        for variable in ("temperature", "precipitation"):
+            assert set(item["weights"][variable]) == {"1", "3", "5"}
+            for weights in item["weights"][variable].values():
+                assert abs(sum(weights.values()) - 1) < 1e-8
+        for variable in run["grid_metadata"]["variables"]:
+            animation = ROOT / "assets" / "map_animations" / run["id"] / "combined" / f"{variable}.gif"
+            assert animation.is_file()
+            with Image.open(animation) as opened:
+                assert opened.n_frames == 3
+
+
 def test_validation_has_temperature_and_matched_accumulated_rainfall():
     validation = load_json("assets/validation_manifest.json")
     archive = load_json("assets/forecast_archive.json")
@@ -118,6 +144,8 @@ def test_validation_has_temperature_and_matched_accumulated_rainfall():
         assert set(city["timeseries"]) == {run["id"] for run in archive["runs"]}
         for image in city["images"].values():
             assert (ROOT / image["path"]).is_file()
+        for variable in ("temperature", "precipitation"):
+            assert "combined" in city["summary"][variable]["models"]
         for run in city["timeseries"].values():
             assert set(run) == {"temperature", "precipitation"}
             for image in run.values():
@@ -137,6 +165,7 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     assert "git push origin main" in publisher
     assert 'shutil.copy2(coastlines, assets / coastlines.name)' in (ROOT / "scripts/publish_forecast_archive.py").read_text()
     assert "render_map_animations(stage, archive" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
+    assert "refreshing observations and online weights" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
 
 
 def test_readme_records_build_status_and_counter_decision():
@@ -144,3 +173,4 @@ def test_readme_records_build_status_and_counter_decision():
     assert "Latest initialization" in readme
     assert "Available models" in readme
     assert "Live visit counting is intentionally disabled" in readme
+    assert "refreshes observations, validation, and online-combination weights" in readme

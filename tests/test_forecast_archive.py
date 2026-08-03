@@ -127,6 +127,58 @@ def test_normalized_weights_renormalize_and_have_uniform_fallback():
     assert archive._normalized_weights({}, ["gfs", "aifs"]) == {"gfs": 0.5, "aifs": 0.5}
 
 
+def test_recent_error_weights_are_causal_and_favor_the_better_prior_expert():
+    rows = [
+        {
+            "valid_time_utc": f"2026-07-{day:02d}T00:00:00Z",
+            "observed": 30.0,
+            "forecasts": {"gfs": 30.0, "aifs": 35.0},
+        }
+        for day in range(20, 24)
+    ]
+    rows.append({
+        "valid_time_utc": "2026-07-30T00:00:00Z", "observed": 30.0,
+        "forecasts": {"gfs": 40.0, "aifs": 30.0},
+    })
+    candidate = {"id": "ewa-test", "window_days": 14, "eta": 2.0}
+    before, count = archive._combination_weights(
+        rows, ("gfs", "aifs"), "temperature", "2026-07-25T00:00:00Z", candidate,
+    )
+    after, _ = archive._combination_weights(
+        rows, ("gfs", "aifs"), "temperature", "2026-07-31T00:00:00Z", candidate,
+    )
+    assert count == 4
+    assert before["gfs"] > before["aifs"]
+    assert after["aifs"] > before["aifs"]
+
+
+def test_online_combination_adds_strictly_prequential_predictions_and_convex_weights():
+    runs = [_run(day, ("gfs", "aifs")) for day in range(20, 27)]
+    manifest = archive.archive_manifest(runs)
+    records = {"Delhi": {"temperature": [], "precipitation": []}}
+    for run in reversed(manifest["runs"]):
+        init = pd.Timestamp(run["initialization_utc"])
+        for variable in ("temperature", "precipitation"):
+            scale = 30.0 if variable == "temperature" else 10.0
+            for lead in archive.LEAD_DAYS:
+                records["Delhi"][variable].append({
+                    "run": run["id"], "initialization_utc": archive.utc_text(init),
+                    "lead_day": lead, "valid_time_utc": archive.utc_text(init + pd.Timedelta(days=lead)),
+                    "observed": scale,
+                    "forecasts": {"gfs": scale, "aifs": scale + 3.0},
+                })
+    result = archive.research_online_combination(records, manifest)
+    assert result["method"]["causality"].startswith("A forecast uses only observations")
+    assert any(
+        archive.COMBINED_MODEL_ID in row["forecasts"]
+        for row in records["Delhi"]["temperature"]
+    )
+    for run in result["runs"].values():
+        for variable in ("temperature", "precipitation"):
+            for weights in run["weights"][variable].values():
+                assert abs(sum(weights.values()) - 1) < 1e-9
+
+
 def test_daily_city_series_matches_native_step_accumulation():
     init = pd.Timestamp("2026-07-30T00:00:00")
     times = pd.date_range(init + pd.Timedelta(hours=6), periods=20, freq="6h")

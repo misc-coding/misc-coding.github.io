@@ -6,6 +6,7 @@
   const archive = site.archive;
   const validation = site.validation;
   const weather = site.weather;
+  const spatialCombination = site.combination?.spatial || { runs: {} };
   const runs = archive.runs;
   const params = new URLSearchParams(location.search);
   const q = (selector) => document.querySelector(selector);
@@ -22,7 +23,7 @@
   let weatherVariable = params.get("weather") === "precipitation" ? "precipitation" : "temperature";
   let mapVariable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let mapDay = allowedDays.has(params.get("day")) ? params.get("day") : "1";
-  let mapModel = params.get("model") || runs[0].available_models?.[0] || runs[0].models[0].id;
+  let mapModel = params.get("model") || (spatialCombination.runs?.[runs[0].id]?.map_payload ? "combined" : runs[0].available_models?.[0]) || runs[0].models[0].id;
   let validationVariable = params.get("validation") === "precipitation" ? "precipitation" : "temperature";
   let matchVariable = params.get("match_variable") === "temperature" ? "temperature" : "precipitation";
   let matchInit = runIds.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
@@ -58,7 +59,11 @@
   }
 
   function activeRun() { return runs.find((run) => run.id === init) || runs[0]; }
-  function runModels(run = activeRun()) { return run.available_models || run.models.map((model) => model.id); }
+  function sourceRunModels(run = activeRun()) { return run.available_models || run.models.map((model) => model.id); }
+  function runModels(run = activeRun()) {
+    const models = sourceRunModels(run);
+    return spatialCombination.runs?.[run.id]?.map_payload ? ["combined", ...models] : models;
+  }
   function modelLabel(model) {
     const item = site.models.find((candidate) => candidate.id === model);
     return item?.label || model;
@@ -71,7 +76,7 @@
   function renderRun() {
     const run = activeRun();
     q("#init-select").value = init;
-    q("#run-status").textContent = `${formatInit(run.initialization_utc)} · ${runModels(run).length} of ${site.models.length} models`;
+    q("#run-status").textContent = `${formatInit(run.initialization_utc)} · ${sourceRunModels(run).length} of ${site.models.length - 1} source models`;
     q("#availability-note").textContent = run.status === "partial"
       ? `Partial run. Waiting for: ${(run.missing_models || []).map(modelLabel).join(", ")}.`
       : "All configured models are available for this initialization.";
@@ -322,7 +327,12 @@
     });
     ctx.restore();
     q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
-    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}`;
+    const learnerVariable = mapVariable === "precipitation" ? "precipitation" : "temperature";
+    const blend = spatialCombination.runs?.[run.id];
+    const candidate = blend?.selected_candidates?.[learnerVariable]?.[mapDay];
+    const training = blend?.training_samples?.[learnerVariable]?.[mapDay];
+    const blendNote = mapModel === "combined" ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples` : "";
+    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}${blendNote}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
     renderMapLegend();
   }
@@ -347,8 +357,11 @@
     const matched = item.timeseries[matchInit][matchVariable];
     q("#validation-image").src = overview.path; q("#validation-image").alt = overview.alt;
     q("#match-image").src = matched.path; q("#match-image").alt = matched.alt;
-    const points = item.summary[validationVariable].matched_points;
-    q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations`;
+    const summary = item.summary[validationVariable];
+    const points = summary.matched_points;
+    const leadErrors = Object.values(summary.models?.combined?.mae_by_lead || {});
+    const combinedText = leadErrors.length ? ` · combined mean lead MAE ${(leadErrors.reduce((sum, value) => sum + value, 0) / leadErrors.length).toFixed(2)} ${validationVariable === "temperature" ? "°C" : "mm"}` : "";
+    q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations${combinedText}`;
     setUrl();
   }
 

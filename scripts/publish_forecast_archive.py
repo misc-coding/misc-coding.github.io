@@ -38,6 +38,28 @@ RANGE_VARIABLES = (
 ARTIFACTS_PER_RUN = 84
 GRID_VARIABLES = ("temperature", "precipitation", "temperature_high", "temperature_low")
 ALL_MODEL_IDS = ("weathernext2", "gencast", "gfs", "gefs", "aifs", "ifs_ens")
+COMBINED_MODEL_ID = "combined"
+COMBINED_MODEL = {
+    "id": COMBINED_MODEL_ID,
+    "label": "Combined · recent-error blend",
+    "provider": "SCDLDS",
+    "source_url": "assets/combination_manifest.json",
+    "aggregation": "causal convex combination",
+}
+COMBINATION_SCALES = {"temperature": 5.0, "precipitation": 25.0}
+COMBINATION_CANDIDATES = (
+    {"id": "uniform", "label": "Equal weights", "window_days": None, "eta": 0.0},
+    *(
+        {
+            "id": f"ewa-w{window}-e{str(eta).replace('.', '')}",
+            "label": f"EWA · {window}-day window · η={eta:g}",
+            "window_days": window,
+            "eta": eta,
+        }
+        for window in (3, 7, 14)
+        for eta in (0.25, 0.5, 1.0, 2.0)
+    ),
+)
 
 
 def stamp(init: pd.Timestamp) -> str:
@@ -377,9 +399,65 @@ def write_map_payloads(init, datasets, models, cfg, india_load, stage: Path) -> 
         "shape": [len(LEAD_DAYS), int(datasets[models[0]].sizes["lat"]), int(datasets[models[0]].sizes["lon"])],
         "bounding_box": {"lat_min": cfg.india_bbox.lat_min, "lat_max": cfg.india_bbox.lat_max, "lon_min": cfg.india_bbox.lon_min, "lon_max": cfg.india_bbox.lon_max},
         "encoding": {"temperature": "uint16: (value - 5000) / 100 °C; 65535 = missing", "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"},
+        "precipitation_accumulation": "previous_endpoint_interval",
         "precipitation_windows": ["init-to-day-1", "day-1-to-day-3", "day-3-to-day-5"],
     }
     return records, metadata
+
+
+def _decode_grid(encoded: np.ndarray, variable: str) -> np.ndarray:
+    values = encoded.astype(np.float32)
+    missing = encoded == 65535
+    if variable == "precipitation":
+        values = values / 10.0
+    else:
+        values = (values - 5000.0) / 100.0
+    values[missing] = np.nan
+    return values
+
+
+def write_combined_map_payloads(stage: Path, archive: dict, combination: dict) -> int:
+    """Blend full spatial fields using causal, lead-specific recent-error weights."""
+    created = 0
+    for run in archive["runs"]:
+        meta = run["grid_metadata"]
+        n_lead, n_lat, n_lon = meta["shape"]
+        grid_size = n_lead * n_lat * n_lon
+        available = combination["runs"][run["id"]]["available_models"]
+        source_payloads = {}
+        expected = len(meta["variables"]) * grid_size
+        for model in available:
+            path = stage / "assets" / "map_data" / run["id"] / f"{model}.bin"
+            payload = np.fromfile(path, dtype="<u2")
+            if payload.size != expected:
+                raise RuntimeError(f"invalid source map payload for combination: {path}")
+            source_payloads[model] = payload
+
+        encoded_fields = []
+        for variable_index, variable in enumerate(meta["variables"]):
+            learner_variable = "precipitation" if variable == "precipitation" else "temperature"
+            for lead_index, day in enumerate(meta["lead_days"]):
+                weights = combination["runs"][run["id"]]["weights"][learner_variable][str(day)]
+                numerator = np.zeros((n_lat, n_lon), dtype=np.float64)
+                denominator = np.zeros((n_lat, n_lon), dtype=np.float64)
+                start = variable_index * grid_size + lead_index * n_lat * n_lon
+                for model, payload in source_payloads.items():
+                    weight = float(weights.get(model, 0.0))
+                    if weight <= 0:
+                        continue
+                    values = _decode_grid(payload[start:start + n_lat * n_lon].reshape(n_lat, n_lon), variable)
+                    valid = np.isfinite(values)
+                    numerator[valid] += weight * values[valid]
+                    denominator[valid] += weight
+                combined = np.full((n_lat, n_lon), np.nan, dtype=np.float32)
+                valid = denominator > 0
+                combined[valid] = (numerator[valid] / denominator[valid]).astype(np.float32)
+                encoded_fields.append(_encode_grid(combined, variable).reshape(-1))
+        target = stage / "assets" / "map_data" / run["id"] / f"{COMBINED_MODEL_ID}.bin"
+        target.write_bytes(np.concatenate(encoded_fields).astype("<u2").tobytes())
+        combination["runs"][run["id"]]["map_payload"] = target.relative_to(stage).as_posix()
+        created += 1
+    return created
 
 
 def _animation_rgb(encoded: np.ndarray, variable: str) -> np.ndarray:
@@ -419,7 +497,11 @@ def render_map_animations(stage: Path, archive: dict, coastline_path: Path) -> i
         n_lead, n_lat, n_lon = meta["shape"]
         bounds = meta["bounding_box"]
         grid_size = n_lead * n_lat * n_lon
-        for model in (item["id"] for item in run["models"]):
+        models = [item["id"] for item in run["models"]]
+        combined_path = stage / "assets" / "map_data" / run["id"] / f"{COMBINED_MODEL_ID}.bin"
+        if combined_path.is_file():
+            models.append(COMBINED_MODEL_ID)
+        for model in models:
             payload_path = stage / "assets" / "map_data" / run["id"] / f"{model}.bin"
             payload = np.fromfile(payload_path, dtype="<u2")
             expected = len(meta["variables"]) * grid_size
@@ -559,6 +641,7 @@ def archive_manifest(runs: list[dict]) -> dict:
 MODEL_COLORS = {
     "weathernext2": "#3b82f6", "gencast": "#a855f7", "gfs": "#e05d44",
     "gefs": "#f59e0b", "aifs": "#0f9b8e", "ifs_ens": "#374151",
+    COMBINED_MODEL_ID: "#c51d3b",
 }
 
 
@@ -577,15 +660,17 @@ def _open_run_dataset(cfg, run: dict, model: str):
         return opened.load()
 
 
-def _model_catalog(archive: dict) -> list[dict]:
+def _model_catalog(archive: dict, *, include_combined: bool = False) -> list[dict]:
     """Return the union of model metadata in stable public order."""
     found = {model["id"]: model for run in archive["runs"] for model in run.get("models", [])}
-    return [found[model] for model in ALL_MODEL_IDS if model in found]
+    models = [found[model] for model in ALL_MODEL_IDS if model in found]
+    return [*models, COMBINED_MODEL] if include_combined else models
 
 
 def _validation_records(archive: dict, cfg, openmeteo) -> dict:
     """Match published point forecasts to Open-Meteo observation time windows."""
     truth = openmeteo.load_truth(cfg, cfg.cities, past_days=90, forecast_days=1)
+    observation_cutoff = pd.Timestamp.now(tz="UTC").tz_localize(None).floor("h")
     records = {}
     for city in cfg.cities:
         temp_truth, precip_truth = truth[city.name]
@@ -598,6 +683,8 @@ def _validation_records(archive: dict, cfg, openmeteo) -> dict:
                         for model in run["models"]}
             for day in LEAD_DAYS:
                 valid = init + pd.Timedelta(days=day)
+                if valid > observation_cutoff:
+                    continue
                 temp_obs = temperatures.get(valid)
                 rain_days = pd.date_range(init.floor("D"), valid.floor("D"), inclusive="left")
                 rain_values = [daily_rain.get(pd.Timestamp(date)) for date in rain_days]
@@ -609,16 +696,231 @@ def _validation_records(archive: dict, cfg, openmeteo) -> dict:
                     rain_forecasts[model] = float(point["precip_cumulative_mm"].sel(lead_day=day).item())
                 if temp_obs is not None:
                     city_data["temperature"].append({
-                        "run": run["id"], "lead_day": day, "valid_time_utc": utc_text(valid),
+                        "run": run["id"], "initialization_utc": utc_text(init),
+                        "lead_day": day, "valid_time_utc": utc_text(valid),
                         "observed": temp_obs, "forecasts": temp_forecasts,
                     })
                 if rain_obs is not None:
                     city_data["precipitation"].append({
-                        "run": run["id"], "lead_day": day, "valid_time_utc": utc_text(valid),
+                        "run": run["id"], "initialization_utc": utc_text(init),
+                        "lead_day": day, "valid_time_utc": utc_text(valid),
                         "observed": rain_obs, "forecasts": rain_forecasts,
                     })
         records[city.name] = city_data
     return records
+
+
+def _pooled_validation_rows(records: dict, variable: str, lead_day: int) -> list[dict]:
+    """Pool city verification rows while retaining issue and realization times."""
+    rows = []
+    for city, values in records.items():
+        for row in values[variable]:
+            if int(row["lead_day"]) == int(lead_day):
+                rows.append({**row, "city": city})
+    return sorted(rows, key=lambda row: (row["initialization_utc"], row["city"]))
+
+
+def _combination_weights(
+    rows: list[dict], models: tuple[str, ...], variable: str, as_of, candidate: dict,
+) -> tuple[dict[str, float], int]:
+    """Fit regularized exponential weights using only observations available at ``as_of``."""
+    if candidate["id"] == "uniform":
+        return _normalized_weights({}, list(models)), 0
+    cutoff = pd.Timestamp(as_of).tz_localize(None)
+    eligible = [row for row in rows if pd.Timestamp(row["valid_time_utc"]).tz_localize(None) <= cutoff]
+    if candidate["window_days"] is not None:
+        start = cutoff - pd.Timedelta(days=int(candidate["window_days"]))
+        eligible = [row for row in eligible if pd.Timestamp(row["valid_time_utc"]).tz_localize(None) > start]
+    if len(eligible) < 4:
+        return _normalized_weights({}, list(models)), 0
+
+    scale = COMBINATION_SCALES[variable]
+    losses: dict[str, list[float]] = {model: [] for model in models}
+    all_losses = []
+    for row in eligible:
+        observed = float(row["observed"])
+        for model in models:
+            forecast = row["forecasts"].get(model)
+            if forecast is None or not np.isfinite(forecast):
+                continue
+            loss = min(((float(forecast) - observed) / scale) ** 2, 16.0)
+            losses[model].append(loss)
+            all_losses.append(loss)
+    if not all_losses or sum(bool(values) for values in losses.values()) < 2:
+        return _normalized_weights({}, list(models)), 0
+
+    # Two pseudo-observations at the pooled loss stop a sparsely observed expert
+    # from receiving a spurious advantage over experts with fuller coverage.
+    prior = float(np.mean(all_losses))
+    scores = {
+        model: (sum(values) + 2.0 * prior) / (len(values) + 2.0)
+        for model, values in losses.items()
+    }
+    minimum = min(scores.values())
+    raw = {
+        model: float(np.exp(-float(candidate["eta"]) * (score - minimum)))
+        for model, score in scores.items()
+    }
+    return _normalized_weights(raw, list(models)), len(eligible)
+
+
+def _weighted_forecast(forecasts: dict, weights: dict[str, float]) -> float | None:
+    present = [model for model in weights if model in forecasts and np.isfinite(forecasts[model])]
+    if not present:
+        return None
+    normalized = _normalized_weights(weights, present)
+    return float(sum(normalized[model] * float(forecasts[model]) for model in present))
+
+
+def _rmse(values: list[tuple[float, float]]) -> float | None:
+    return float(np.sqrt(np.mean([(forecast - observed) ** 2 for forecast, observed in values]))) if values else None
+
+
+def research_online_combination(records: dict, archive: dict) -> dict:
+    """Run a nested, causal search over recent-error ensemble learners.
+
+    Each candidate prediction uses truth available by the forecast initialization.
+    Candidate selection also uses only candidate errors realized before that same
+    initialization. This keeps the reported combined trace genuinely prequential.
+    """
+    source_models = tuple(model["id"] for model in _model_catalog(archive))
+    run_lookup = {run["id"]: run for run in archive["runs"]}
+    result = {
+        "schema_version": 2,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "model": COMBINED_MODEL,
+        "method": {
+            "name": "Causally selected recent-error exponential weighting",
+            "selection_metric": "Prequential root mean squared error",
+            "loss": "Clipped squared error, scaled by 5 °C for temperature and 25 mm for accumulated rainfall",
+            "causality": "A forecast uses only observations whose valid time is at or before its initialization. Candidate selection uses only earlier realized prequential errors.",
+            "fallback": "Equal weights are retained as a candidate and used when fewer than four matched observations are available.",
+            "spatial_scope": "Weights are pooled over the published validation cities and applied uniformly over the India map; no dense local-skill field is inferred from four cities.",
+            "candidates": list(COMBINATION_CANDIDATES),
+            "research_sources": [
+                {
+                    "title": "Exponentiated Gradient versus Gradient Descent for Linear Predictors",
+                    "url": "https://doi.org/10.1006/inco.1996.2612",
+                    "use": "Multiplicative online updates for convex expert weights.",
+                },
+                {
+                    "title": "Sequential Aggregation of Probabilistic Forecasts—Application to Wind Speed Ensemble Forecasts",
+                    "url": "https://doi.org/10.1111/rssc.12455",
+                    "use": "Weather-forecast aggregation with exponential weights and recent windows for non-stationarity.",
+                },
+            ],
+        },
+        "variables": {},
+        "runs": {},
+    }
+    for run in archive["runs"]:
+        result["runs"][run["id"]] = {
+            "initialization_utc": run["initialization_utc"],
+            "available_models": list(run.get("available_models", [model["id"] for model in run["models"]])),
+            "weights": {"temperature": {}, "precipitation": {}},
+            "selected_candidates": {"temperature": {}, "precipitation": {}},
+            "training_samples": {"temperature": {}, "precipitation": {}},
+        }
+
+    for variable in ("temperature", "precipitation"):
+        variable_info = {"leads": {}}
+        for day in LEAD_DAYS:
+            rows = _pooled_validation_rows(records, variable, day)
+            candidate_predictions: dict[str, list[dict]] = {candidate["id"]: [] for candidate in COMBINATION_CANDIDATES}
+            for row in rows:
+                for candidate in COMBINATION_CANDIDATES:
+                    weights, training_samples = _combination_weights(
+                        rows, source_models, variable, row["initialization_utc"], candidate,
+                    )
+                    prediction = _weighted_forecast(row["forecasts"], weights)
+                    candidate_predictions[candidate["id"]].append({
+                        "run": row["run"], "city": row["city"],
+                        "initialization_utc": row["initialization_utc"],
+                        "valid_time_utc": row["valid_time_utc"],
+                        "observed": float(row["observed"]), "prediction": prediction,
+                        "weights": weights, "training_samples": training_samples,
+                    })
+
+            combined_pairs = []
+            uniform_pairs = []
+            chosen_counts: dict[str, int] = {}
+            for index, row in enumerate(rows):
+                issue = pd.Timestamp(row["initialization_utc"]).tz_localize(None)
+                scores = {}
+                for candidate_id, evaluations in candidate_predictions.items():
+                    prior = [
+                        (entry["prediction"], entry["observed"])
+                        for entry in evaluations
+                        if entry["prediction"] is not None
+                        and pd.Timestamp(entry["valid_time_utc"]).tz_localize(None) <= issue
+                    ]
+                    scores[candidate_id] = _rmse(prior)
+                eligible_scores = {
+                    key: value for key, value in scores.items()
+                    if value is not None
+                    and (key == "uniform" or candidate_predictions[key][index]["training_samples"] > 0)
+                }
+                chosen = min(eligible_scores, key=eligible_scores.get) if eligible_scores else "uniform"
+                entry = candidate_predictions[chosen][index]
+                uniform_entry = candidate_predictions["uniform"][index]
+                if entry["prediction"] is not None:
+                    row["forecasts"][COMBINED_MODEL_ID] = entry["prediction"]
+                    row["combination_candidate"] = chosen
+                    combined_pairs.append((entry["prediction"], entry["observed"]))
+                    chosen_counts[chosen] = chosen_counts.get(chosen, 0) + 1
+                if uniform_entry["prediction"] is not None:
+                    uniform_pairs.append((uniform_entry["prediction"], uniform_entry["observed"]))
+
+            deployment = {}
+            for run_id, run in run_lookup.items():
+                issue = pd.Timestamp(run["initialization_utc"]).tz_localize(None)
+                scores = {}
+                for candidate_id, evaluations in candidate_predictions.items():
+                    prior = [
+                        (entry["prediction"], entry["observed"])
+                        for entry in evaluations
+                        if entry["prediction"] is not None
+                        and pd.Timestamp(entry["valid_time_utc"]).tz_localize(None) <= issue
+                    ]
+                    scores[candidate_id] = _rmse(prior)
+                fits = {
+                    candidate["id"]: _combination_weights(
+                        rows, source_models, variable, issue, candidate,
+                    )
+                    for candidate in COMBINATION_CANDIDATES
+                }
+                eligible_scores = {
+                    key: value for key, value in scores.items()
+                    if value is not None and (key == "uniform" or fits[key][1] > 0)
+                }
+                selected = min(eligible_scores, key=eligible_scores.get) if eligible_scores else "uniform"
+                weights, training_samples = fits[selected]
+                available = result["runs"][run_id]["available_models"]
+                weights = _normalized_weights(weights, available)
+                result["runs"][run_id]["weights"][variable][str(day)] = weights
+                result["runs"][run_id]["selected_candidates"][variable][str(day)] = selected
+                result["runs"][run_id]["training_samples"][variable][str(day)] = training_samples
+                deployment[run_id] = {
+                    "candidate": selected, "weights": weights,
+                    "training_samples": training_samples,
+                    "selection_rmse": eligible_scores.get(selected),
+                }
+
+            source_pairs = {model: [] for model in source_models}
+            for row in rows:
+                for model in source_models:
+                    if model in row["forecasts"]:
+                        source_pairs[model].append((float(row["forecasts"][model]), float(row["observed"])))
+            variable_info["leads"][str(day)] = {
+                "matched_points": len(rows),
+                "combined_prequential_rmse": _rmse(combined_pairs),
+                "uniform_prequential_rmse": _rmse(uniform_pairs),
+                "source_rmse": {model: _rmse(pairs) for model, pairs in source_pairs.items() if pairs},
+                "candidate_use_counts": chosen_counts,
+                "deployment": deployment,
+            }
+        result["variables"][variable] = variable_info
+    return result
 
 
 def _plot_validation(records: list[dict], city, variable: str, models: list[dict], out: Path) -> dict:
@@ -710,15 +1012,23 @@ def _plot_matched_timeseries(records: list[dict], city, variable: str, run: dict
     return {"matched_leads": [int(value) for value in leads]}
 
 
-def render_validation(archive: dict, cfg, openmeteo, stage: Path) -> dict:
-    records = _validation_records(archive, cfg, openmeteo)
-    models = _model_catalog(archive)
+def render_validation(
+    archive: dict, cfg, openmeteo, stage: Path, *, records: dict | None = None,
+    combination: dict | None = None,
+) -> dict:
+    records = records or _validation_records(archive, cfg, openmeteo)
+    models = _model_catalog(archive, include_combined=combination is not None)
     validation = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "truth_source": "Open-Meteo hourly temperature_2m and precipitation",
         "temperature_definition": "Forecast 2 m temperature at the exact valid time, matched to Open-Meteo hourly temperature.",
         "precipitation_definition": "Forecast precipitation accumulated from initialization through each valid endpoint, matched to the sum of Open-Meteo hourly precipitation over the same interval.",
+        "combined_model_definition": (
+            "Combined predictions are strictly prequential: weights and learner selection for each historical forecast use only observations available by that forecast's initialization."
+            if combination is not None else None
+        ),
+        "combined_model": combination.get("variables", {}) if combination else {},
         "cities": {},
     }
     for city in cfg.cities:
@@ -1246,6 +1556,7 @@ ARCHIVE_JS = r"""
   const archive = site.archive;
   const validation = site.validation;
   const weather = site.weather;
+  const spatialCombination = site.combination?.spatial || { runs: {} };
   const runs = archive.runs;
   const params = new URLSearchParams(location.search);
   const q = (selector) => document.querySelector(selector);
@@ -1262,7 +1573,7 @@ ARCHIVE_JS = r"""
   let weatherVariable = params.get("weather") === "precipitation" ? "precipitation" : "temperature";
   let mapVariable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let mapDay = allowedDays.has(params.get("day")) ? params.get("day") : "1";
-  let mapModel = params.get("model") || runs[0].available_models?.[0] || runs[0].models[0].id;
+  let mapModel = params.get("model") || (spatialCombination.runs?.[runs[0].id]?.map_payload ? "combined" : runs[0].available_models?.[0]) || runs[0].models[0].id;
   let validationVariable = params.get("validation") === "precipitation" ? "precipitation" : "temperature";
   let matchVariable = params.get("match_variable") === "temperature" ? "temperature" : "precipitation";
   let matchInit = runIds.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
@@ -1298,7 +1609,11 @@ ARCHIVE_JS = r"""
   }
 
   function activeRun() { return runs.find((run) => run.id === init) || runs[0]; }
-  function runModels(run = activeRun()) { return run.available_models || run.models.map((model) => model.id); }
+  function sourceRunModels(run = activeRun()) { return run.available_models || run.models.map((model) => model.id); }
+  function runModels(run = activeRun()) {
+    const models = sourceRunModels(run);
+    return spatialCombination.runs?.[run.id]?.map_payload ? ["combined", ...models] : models;
+  }
   function modelLabel(model) {
     const item = site.models.find((candidate) => candidate.id === model);
     return item?.label || model;
@@ -1311,7 +1626,7 @@ ARCHIVE_JS = r"""
   function renderRun() {
     const run = activeRun();
     q("#init-select").value = init;
-    q("#run-status").textContent = `${formatInit(run.initialization_utc)} · ${runModels(run).length} of ${site.models.length} models`;
+    q("#run-status").textContent = `${formatInit(run.initialization_utc)} · ${sourceRunModels(run).length} of ${site.models.length - 1} source models`;
     q("#availability-note").textContent = run.status === "partial"
       ? `Partial run. Waiting for: ${(run.missing_models || []).map(modelLabel).join(", ")}.`
       : "All configured models are available for this initialization.";
@@ -1562,7 +1877,12 @@ ARCHIVE_JS = r"""
     });
     ctx.restore();
     q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
-    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}`;
+    const learnerVariable = mapVariable === "precipitation" ? "precipitation" : "temperature";
+    const blend = spatialCombination.runs?.[run.id];
+    const candidate = blend?.selected_candidates?.[learnerVariable]?.[mapDay];
+    const training = blend?.training_samples?.[learnerVariable]?.[mapDay];
+    const blendNote = mapModel === "combined" ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples` : "";
+    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}${blendNote}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
     renderMapLegend();
   }
@@ -1587,8 +1907,11 @@ ARCHIVE_JS = r"""
     const matched = item.timeseries[matchInit][matchVariable];
     q("#validation-image").src = overview.path; q("#validation-image").alt = overview.alt;
     q("#match-image").src = matched.path; q("#match-image").alt = matched.alt;
-    const points = item.summary[validationVariable].matched_points;
-    q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations`;
+    const summary = item.summary[validationVariable];
+    const points = summary.matched_points;
+    const leadErrors = Object.values(summary.models?.combined?.mae_by_lead || {});
+    const combinedText = leadErrors.length ? ` · combined mean lead MAE ${(leadErrors.reduce((sum, value) => sum + value, 0) / leadErrors.length).toFixed(2)} ${validationVariable === "temperature" ? "°C" : "mm"}` : "";
+    q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations${combinedText}`;
     setUrl();
   }
 
@@ -1700,7 +2023,8 @@ def build_html(
 ) -> str:
     """Build one accessible, light-mode application with unique control IDs."""
     latest = archive["runs"][0]
-    models = _model_catalog(archive)
+    source_models = _model_catalog(archive)
+    models = [COMBINED_MODEL, *source_models]
     cities = list(validation["cities"])
     default_city = cities[0]
     weather = weather or {"runs": {run["id"]: {"cities": {}} for run in archive["runs"]}}
@@ -1723,11 +2047,11 @@ def build_html(
             label=model["label"], provider=model["provider"],
             members="Deterministic" if model["members_total"] == 1 else f"{model['members_used']} / {model['members_total']} members",
             url=model["source_url"],
-        ) for model in models
+        ) for model in source_models
     )
     default_overview = validation["cities"][default_city]["images"]["temperature"]
     default_match = validation["cities"][default_city]["timeseries"][latest["id"]]["precipitation"]
-    default_model_id = latest["available_models"][0]
+    default_model_id = COMBINED_MODEL_ID if (combination or {}).get("spatial", {}).get("runs", {}).get(latest["id"], {}).get("map_payload") else latest["available_models"][0]
     default_model_label = next(model["label"] for model in models if model["id"] == default_model_id)
     default_animation = f"assets/map_animations/{latest['id']}/{default_model_id}/temperature.gif"
     embedded = json.dumps({
@@ -1768,7 +2092,7 @@ def build_html(
     </section>
 
     <section class="panel" data-panel="maps" hidden aria-label="Interactive forecast maps">
-      <div class="panel-heading"><div><p class="eyebrow">Forecast maps</p><h2>India field explorer</h2><p>Choose a model, variable, and endpoint. Drag to pan and scroll to zoom.</p></div></div>
+      <div class="panel-heading"><div><p class="eyebrow">Forecast maps</p><h2>India field explorer</h2><p>Choose the recent-error combined field or a source model, then select a variable and endpoint.</p></div></div>
       <div class="control-grid">
         <fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-map-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-map-variable="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-map-variable="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-map-variable="precipitation" aria-pressed="false">Interval rainfall</button></div></fieldset>
         <fieldset><legend>Endpoint</legend><div class="segmented"><button type="button" data-map-day="1" aria-pressed="true">Day 1</button><button type="button" data-map-day="3" aria-pressed="false">Day 3</button><button type="button" data-map-day="5" aria-pressed="false">Day 5</button></div></fieldset>
@@ -1781,17 +2105,17 @@ def build_html(
     <section class="panel" data-panel="validation" hidden aria-label="Forecast validation">
       <div class="panel-heading"><div><p class="eyebrow">Open-Meteo observations</p><h2>Forecast validation</h2><p>Forecasts and observations are matched at the same city and valid time. Rainfall uses the same accumulation window.</p></div></div>
       <div class="control-grid"><fieldset><legend>City</legend><div class="segmented">{city_buttons}</div></fieldset><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-validation-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-validation-variable="precipitation" aria-pressed="false">Accumulated rainfall</button></div></fieldset></div>
-      <p id="validation-summary" class="data-note"></p><figure class="chart-image"><img id="validation-image" src="{default_overview['path']}" alt="{default_overview['alt']}"><figcaption>Forecast versus observation and mean absolute error by lead.</figcaption></figure>
+      <p id="validation-summary" class="data-note"></p><figure class="chart-image"><img id="validation-image" src="{default_overview['path']}" alt="{default_overview['alt']}"><figcaption>Forecast versus observation and mean absolute error by lead, including the strictly prequential combined model.</figcaption></figure>
       <div class="subheading"><div><h3>One initialization over matched leads</h3><p>Compare each forecast directly with its observation at days 1, 3, and 5.</p></div><label class="select-control" for="match-init-select">Initialization<select id="match-init-select">{options}</select></label></div>
       <div class="segmented compact"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Accumulated rainfall</button></div>
-      <figure class="chart-image"><img id="match-image" src="{default_match['path']}" alt="{default_match['alt']}"><figcaption>Source-model traces and matched Open-Meteo observations.</figcaption></figure>
+      <figure class="chart-image"><img id="match-image" src="{default_match['path']}" alt="{default_match['alt']}"><figcaption>Source-model and causal combined traces with matched Open-Meteo observations.</figcaption></figure>
     </section>
 
     <section class="panel" data-panel="method" hidden aria-label="Methods and sources">
       <div class="panel-heading"><div><p class="eyebrow">About the data</p><h2>Method and sources</h2><p>The site updates from the newest available 00 UTC initialization. Late models are added when they become available.</p></div></div>
-      <div class="method-grid"><article><strong>1. Load</strong><p>Model fields are reduced to a common India grid and consistent units.</p></article><article><strong>2. Combine</strong><p>Recent matched observations set separate online weights for temperature and rainfall.</p></article><article><strong>3. Verify</strong><p>Open-Meteo temperature and rainfall are matched to the same forecast valid periods.</p></article></div>
+      <div class="method-grid"><article><strong>1. Load</strong><p>Model fields are reduced to a common India grid and consistent units.</p></article><article><strong>2. Combine</strong><p>A causal search chooses equal weighting or recent-window exponential weighting separately for each variable and lead.</p></article><article><strong>3. Verify</strong><p>Open-Meteo temperature and rainfall are matched to the same forecast valid periods; historical blend predictions never use later observations.</p></article></div>
       <div class="table-wrap"><table><thead><tr><th>Model</th><th>Source</th><th>Members used</th><th>Reference</th></tr></thead><tbody>{source_rows}</tbody></table></div>
-      <p class="method-note">Daily city rainfall is accumulated within each 24-hour forecast day. Map rainfall is accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5. This is a research product, not an official forecast or warning.</p>
+      <p class="method-note">Combined-map weights pool recent errors across the four validation cities and are constant across the India grid. Temperature and rainfall use separate lead-specific weights. The online search follows <a href="https://doi.org/10.1006/inco.1996.2612">exponentiated-gradient learning</a> and <a href="https://doi.org/10.1111/rssc.12455">sequential weather-forecast aggregation</a>; exact candidates, selected weights, and prequential scores are in the <a href="assets/combination_manifest.json">combination metadata</a>. Daily city rainfall is accumulated within each 24-hour forecast day. Map rainfall is accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5. This is a research product, not an official forecast or warning.</p>
     </section>
   </main>
   <footer><div class="shell footer-row"><span>India Weather Forecasts · SCDLDS research</span><a href="https://scdlds.ashoka.edu.in/">Safexpress Centre for Data, Learning and Decision Sciences</a></div></footer>
@@ -2036,7 +2360,10 @@ footer a { color: var(--blue); }
 """
 
 
-def write_stage(stage: Path, archive: dict, validation: dict, combination: dict, weather: dict, renderer) -> None:
+def write_stage(
+    stage: Path, archive: dict, validation: dict, combination: dict,
+    spatial_combination: dict, weather: dict, renderer,
+) -> None:
     assets = stage / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     logo = SITE_ROOT / "assets" / "scdlds-logo.jpeg"
@@ -2051,20 +2378,23 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
     (assets / "forecast_manifest.json").write_text(json.dumps(archive["runs"][0], indent=2) + "\n")
     (assets / "validation_manifest.json").write_text(json.dumps(validation, indent=2) + "\n")
     (assets / "online_combination.json").write_text(json.dumps(combination, indent=2) + "\n")
+    (assets / "combination_manifest.json").write_text(json.dumps(spatial_combination, indent=2) + "\n")
     (assets / "weather_forecast.json").write_text(json.dumps(weather, indent=2) + "\n")
-    (stage / "index.html").write_text(build_html(archive, renderer, validation, combination, weather))
+    site_combination = {**combination, "spatial": spatial_combination}
+    (stage / "index.html").write_text(build_html(archive, renderer, validation, site_combination, weather))
     latest = archive["runs"][0]
     available = ", ".join(model["label"] for model in latest["models"])
     missing = ", ".join(latest.get("missing_models", [])) or "None"
     (stage / "README.md").write_text(
         "# India Weather Forecasts\n\n"
         "A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, "
-        "hoverable India maps, animated model forecasts, and Open-Meteo validation.\n\n"
+        "hoverable India maps, a recent-error combined model, animated forecasts, and Open-Meteo validation.\n\n"
         f"- Last successful build: `{archive['generated_at_utc']}`\n"
         f"- Latest initialization: `{latest['initialization_utc']}`\n"
         f"- Available models: {available}\n"
         f"- Models still pending: {missing}\n"
         "- Daily publisher: `india-forecast-pages.timer` at 14:00 Asia/Kolkata\n\n"
+        "The daily publisher refreshes observations, validation, and online-combination weights even when no newer model initialization is available.\n\n"
         "## Tests\n\n"
         "```bash\n"
         "/Datastorage/saptarishi.dhanuka_asp25/conda_envs/realtime_dash/bin/python -m pytest -q\n"
@@ -2075,6 +2405,11 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
         "Temperature maps use a fixed 0–45 °C yellow-to-red scale. Map rainfall is interval accumulation "
         "between published endpoints (initialization→Day 1, Day 1→Day 3, and Day 3→Day 5), while city "
         "and validation rainfall retain their stated matched daily accumulation windows.\n\n"
+        "The combined field uses a causally selected recent-error exponential weighting scheme with equal "
+        "weighting as a fallback candidate. Weights are learned separately by variable and lead from observations "
+        "available at initialization time, pooled across the four validation cities, and applied uniformly over the map. "
+        "Historical combined validation is prequential. Full learner metadata and weights are in "
+        "[`assets/combination_manifest.json`](assets/combination_manifest.json).\n\n"
         "See [`assets/forecast_archive.json`](assets/forecast_archive.json), "
         "[`assets/weather_forecast.json`](assets/weather_forecast.json), and "
         "[`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.\n"
@@ -2108,7 +2443,14 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
                 with Image.open(animation) as opened:
                     if getattr(opened, "n_frames", 1) != len(LEAD_DAYS):
                         raise RuntimeError(f"incomplete map animation: {animation}")
-    for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/weather_forecast.json"):
+        combined_payload = stage / "assets" / "map_data" / run["id"] / f"{COMBINED_MODEL_ID}.bin"
+        if not combined_payload.is_file() or combined_payload.stat().st_size < 50_000:
+            raise RuntimeError(f"missing combined map payload: {combined_payload}")
+        for variable in GRID_VARIABLES:
+            animation = stage / "assets" / "map_animations" / run["id"] / COMBINED_MODEL_ID / f"{variable}.gif"
+            if not animation.is_file() or animation.stat().st_size < 5_000:
+                raise RuntimeError(f"missing combined map animation: {animation}")
+    for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/combination_manifest.json", "assets/weather_forecast.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
     for city in validation["cities"].values():
@@ -2183,8 +2525,7 @@ def main():
     else:
         candidates = candidates[:3]
     if not args.validation_only and not candidates and prior_archive.get("schema_version") == 2:
-        print("no newer or newly completed initialization is available; site unchanged")
-        return
+        print("no newer or newly completed initialization is available; refreshing observations and online weights")
 
     with tempfile.TemporaryDirectory(prefix="forecast-archive-", dir="/tmp") as tmp:
         stage = Path(tmp)
@@ -2250,12 +2591,19 @@ def main():
             }
             for model, values in availability.items()
         } if availability else prior_archive.get("source_status", {})
-        validation = render_validation(archive, cfg, openmeteo, stage)
+        validation_records = _validation_records(archive, cfg, openmeteo)
+        spatial_combination = research_online_combination(validation_records, archive)
+        combined_payload_count = write_combined_map_payloads(stage, archive, spatial_combination)
+        print(f"rendered {combined_payload_count} combined spatial map payloads", flush=True)
+        validation = render_validation(
+            archive, cfg, openmeteo, stage,
+            records=validation_records, combination=spatial_combination,
+        )
         combination = render_online_combination(cfg)
         weather = render_weather_forecasts(archive, cfg, india_load)
         animation_count = render_map_animations(stage, archive, SITE_ROOT / "assets" / "coastlines.json")
         print(f"rendered {animation_count} model-variable forecast animations", flush=True)
-        write_stage(stage, archive, validation, combination, weather, renderer)
+        write_stage(stage, archive, validation, combination, spatial_combination, weather, renderer)
         validate_stage(stage, archive, validation, renderer)
         if args.dry_run:
             print("validated archive build; dry-run leaves the site unchanged")

@@ -93,6 +93,13 @@ test("all dashboard controls update their panels without runtime errors", async 
   const canvas = document.querySelector("#forecast-canvas");
   assert.ok(canvas.height >= 774, "the India map should use the taller aspect ratio");
   assert.match(document.querySelector("#map-legend-title").textContent, /fixed scale/);
+  const combined = document.querySelector('[data-map-model="combined"]');
+  assert.equal(combined.disabled, false);
+  combined.click();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(combined.getAttribute("aria-pressed"), "true");
+  assert.match(document.querySelector("#map-description").textContent, /prior matched samples/);
+  assert.match(document.querySelector("#map-animation").getAttribute("src"), /\/combined\/temperature\.gif$/);
   assert.deepEqual([...document.querySelectorAll("#map-legend-ticks span")].map((item) => item.textContent), ["0", "15", "30", "45"]);
   canvas.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 450, clientY: 260, bubbles: true }));
   const tooltip = document.querySelector("#map-tooltip");
@@ -126,6 +133,7 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector('[data-tab="validation"]').click();
   document.querySelector('[data-validation-variable="precipitation"]').click();
   assert.match(document.querySelector("#validation-image").getAttribute("src"), /precipitation\.png/);
+  assert.match(document.querySelector("#validation-summary").textContent, /combined mean lead MAE/);
   document.querySelector('[data-match-variable="temperature"]').click();
   assert.match(document.querySelector("#match-image").getAttribute("src"), /temperature\.png/);
 
