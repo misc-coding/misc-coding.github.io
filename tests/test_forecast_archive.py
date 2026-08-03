@@ -152,6 +152,26 @@ def test_weather_symbols_use_accumulated_rain_not_probability():
     assert archive._weather_symbol(25)[1] == "Heavy rain"
 
 
+def test_map_precipitation_is_accumulated_since_the_previous_published_endpoint():
+    cumulative = np.array([
+        [[5.0, np.nan]],
+        [[12.0, 4.0]],
+        [[20.0, 10.0]],
+    ])
+    intervals = archive._previous_endpoint_accumulations(cumulative)
+    np.testing.assert_allclose(intervals[:, 0, 0], [5.0, 7.0, 8.0])
+    assert np.isnan(intervals[0, 0, 1])
+    assert np.isnan(intervals[1, 0, 1])
+    assert intervals[2, 0, 1] == 6.0
+
+
+def test_temperature_animation_uses_fixed_yellow_to_red_scale():
+    encoded = archive._encode_grid(np.array([[0.0, 45.0]]), "temperature")
+    rgb = archive._animation_rgb(encoded, "temperature")
+    assert rgb[0, 0].tolist() == [255, 255, 204]
+    assert rgb[0, 1].tolist() == [189, 0, 38]
+
+
 def test_build_html_has_tabs_every_run_and_unique_ids():
     runs = [_run(day) for day in range(24, 31)]
     html = archive.build_html(archive.archive_manifest(runs), object(), _validation(runs))
@@ -161,6 +181,8 @@ def test_build_html_has_tabs_every_run_and_unique_ids():
     assert 'data-tab="maps"' in html
     assert 'data-tab="validation"' in html
     assert 'id="forecast-canvas"' in html
+    assert 'id="map-legend"' in html
+    assert "Interval rainfall" in html
     assert html.count('id="forecast-canvas"') == 1
     assert 'value="20260730_00"' in html
     assert 'id="validation-image"' in html

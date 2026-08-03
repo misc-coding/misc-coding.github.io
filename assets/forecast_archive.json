@@ -83,13 +83,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -100,12 +100,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -134,8 +139,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       },
       "bounding_box": {
         "lat_min": 6.0,
@@ -226,13 +237,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -243,12 +254,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -277,8 +293,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       },
       "bounding_box": {
         "lat_min": 6.0,
@@ -345,13 +367,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -362,12 +384,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -396,8 +423,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       },
       "bounding_box": {
         "lat_min": 6.0,
@@ -464,13 +497,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -481,12 +514,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -515,8 +553,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       },
       "bounding_box": {
         "lat_min": 6.0,
@@ -583,13 +627,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -600,12 +644,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -634,8 +683,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       },
       "bounding_box": {
         "lat_min": 6.0,
@@ -752,13 +807,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -769,12 +824,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -848,8 +908,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       }
     },
     {
@@ -940,13 +1006,13 @@
           "source_field": "2 m air temperature",
           "units": "degree_Celsius",
           "plot_scale": {
-            "minimum": 10.0,
+            "minimum": 0.0,
             "maximum": 45.0
           }
         },
         "precipitation": {
           "source_field": "surface precipitation",
-          "units": "mm accumulated since initialization",
+          "units": "mm accumulated since previous published endpoint",
           "plot_levels": [
             0.0,
             1.0,
@@ -957,12 +1023,17 @@
             100.0,
             200.0,
             300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
           ]
         }
       },
       "lead_semantics": {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
       },
@@ -991,8 +1062,14 @@
         },
         "encoding": {
           "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm; 65535 = missing"
-        }
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ],
+        "precipitation_accumulation": "previous_endpoint_interval"
       },
       "bounding_box": {
         "lat_min": 6.0,

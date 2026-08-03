@@ -19,4 +19,6 @@ Live visit counting is intentionally disabled because no authenticated analytics
 
 Map coastlines use the public-domain [Natural Earth 1:50m coastline](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-coastline/).
 
+Temperature maps use a fixed 0–45 °C yellow-to-red scale. Map rainfall is interval accumulation between published endpoints (initialization→Day 1, Day 1→Day 3, and Day 3→Day 5), while city and validation rainfall retain their stated matched daily accumulation windows.
+
 See [`assets/forecast_archive.json`](assets/forecast_archive.json), [`assets/weather_forecast.json`](assets/weather_forecast.json), and [`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.

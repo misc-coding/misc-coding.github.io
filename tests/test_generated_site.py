@@ -23,6 +23,9 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('data-panel="method"') == 1
     assert html.count('id="map-tooltip"') == 1
     assert html.count('id="map-animation"') == 1
+    assert html.count('id="map-legend"') == 1
+    assert "fixed 0–45 °C scale" in html
+    assert "Map rainfall is accumulated only since the previous published endpoint" in html
     assert "assets/scdlds-logo.jpeg" in html
     assert "coastline overlay" in html
     assert "Natural Earth" in html
@@ -42,6 +45,12 @@ def test_archive_is_sorted_retained_and_every_grid_exists():
         artifacts = {item["model"] for item in run["artifacts"]}
         assert models
         assert artifacts == models
+        assert run["variables"]["temperature"]["plot_scale"] == {"minimum": 0.0, "maximum": 45.0}
+        assert run["grid_metadata"]["precipitation_accumulation"] == "previous_endpoint_interval"
+        assert run["grid_metadata"]["precipitation_windows"] == [
+            "init-to-day-1", "day-1-to-day-3", "day-3-to-day-5",
+        ]
+        assert "previous published endpoint" in run["variables"]["precipitation"]["units"]
         for item in run["artifacts"]:
             path = ROOT / item["path"]
             assert path.is_file()
@@ -97,7 +106,7 @@ def test_every_model_and_historical_run_has_animated_forecast_gifs():
                 with Image.open(animation) as opened:
                     assert opened.format == "GIF"
                     assert opened.n_frames == 3
-                    assert opened.size == (520, 364)
+                    assert opened.size == (520, 489)
     assert expected >= 7 * 4
 
 

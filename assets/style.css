@@ -80,13 +80,19 @@ legend { margin-bottom: 8px; }
 .model-fieldset { flex: 1 1 100%; }
 .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 230px; border: 1px solid #cbd7df; border-radius: 7px; overflow: hidden; }
 .map-frame { position: relative; min-width: 0; background: #e8f1f5; }
-#forecast-canvas { display: block; width: 100%; min-height: 520px; touch-action: none; cursor: grab; }
+#forecast-canvas { display: block; width: 100%; min-height: 640px; touch-action: none; cursor: grab; }
 #forecast-canvas:active { cursor: grabbing; }
 .map-tooltip { position: absolute; z-index: 4; display: grid; min-width: 165px; gap: 2px; padding: 9px 11px; color: white; background: rgba(19,43,58,.94); border-radius: 5px; box-shadow: 0 5px 16px rgba(20,42,57,.24); pointer-events: none; }
 .map-tooltip[hidden] { display: none; }
 .map-tooltip[data-side="above"] { transform: translateY(-100%); }
 .map-tooltip strong { font-size: .9rem; }
 .map-tooltip span, .map-tooltip small { color: #dbe7ed; font-size: .68rem; }
+.map-legend { position: absolute; bottom: 14px; left: 14px; z-index: 3; width: min(265px, calc(100% - 28px)); padding: 10px 12px; color: #314858; background: rgba(255,255,255,.94); border: 1px solid #becbd3; border-radius: 5px; box-shadow: 0 3px 12px rgba(29,51,66,.14); pointer-events: none; }
+.map-legend strong { display: block; margin-bottom: 7px; font-size: .72rem; }
+.map-legend-bar { height: 11px; background: linear-gradient(90deg, #ffffcc, #fed976, #fd8d3c, #f03b20, #bd0026); border: 1px solid rgba(38,55,66,.2); border-radius: 2px; }
+.map-legend.is-precipitation .map-legend-bar { background: linear-gradient(90deg, #e1f1f8, #94c9df, #348fb2, #28729a, #28557a); }
+.map-legend-ticks { display: flex; justify-content: space-between; margin-top: 3px; color: #526574; font-size: .62rem; }
+.map-legend small { display: block; margin-top: 5px; color: #607080; font-size: .62rem; line-height: 1.35; }
 .map-tools { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; padding: 7px; color: #45606f; background: rgba(255,255,255,.92); border: 1px solid #becbd3; border-radius: 5px; font-size: .7rem; box-shadow: 0 3px 12px rgba(29,51,66,.12); }
 .map-tools button { padding: 6px 9px; color: var(--blue-dark); background: white; border: 1px solid #aebec9; border-radius: 4px; cursor: pointer; }
 .map-layout aside { padding: 25px 20px; background: #f8fafb; border-left: 1px solid var(--line); }
@@ -142,6 +148,6 @@ footer a { color: var(--blue); }
   .weather-now strong { font-size: 2.8rem; }
   .daily-cards { grid-template-columns: repeat(5, minmax(108px, 1fr)); overflow-x: auto; }
   .control-grid { display: grid; }
-  #forecast-canvas { min-height: 420px; }
+  #forecast-canvas { min-height: 540px; }
   .footer-row { flex-direction: column; }
 }

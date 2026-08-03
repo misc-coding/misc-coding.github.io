@@ -205,10 +205,13 @@ def render_run(init, models, cfg, renderer, india_load, stage: Path, attempts: i
     manifest = renderer.build_manifest(datasets, loaded_models, init, cfg, artifacts)
     manifest["lead_semantics"] = {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
         "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
         "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead.",
     }
+    manifest["variables"]["temperature"]["plot_scale"] = {"minimum": 0.0, "maximum": 45.0}
+    manifest["variables"]["precipitation"]["units"] = "mm accumulated since previous published endpoint"
+    manifest["variables"]["precipitation"]["accumulation_windows"] = ["init-to-day-1", "day-1-to-day-3", "day-3-to-day-5"]
     return {
         "id": stamp(init),
         "initialization_utc": manifest["initialization_utc"],
@@ -337,6 +340,20 @@ def _encode_grid(values: np.ndarray, variable: str) -> np.ndarray:
     return encoded
 
 
+def _previous_endpoint_accumulations(cumulative: np.ndarray) -> np.ndarray:
+    """Convert initialization-total rainfall into intervals between published leads."""
+    values = np.asarray(cumulative, dtype=np.float32)
+    if values.ndim < 1 or values.shape[0] != len(LEAD_DAYS):
+        raise ValueError(f"expected precipitation at {len(LEAD_DAYS)} published leads")
+    intervals = np.full_like(values, np.nan)
+    intervals[0] = np.clip(values[0], 0, None)
+    for index in range(1, len(LEAD_DAYS)):
+        valid = np.isfinite(values[index]) & np.isfinite(values[index - 1])
+        difference = np.clip(values[index] - values[index - 1], 0, None)
+        intervals[index] = np.where(valid, difference, np.nan)
+    return intervals
+
+
 def write_map_payloads(init, datasets, models, cfg, india_load, stage: Path) -> tuple[list[dict], dict]:
     """Write compact browser payloads instead of pre-rendered PNG map galleries."""
     tag = stamp(init)
@@ -347,7 +364,7 @@ def write_map_payloads(init, datasets, models, cfg, india_load, stage: Path) -> 
         ranges = _daily_temperature_ranges(model, init, cfg, india_load, datasets[model])
         fields = {
             "temperature": datasets[model]["t2m_C"].values,
-            "precipitation": datasets[model]["precip_cumulative_mm"].values,
+            "precipitation": _previous_endpoint_accumulations(datasets[model]["precip_cumulative_mm"].values),
             "temperature_high": ranges["maximum"]["t2m_C"].values,
             "temperature_low": ranges["minimum"]["t2m_C"].values,
         }
@@ -359,7 +376,8 @@ def write_map_payloads(init, datasets, models, cfg, india_load, stage: Path) -> 
         "variables": list(GRID_VARIABLES), "lead_days": list(LEAD_DAYS),
         "shape": [len(LEAD_DAYS), int(datasets[models[0]].sizes["lat"]), int(datasets[models[0]].sizes["lon"])],
         "bounding_box": {"lat_min": cfg.india_bbox.lat_min, "lat_max": cfg.india_bbox.lat_max, "lon_min": cfg.india_bbox.lon_min, "lon_max": cfg.india_bbox.lon_max},
-        "encoding": {"temperature": "uint16: (value - 5000) / 100 °C; 65535 = missing", "precipitation": "uint16: value / 10 mm; 65535 = missing"},
+        "encoding": {"temperature": "uint16: (value - 5000) / 100 °C; 65535 = missing", "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"},
+        "precipitation_windows": ["init-to-day-1", "day-1-to-day-3", "day-3-to-day-5"],
     }
     return records, metadata
 
@@ -377,11 +395,12 @@ def _animation_rgb(encoded: np.ndarray, variable: str) -> np.ndarray:
         )
     else:
         values = (encoded.astype(np.float32) - 5000.0) / 100.0
-        fraction = np.clip((values - 5.0) / 40.0, 0, 1)
+        fraction = np.clip(values / 45.0, 0, 1)
+        positions = (0.0, 0.25, 0.5, 0.75, 1.0)
         channels = (
-            45 + 205 * fraction,
-            110 + 70 * (1 - np.abs(fraction - 0.5) * 2),
-            190 - 145 * fraction,
+            np.interp(fraction, positions, (255, 254, 253, 240, 189)),
+            np.interp(fraction, positions, (255, 217, 141, 59, 0)),
+            np.interp(fraction, positions, (204, 118, 60, 32, 38)),
         )
     rgb = np.stack(channels, axis=-1).clip(0, 255).astype(np.uint8)
     rgb[missing] = (232, 241, 245)
@@ -392,7 +411,7 @@ def render_map_animations(stage: Path, archive: dict, coastline_path: Path) -> i
     """Render Day 1/3/5 GIFs for every retained run, model, and map variable."""
     coastline_data = json.loads(coastline_path.read_text())
     coastlines = coastline_data["lines"]
-    width, map_height, caption_height = 520, 330, 34
+    width, map_height, caption_height = 520, 455, 34
     resampling = getattr(Image, "Resampling", Image).BILINEAR
     created = 0
     for run in archive["runs"]:
@@ -427,7 +446,12 @@ def render_map_animations(stage: Path, archive: dict, coastline_path: Path) -> i
                             draw.line(points, fill=(19, 44, 57), width=2, joint="curve")
                     frame = Image.new("RGB", (width, map_height + caption_height), "white")
                     frame.paste(field, (0, 0))
-                    label = f"Day {day}  |  T+{day * 24} h"
+                    if variable == "precipitation":
+                        previous = 0 if lead_index == 0 else meta["lead_days"][lead_index - 1]
+                        start_label = "Init" if previous == 0 else f"Day {previous}"
+                        label = f"{start_label} to Day {day}  |  {(day - previous) * 24} h interval rainfall"
+                    else:
+                        label = f"Day {day}  |  T+{day * 24} h"
                     ImageDraw.Draw(frame).text((12, map_height + 10), label, fill=(23, 43, 58))
                     frames.append(frame)
                 target = stage / "assets" / "map_animations" / run["id"] / model / f"{variable}.gif"
@@ -971,7 +995,7 @@ LEGACY_ARCHIVE_JS = r"""
   const combinationWeights = document.querySelector("#combination-weights");
   const params = new URLSearchParams(window.location.search);
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
-  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
+  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Interval rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
   const allowedInits = new Set(runs.map((run) => run.id));
   let variable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
@@ -1228,7 +1252,7 @@ ARCHIVE_JS = r"""
   const qa = (selector) => [...document.querySelectorAll(selector)];
   const allowedTabs = new Set(["weather", "maps", "validation", "method"]);
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
-  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
+  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Interval rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
@@ -1353,8 +1377,26 @@ ARCHIVE_JS = r"""
       const t = Math.max(0, Math.min(1, number / 120));
       return [225 - 185 * t, 241 - 80 * t, 248 - 25 * t];
     }
-    const t = Math.max(0, Math.min(1, (number - 5) / 40));
-    return [45 + 205 * t, 110 + 70 * (1 - Math.abs(t - .5) * 2), 190 - 145 * t];
+    const stops = [[255, 255, 204], [254, 217, 118], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
+    const scaled = Math.max(0, Math.min(1, number / 45)) * (stops.length - 1);
+    const index = Math.min(stops.length - 2, Math.floor(scaled));
+    const fraction = scaled - index;
+    return stops[index].map((channel, offset) => channel + (stops[index + 1][offset] - channel) * fraction);
+  }
+
+  function precipitationWindow(day = Number(mapDay)) {
+    if (day === 1) return "Initialization → Day 1 (24 h)";
+    if (day === 3) return "Day 1 → Day 3 (48 h)";
+    return "Day 3 → Day 5 (48 h)";
+  }
+
+  function renderMapLegend() {
+    const legend = q("#map-legend");
+    const precipitation = mapVariable === "precipitation";
+    legend.classList.toggle("is-precipitation", precipitation);
+    q("#map-legend-title").textContent = precipitation ? "Interval rainfall (mm)" : "Temperature (°C) · fixed scale";
+    q("#map-legend-ticks").innerHTML = (precipitation ? [0, 40, 80, 120] : [0, 15, 30, 45]).map((value) => `<span>${value}</span>`).join("");
+    q("#map-legend-note").textContent = precipitation ? precipitationWindow() : "Same 0–45 °C scale for every model, lead, and temperature layer.";
   }
 
   function decodeMapValue(encoded) {
@@ -1383,7 +1425,9 @@ ARCHIVE_JS = r"""
     if (image.getAttribute("src") !== source) image.src = source;
     image.alt = `Animated ${label.toLowerCase()} forecast for ${model} from Day 1 through Day 5`;
     q("#animation-title").textContent = `${label} · ${model}`;
-    q("#animation-description").textContent = "Animated Day 1, Day 3, and Day 5 forecast endpoints.";
+    q("#animation-description").textContent = mapVariable === "precipitation"
+      ? "Each frame is rainfall accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5."
+      : "Animated Day 1, Day 3, and Day 5 forecast endpoints on a fixed 0–45 °C scale.";
   }
 
   async function loadMap() {
@@ -1470,7 +1514,8 @@ ARCHIVE_JS = r"""
     if (!point || value === null) { hideMapTooltip(); return; }
     const tooltip = q("#map-tooltip");
     const units = mapVariable === "precipitation" ? "mm" : "°C";
-    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · Day ${mapDay}</small>`;
+    const lead = mapVariable === "precipitation" ? `${precipitationWindow()} accumulation` : `Day ${mapDay}`;
+    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · ${lead}</small>`;
     tooltip.style.left = `${Math.max(8, Math.min(point.rect.width - 185, point.cssX + 12))}px`;
     tooltip.style.top = `${point.cssY > 90 ? point.cssY - 12 : point.cssY + 12}px`;
     tooltip.dataset.side = point.cssY > 90 ? "above" : "below";
@@ -1484,7 +1529,7 @@ ARCHIVE_JS = r"""
     const rect = canvas.getBoundingClientRect();
     const ratio = window.devicePixelRatio || 1;
     const width = Math.max(600, Math.round(rect.width * ratio));
-    const height = Math.max(420, Math.round(Math.max(rect.width * .56, 420) * ratio));
+    const height = Math.max(520 * ratio, Math.round(rect.width * .86 * ratio));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     const meta = run.grid_metadata;
     const [nLead, nLat, nLon] = meta.shape;
@@ -1517,8 +1562,9 @@ ARCHIVE_JS = r"""
     });
     ctx.restore();
     q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
-    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}`;
+    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
+    renderMapLegend();
   }
 
   function renderMapControls() {
@@ -1724,12 +1770,12 @@ def build_html(
     <section class="panel" data-panel="maps" hidden aria-label="Interactive forecast maps">
       <div class="panel-heading"><div><p class="eyebrow">Forecast maps</p><h2>India field explorer</h2><p>Choose a model, variable, and endpoint. Drag to pan and scroll to zoom.</p></div></div>
       <div class="control-grid">
-        <fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-map-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-map-variable="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-map-variable="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-map-variable="precipitation" aria-pressed="false">Accumulated rainfall</button></div></fieldset>
+        <fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-map-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-map-variable="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-map-variable="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-map-variable="precipitation" aria-pressed="false">Interval rainfall</button></div></fieldset>
         <fieldset><legend>Endpoint</legend><div class="segmented"><button type="button" data-map-day="1" aria-pressed="true">Day 1</button><button type="button" data-map-day="3" aria-pressed="false">Day 3</button><button type="button" data-map-day="5" aria-pressed="false">Day 5</button></div></fieldset>
         <fieldset class="model-fieldset"><legend>Model</legend><div class="segmented">{model_buttons}</div></fieldset>
       </div>
-      <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field with coastline overlay" aria-describedby="map-tooltip"></canvas><div id="map-tooltip" class="map-tooltip" role="tooltip" hidden></div><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · Day 1</h3><p id="map-description"></p><small>Hover anywhere for the nearest grid value. Click a city marker to open validation. Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>.</small></aside></div>
-      <figure class="map-animation"><figcaption><p class="eyebrow">Forecast evolution</p><h3 id="animation-title">Temperature · {default_model_label}</h3><p id="animation-description">Animated Day 1, Day 3, and Day 5 forecast endpoints.</p></figcaption><img id="map-animation" src="{default_animation}" alt="Animated temperature forecast for {default_model_label} from Day 1 through Day 5"></figure>
+      <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field with coastline overlay" aria-describedby="map-tooltip"></canvas><div id="map-tooltip" class="map-tooltip" role="tooltip" hidden></div><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div><div id="map-legend" class="map-legend"><strong id="map-legend-title">Temperature (°C) · fixed scale</strong><div class="map-legend-bar"></div><div id="map-legend-ticks" class="map-legend-ticks"><span>0</span><span>15</span><span>30</span><span>45</span></div><small id="map-legend-note">Same 0–45 °C scale for every model, lead, and temperature layer.</small></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · Day 1</h3><p id="map-description"></p><small>Hover anywhere for the nearest grid value. Rainfall maps show accumulation since the previous published endpoint. Click a city marker to open validation. Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>.</small></aside></div>
+      <figure class="map-animation"><figcaption><p class="eyebrow">Forecast evolution</p><h3 id="animation-title">Temperature · {default_model_label}</h3><p id="animation-description">Animated Day 1, Day 3, and Day 5 forecast endpoints on a fixed 0–45 °C scale.</p></figcaption><img id="map-animation" src="{default_animation}" alt="Animated temperature forecast for {default_model_label} from Day 1 through Day 5"></figure>
     </section>
 
     <section class="panel" data-panel="validation" hidden aria-label="Forecast validation">
@@ -1745,7 +1791,7 @@ def build_html(
       <div class="panel-heading"><div><p class="eyebrow">About the data</p><h2>Method and sources</h2><p>The site updates from the newest available 00 UTC initialization. Late models are added when they become available.</p></div></div>
       <div class="method-grid"><article><strong>1. Load</strong><p>Model fields are reduced to a common India grid and consistent units.</p></article><article><strong>2. Combine</strong><p>Recent matched observations set separate online weights for temperature and rainfall.</p></article><article><strong>3. Verify</strong><p>Open-Meteo temperature and rainfall are matched to the same forecast valid periods.</p></article></div>
       <div class="table-wrap"><table><thead><tr><th>Model</th><th>Source</th><th>Members used</th><th>Reference</th></tr></thead><tbody>{source_rows}</tbody></table></div>
-      <p class="method-note">Daily city rainfall is accumulated within each 24-hour forecast day. Map rainfall is cumulative from initialization through the selected endpoint. This is a research product, not an official forecast or warning.</p>
+      <p class="method-note">Daily city rainfall is accumulated within each 24-hour forecast day. Map rainfall is accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5. This is a research product, not an official forecast or warning.</p>
     </section>
   </main>
   <footer><div class="shell footer-row"><span>India Weather Forecasts · SCDLDS research</span><a href="https://scdlds.ashoka.edu.in/">Safexpress Centre for Data, Learning and Decision Sciences</a></div></footer>
@@ -1916,13 +1962,19 @@ legend { margin-bottom: 8px; }
 .model-fieldset { flex: 1 1 100%; }
 .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 230px; border: 1px solid #cbd7df; border-radius: 7px; overflow: hidden; }
 .map-frame { position: relative; min-width: 0; background: #e8f1f5; }
-#forecast-canvas { display: block; width: 100%; min-height: 520px; touch-action: none; cursor: grab; }
+#forecast-canvas { display: block; width: 100%; min-height: 640px; touch-action: none; cursor: grab; }
 #forecast-canvas:active { cursor: grabbing; }
 .map-tooltip { position: absolute; z-index: 4; display: grid; min-width: 165px; gap: 2px; padding: 9px 11px; color: white; background: rgba(19,43,58,.94); border-radius: 5px; box-shadow: 0 5px 16px rgba(20,42,57,.24); pointer-events: none; }
 .map-tooltip[hidden] { display: none; }
 .map-tooltip[data-side="above"] { transform: translateY(-100%); }
 .map-tooltip strong { font-size: .9rem; }
 .map-tooltip span, .map-tooltip small { color: #dbe7ed; font-size: .68rem; }
+.map-legend { position: absolute; bottom: 14px; left: 14px; z-index: 3; width: min(265px, calc(100% - 28px)); padding: 10px 12px; color: #314858; background: rgba(255,255,255,.94); border: 1px solid #becbd3; border-radius: 5px; box-shadow: 0 3px 12px rgba(29,51,66,.14); pointer-events: none; }
+.map-legend strong { display: block; margin-bottom: 7px; font-size: .72rem; }
+.map-legend-bar { height: 11px; background: linear-gradient(90deg, #ffffcc, #fed976, #fd8d3c, #f03b20, #bd0026); border: 1px solid rgba(38,55,66,.2); border-radius: 2px; }
+.map-legend.is-precipitation .map-legend-bar { background: linear-gradient(90deg, #e1f1f8, #94c9df, #348fb2, #28729a, #28557a); }
+.map-legend-ticks { display: flex; justify-content: space-between; margin-top: 3px; color: #526574; font-size: .62rem; }
+.map-legend small { display: block; margin-top: 5px; color: #607080; font-size: .62rem; line-height: 1.35; }
 .map-tools { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 10px; padding: 7px; color: #45606f; background: rgba(255,255,255,.92); border: 1px solid #becbd3; border-radius: 5px; font-size: .7rem; box-shadow: 0 3px 12px rgba(29,51,66,.12); }
 .map-tools button { padding: 6px 9px; color: var(--blue-dark); background: white; border: 1px solid #aebec9; border-radius: 4px; cursor: pointer; }
 .map-layout aside { padding: 25px 20px; background: #f8fafb; border-left: 1px solid var(--line); }
@@ -1978,7 +2030,7 @@ footer a { color: var(--blue); }
   .weather-now strong { font-size: 2.8rem; }
   .daily-cards { grid-template-columns: repeat(5, minmax(108px, 1fr)); overflow-x: auto; }
   .control-grid { display: grid; }
-  #forecast-canvas { min-height: 420px; }
+  #forecast-canvas { min-height: 540px; }
   .footer-row { flex-direction: column; }
 }
 """
@@ -2020,6 +2072,9 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
         "```\n\n"
         "Live visit counting is intentionally disabled because no authenticated analytics backend is configured.\n\n"
         "Map coastlines use the public-domain [Natural Earth 1:50m coastline](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-coastline/).\n\n"
+        "Temperature maps use a fixed 0–45 °C yellow-to-red scale. Map rainfall is interval accumulation "
+        "between published endpoints (initialization→Day 1, Day 1→Day 3, and Day 3→Day 5), while city "
+        "and validation rainfall retain their stated matched daily accumulation windows.\n\n"
         "See [`assets/forecast_archive.json`](assets/forecast_archive.json), "
         "[`assets/weather_forecast.json`](assets/weather_forecast.json), and "
         "[`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.\n"

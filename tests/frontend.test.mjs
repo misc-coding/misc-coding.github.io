@@ -91,6 +91,9 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.ok(stats.fetches.includes("assets/coastlines.json"));
   assert.ok(stats.strokes > 20, "coastline segments should be drawn over the field");
   const canvas = document.querySelector("#forecast-canvas");
+  assert.ok(canvas.height >= 774, "the India map should use the taller aspect ratio");
+  assert.match(document.querySelector("#map-legend-title").textContent, /fixed scale/);
+  assert.deepEqual([...document.querySelectorAll("#map-legend-ticks span")].map((item) => item.textContent), ["0", "15", "30", "45"]);
   canvas.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 450, clientY: 260, bubbles: true }));
   const tooltip = document.querySelector("#map-tooltip");
   assert.equal(tooltip.hidden, false);
@@ -102,10 +105,15 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector('[data-map-variable="precipitation"]').click();
   document.querySelector('[data-map-day="5"]').click();
   await new Promise((resolve) => setTimeout(resolve, 50));
-  assert.match(document.querySelector("#map-title").textContent, /Accumulated rainfall · Day 5/);
+  assert.match(document.querySelector("#map-title").textContent, /Interval rainfall · Day 5/);
+  assert.match(document.querySelector("#map-description").textContent, /Day 3 → Day 5 \(48 h\) accumulation/);
+  assert.match(document.querySelector("#map-legend-title").textContent, /Interval rainfall/);
+  assert.match(document.querySelector("#map-legend-note").textContent, /Day 3 → Day 5/);
   assert.match(document.querySelector("#map-animation").getAttribute("src"), /precipitation\.gif$/);
+  assert.match(document.querySelector("#animation-description").textContent, /previous published endpoint/);
   canvas.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 450, clientY: 260, bubbles: true }));
   assert.match(tooltip.textContent, /mm/);
+  assert.match(tooltip.textContent, /Day 3 → Day 5.*accumulation/);
   const gfs = document.querySelector('[data-map-model="gfs"]');
   if (!gfs.disabled) {
     gfs.click();

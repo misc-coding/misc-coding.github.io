@@ -12,7 +12,7 @@
   const qa = (selector) => [...document.querySelectorAll(selector)];
   const allowedTabs = new Set(["weather", "maps", "validation", "method"]);
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
-  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Accumulated rainfall" };
+  const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Interval rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
@@ -137,8 +137,26 @@
       const t = Math.max(0, Math.min(1, number / 120));
       return [225 - 185 * t, 241 - 80 * t, 248 - 25 * t];
     }
-    const t = Math.max(0, Math.min(1, (number - 5) / 40));
-    return [45 + 205 * t, 110 + 70 * (1 - Math.abs(t - .5) * 2), 190 - 145 * t];
+    const stops = [[255, 255, 204], [254, 217, 118], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
+    const scaled = Math.max(0, Math.min(1, number / 45)) * (stops.length - 1);
+    const index = Math.min(stops.length - 2, Math.floor(scaled));
+    const fraction = scaled - index;
+    return stops[index].map((channel, offset) => channel + (stops[index + 1][offset] - channel) * fraction);
+  }
+
+  function precipitationWindow(day = Number(mapDay)) {
+    if (day === 1) return "Initialization → Day 1 (24 h)";
+    if (day === 3) return "Day 1 → Day 3 (48 h)";
+    return "Day 3 → Day 5 (48 h)";
+  }
+
+  function renderMapLegend() {
+    const legend = q("#map-legend");
+    const precipitation = mapVariable === "precipitation";
+    legend.classList.toggle("is-precipitation", precipitation);
+    q("#map-legend-title").textContent = precipitation ? "Interval rainfall (mm)" : "Temperature (°C) · fixed scale";
+    q("#map-legend-ticks").innerHTML = (precipitation ? [0, 40, 80, 120] : [0, 15, 30, 45]).map((value) => `<span>${value}</span>`).join("");
+    q("#map-legend-note").textContent = precipitation ? precipitationWindow() : "Same 0–45 °C scale for every model, lead, and temperature layer.";
   }
 
   function decodeMapValue(encoded) {
@@ -167,7 +185,9 @@
     if (image.getAttribute("src") !== source) image.src = source;
     image.alt = `Animated ${label.toLowerCase()} forecast for ${model} from Day 1 through Day 5`;
     q("#animation-title").textContent = `${label} · ${model}`;
-    q("#animation-description").textContent = "Animated Day 1, Day 3, and Day 5 forecast endpoints.";
+    q("#animation-description").textContent = mapVariable === "precipitation"
+      ? "Each frame is rainfall accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5."
+      : "Animated Day 1, Day 3, and Day 5 forecast endpoints on a fixed 0–45 °C scale.";
   }
 
   async function loadMap() {
@@ -254,7 +274,8 @@
     if (!point || value === null) { hideMapTooltip(); return; }
     const tooltip = q("#map-tooltip");
     const units = mapVariable === "precipitation" ? "mm" : "°C";
-    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · Day ${mapDay}</small>`;
+    const lead = mapVariable === "precipitation" ? `${precipitationWindow()} accumulation` : `Day ${mapDay}`;
+    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · ${lead}</small>`;
     tooltip.style.left = `${Math.max(8, Math.min(point.rect.width - 185, point.cssX + 12))}px`;
     tooltip.style.top = `${point.cssY > 90 ? point.cssY - 12 : point.cssY + 12}px`;
     tooltip.dataset.side = point.cssY > 90 ? "above" : "below";
@@ -268,7 +289,7 @@
     const rect = canvas.getBoundingClientRect();
     const ratio = window.devicePixelRatio || 1;
     const width = Math.max(600, Math.round(rect.width * ratio));
-    const height = Math.max(420, Math.round(Math.max(rect.width * .56, 420) * ratio));
+    const height = Math.max(520 * ratio, Math.round(rect.width * .86 * ratio));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     const meta = run.grid_metadata;
     const [nLead, nLat, nLon] = meta.shape;
@@ -301,8 +322,9 @@
     });
     ctx.restore();
     q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
-    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}`;
+    q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
+    renderMapLegend();
   }
 
   function renderMapControls() {
