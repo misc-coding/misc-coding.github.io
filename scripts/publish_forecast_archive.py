@@ -8,8 +8,10 @@ published files only after every selected run has passed validation.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
 import re
+import signal
 import shutil
 import sys
 import tempfile
@@ -27,13 +29,14 @@ SITE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REALTIME_ROOT = Path("/home/saptarishi.dhanuka_asp25/weather/real_time")
 DEFAULT_PYTHON = Path("/Datastorage/saptarishi.dhanuka_asp25/conda_envs/realtime_dash/bin/python")
 LEAD_DAYS = (1, 3, 5)
+DAILY_LEAD_DAYS = (1, 2, 3, 4, 5)
 RANGE_VARIABLES = (
     ("temperature_high", "Daily high 2 m temperature", "maximum"),
     ("temperature_low", "Daily low 2 m temperature", "minimum"),
 )
 ARTIFACTS_PER_RUN = 84
 GRID_VARIABLES = ("temperature", "precipitation", "temperature_high", "temperature_low")
-GRID_ARTIFACTS_PER_RUN = 6
+ALL_MODEL_IDS = ("weathernext2", "gencast", "gfs", "gefs", "aifs", "ifs_ens")
 
 
 def stamp(init: pd.Timestamp) -> str:
@@ -62,20 +65,66 @@ def load_renderer(realtime_root: Path):
     return renderer, load_config, india_load, openmeteo
 
 
-def common_midnight_inits(models, cfg, india_load) -> list[pd.Timestamp]:
-    """Return available 00 UTC initializations shared by every requested model."""
-    sets = []
-    for model in models:
-        values = {pd.Timestamp(value).tz_localize(None) if pd.Timestamp(value).tzinfo else pd.Timestamp(value)
-                  for value in india_load.available_inits(model, cfg)}
-        sets.append(values)
-    if not sets:
-        return []
+@contextmanager
+def source_timeout(seconds: int):
+    """Bound a synchronous source-catalog request without leaking worker threads."""
+    if not hasattr(signal, "SIGALRM"):
+        yield
+        return
+    previous = signal.getsignal(signal.SIGALRM)
+    signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError("source lookup timed out")))
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def model_availability(models, cfg, india_load, *, timeout_seconds: int = 90) -> tuple[dict[str, set[pd.Timestamp]], dict[str, str]]:
+    """Return independent source availability so one late model cannot block publication."""
+    availability: dict[str, set[pd.Timestamp]] = {}
+    errors: dict[str, str] = {}
     now = pd.Timestamp.now(tz="UTC").tz_localize(None)
-    return sorted(
-        (value for value in set.intersection(*sets) if value.hour == 0 and value <= now),
-        reverse=True,
-    )
+    for model in models:
+        try:
+            with source_timeout(timeout_seconds):
+                raw = india_load.available_inits(model, cfg)
+            values = {
+                pd.Timestamp(value).tz_localize(None) if pd.Timestamp(value).tzinfo else pd.Timestamp(value)
+                for value in raw
+            }
+            availability[model] = {value for value in values if value.hour == 0 and value <= now}
+            print(f"[{model}] newest available init: {max(availability[model]) if availability[model] else 'none'}", flush=True)
+        except Exception as exc:  # noqa: BLE001 - catalog failures are isolated by source
+            availability[model] = set()
+            errors[model] = f"{type(exc).__name__}: {exc}"
+            print(f"[{model}] availability unavailable: {errors[model]}", file=sys.stderr, flush=True)
+    return availability, errors
+
+
+def common_midnight_inits(models, cfg, india_load) -> list[pd.Timestamp]:
+    """Compatibility helper retained for tests and strict comparisons."""
+    availability, _ = model_availability(models, cfg, india_load)
+    sets = [availability[model] for model in models]
+    return sorted(set.intersection(*sets), reverse=True) if sets else []
+
+
+def candidate_initializations(
+    availability: dict[str, set[pd.Timestamp]], existing: list[dict], *, backfill: bool = False,
+) -> list[pd.Timestamp]:
+    """Choose fresh runs only; also revisit the latest partial run as sources arrive."""
+    union = sorted(set().union(*availability.values()) if availability else set(), reverse=True)
+    if backfill or not existing:
+        return union
+    latest = pd.Timestamp(max(run["initialization_utc"] for run in existing)).tz_localize(None)
+    latest_run = next(run for run in existing if pd.Timestamp(run["initialization_utc"]).tz_localize(None) == latest)
+    have = {model["id"] for model in latest_run.get("models", [])}
+    available_latest = {model for model, values in availability.items() if latest in values}
+    candidates = [value for value in union if value > latest]
+    if available_latest - have:
+        candidates.append(latest)
+    return sorted(set(candidates), reverse=True)
 
 
 def read_archive(site: Path) -> dict:
@@ -83,7 +132,7 @@ def read_archive(site: Path) -> dict:
     if not path.is_file():
         return {"schema_version": 1, "runs": []}
     archive = json.loads(path.read_text())
-    if archive.get("schema_version") != 1 or not isinstance(archive.get("runs"), list):
+    if archive.get("schema_version") not in (1, 2) or not isinstance(archive.get("runs"), list):
         raise RuntimeError(f"unsupported archive manifest: {path}")
     return archive
 
@@ -95,7 +144,9 @@ def valid_existing_runs(site: Path, archive: dict, renderer) -> list[dict]:
         try:
             init = pd.Timestamp(run["initialization_utc"])
             run_leads = tuple(item["day"] for item in run.get("lead_days", []))
-            if stamp(init) != run["id"] or len(run["artifacts"]) != GRID_ARTIFACTS_PER_RUN or run_leads != LEAD_DAYS:
+            model_ids = {model["id"] for model in run.get("models", [])}
+            artifact_models = {artifact.get("model") for artifact in run.get("artifacts", [])}
+            if stamp(init) != run["id"] or not model_ids or artifact_models != model_ids or run_leads != LEAD_DAYS:
                 continue
             for artifact in run["artifacts"]:
                 path = site / artifact["path"]
@@ -108,14 +159,22 @@ def valid_existing_runs(site: Path, archive: dict, renderer) -> list[dict]:
 
 
 def render_run(init, models, cfg, renderer, india_load, stage: Path, attempts: int) -> dict:
+    """Render every usable model for an init and retain a valid partial run."""
     datasets = {}
     for model in models:
         print(f"[{stamp(init)}] loading {renderer.MODEL_META[model]['label']}", flush=True)
-        datasets[model] = renderer.load_with_retries(
-            model, cfg, init, max_members=8, attempts=attempts,
-        )
-    artifacts, grid_metadata = write_map_payloads(init, datasets, models, cfg, india_load, stage)
-    manifest = renderer.build_manifest(datasets, models, init, cfg, artifacts)
+        try:
+            with source_timeout(20 * 60):
+                datasets[model] = renderer.load_with_retries(
+                    model, cfg, init, max_members=8, attempts=attempts,
+                )
+        except Exception as exc:  # noqa: BLE001 - partial publication is intentional
+            print(f"[{stamp(init)}] {model} unavailable: {exc}", file=sys.stderr, flush=True)
+    loaded_models = tuple(model for model in models if model in datasets)
+    if not loaded_models:
+        raise RuntimeError("no model produced a complete five-day forecast")
+    artifacts, grid_metadata = write_map_payloads(init, datasets, loaded_models, cfg, india_load, stage)
+    manifest = renderer.build_manifest(datasets, loaded_models, init, cfg, artifacts)
     manifest["lead_semantics"] = {
         "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
         "precipitation": "Cumulative precipitation from initialization through T+24, T+72, and T+120 hours.",
@@ -134,6 +193,9 @@ def render_run(init, models, cfg, renderer, india_load, stage: Path, attempts: i
         "bounding_box": manifest["bounding_box"],
         "disclaimer": manifest["disclaimer"],
         "artifacts": artifacts,
+        "available_models": list(loaded_models),
+        "missing_models": [model for model in ALL_MODEL_IDS if model not in loaded_models],
+        "status": "complete" if len(loaded_models) == len(ALL_MODEL_IDS) else "partial",
     }
 
 
@@ -357,7 +419,7 @@ def add_latest_daily_ranges(retained: list[dict], cfg, renderer, india_load, sta
 def archive_manifest(runs: list[dict]) -> dict:
     runs = sorted(runs, key=lambda run: run["initialization_utc"], reverse=True)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "title": "India Multi-Model Forecast Archive",
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "retention_runs": len(runs),
@@ -385,6 +447,12 @@ def _open_run_dataset(cfg, run: dict, model: str):
         raise RuntimeError(f"missing cached map data for validation: {path}")
     with xr.open_dataset(path) as opened:
         return opened.load()
+
+
+def _model_catalog(archive: dict) -> list[dict]:
+    """Return the union of model metadata in stable public order."""
+    found = {model["id"]: model for run in archive["runs"] for model in run.get("models", [])}
+    return [found[model] for model in ALL_MODEL_IDS if model in found]
 
 
 def _validation_records(archive: dict, cfg, openmeteo) -> dict:
@@ -491,9 +559,11 @@ def _plot_matched_timeseries(records: list[dict], city, variable: str, run: dict
         ax.plot(leads, observations, color="#121f2a", marker="o", markersize=6, lw=2.8,
                 label="Open-Meteo observed", zorder=5)
     for model in models:
-        values = np.asarray([row["forecasts"][model["id"]] for row in rows], dtype=float)
-        if len(values):
-            ax.plot(leads, values, color=MODEL_COLORS[model["id"]], marker="o", markersize=4.5,
+        model_rows = [(row["lead_day"], row["forecasts"].get(model["id"])) for row in rows]
+        model_rows = [(lead, value) for lead, value in model_rows if value is not None]
+        if model_rows:
+            model_leads, values = map(np.asarray, zip(*model_rows))
+            ax.plot(model_leads, values, color=MODEL_COLORS[model["id"]], marker="o", markersize=4.5,
                     lw=1.7, alpha=.92, label=model["label"])
     ax.set_xticks(LEAD_DAYS, ["Day 1 · +24h", "Day 3 · +72h", "Day 5 · +120h"])
     ax.set_xlabel("Matched valid time")
@@ -512,6 +582,7 @@ def _plot_matched_timeseries(records: list[dict], city, variable: str, run: dict
 
 def render_validation(archive: dict, cfg, openmeteo, stage: Path) -> dict:
     records = _validation_records(archive, cfg, openmeteo)
+    models = _model_catalog(archive)
     validation = {
         "schema_version": 1,
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -525,7 +596,7 @@ def render_validation(archive: dict, cfg, openmeteo, stage: Path) -> dict:
         for variable in ("temperature", "precipitation"):
             filename = f"{city.name.lower().replace(' ', '-')}-{variable}.png"
             relative = Path("assets") / "validation" / filename
-            summary = _plot_validation(records[city.name][variable], city, variable, archive["runs"][0]["models"], stage / relative)
+            summary = _plot_validation(records[city.name][variable], city, variable, models, stage / relative)
             city_info["images"][variable] = {"path": relative.as_posix(), "alt": f"{city.name} {variable} forecast verification against Open-Meteo observations"}
             city_info["summary"][variable] = summary
         for run in archive["runs"]:
@@ -533,7 +604,7 @@ def render_validation(archive: dict, cfg, openmeteo, stage: Path) -> dict:
             for variable in ("temperature", "precipitation"):
                 filename = f"{city.name.lower().replace(' ', '-')}-{variable}.png"
                 relative = Path("assets") / "validation" / "timeseries" / run["id"] / filename
-                summary = _plot_matched_timeseries(records[city.name][variable], city, variable, run, archive["runs"][0]["models"], stage / relative)
+                summary = _plot_matched_timeseries(records[city.name][variable], city, variable, run, models, stage / relative)
                 run_info[variable] = {
                     "path": relative.as_posix(),
                     "alt": f"{city.name} {variable} forecast and Open-Meteo ground truth for initialization {run['id']}",
@@ -582,6 +653,139 @@ def render_online_combination(cfg) -> dict:
         "units": "degree_Celsius",
         "definition": "Experimental online convex combination of city-level source-model forecasts. Weights are learned causally from the most recent 10-day matched history; the shaded range is the spread of contributing source-model forecasts.",
         "cities": cities,
+    }
+
+
+def _normalized_weights(raw: dict[str, float], available: list[str]) -> dict[str, float]:
+    """Restrict learned weights to the models in a run and preserve a convex blend."""
+    clean = {model: max(0.0, float(raw.get(model, 0.0))) for model in available}
+    total = sum(clean.values())
+    if total <= 0 and available:
+        return {model: 1.0 / len(available) for model in available}
+    return {model: value / total for model, value in clean.items()}
+
+
+def _learned_city_weights(cfg, city_name: str, variable: str, available: list[str]) -> tuple[dict[str, float], str]:
+    from realtime_dash.combine import backtest  # type: ignore
+
+    try:
+        result = backtest.run(cfg, city_name, variable, tuple(ALL_MODEL_IDS), window_days=10)
+    except Exception as exc:  # noqa: BLE001 - the public weather card has a uniform fallback
+        print(f"[{city_name}] {variable} learner unavailable: {exc}", file=sys.stderr, flush=True)
+        result = {"ok": False}
+    if result.get("ok"):
+        return _normalized_weights(result["final_weights"], available), str(result["best"])
+    return _normalized_weights({}, available), "uniform"
+
+
+def _daily_city_series(series: xr.Dataset, city, init: pd.Timestamp) -> dict[int, dict[str, float]]:
+    """Reduce a native-step model series to daily high/low and 24-hour rain."""
+    point = series.sel(lat=city.lat, lon=city.lon, method="nearest")
+    times = pd.to_datetime(point["valid_time"].values).tz_localize(None)
+    previous = np.concatenate([
+        np.asarray([np.datetime64(init, "ns")]),
+        times.values[:-1].astype("datetime64[ns]"),
+    ])
+    hours = (times.values.astype("datetime64[ns]") - previous) / np.timedelta64(1, "h")
+    out: dict[int, dict[str, float]] = {}
+    for day in DAILY_LEAD_DAYS:
+        start = init + pd.Timedelta(days=day - 1)
+        end = init + pd.Timedelta(days=day)
+        chosen = np.flatnonzero((times > start) & (times <= end))
+        if not len(chosen):
+            continue
+        temperatures = np.asarray(point["t2m_C"].isel(valid_time=chosen).values, dtype=float)
+        rates = np.asarray(point["precip_mmday"].isel(valid_time=chosen).values, dtype=float)
+        rain = float(np.sum(np.clip(rates, 0, None) * np.clip(hours[chosen], 0, None) / 24.0))
+        out[day] = {
+            "high_c": float(np.nanmax(temperatures)),
+            "low_c": float(np.nanmin(temperatures)),
+            "mean_c": float(np.nanmean(temperatures)),
+            "precip_mm": max(0.0, rain),
+        }
+    return out
+
+
+def _weather_symbol(rain_mm: float) -> tuple[str, str]:
+    if rain_mm >= 20:
+        return "🌧️", "Heavy rain"
+    if rain_mm >= 5:
+        return "🌦️", "Rain"
+    if rain_mm >= 0.2:
+        return "🌤️", "Light rain"
+    return "☀️", "Mostly dry"
+
+
+def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
+    """Create a five-day city product from available source models and online weights."""
+    runs = {}
+    for run in archive["runs"]:
+        init = pd.Timestamp(run["initialization_utc"]).tz_localize(None)
+        series_by_model = {}
+        for model in (item["id"] for item in run.get("models", [])):
+            try:
+                with india_load.load_india_series_cached(
+                    model, cfg, init, horizon_days=max(DAILY_LEAD_DAYS), max_members=8,
+                ) as opened:
+                    series_by_model[model] = opened.load()
+            except Exception as exc:  # noqa: BLE001 - a weather card can use the remaining experts
+                print(f"[{run['id']}] weather series unavailable for {model}: {exc}", file=sys.stderr, flush=True)
+        cities = {}
+        for city in cfg.cities:
+            expert_days = {
+                model: _daily_city_series(series, city, init)
+                for model, series in series_by_model.items()
+            }
+            available = [model for model in ALL_MODEL_IDS if len(expert_days.get(model, {})) == len(DAILY_LEAD_DAYS)]
+            temp_weights, temp_method = _learned_city_weights(cfg, city.name, "t2m", available)
+            rain_weights, rain_method = _learned_city_weights(cfg, city.name, "precip", available)
+            days = []
+            for day in DAILY_LEAD_DAYS:
+                present = [model for model in available if day in expert_days[model]]
+                if not present:
+                    continue
+                tw = _normalized_weights(temp_weights, present)
+                rw = _normalized_weights(rain_weights, present)
+                blend = {
+                    key: sum(tw[model] * expert_days[model][day][key] for model in present)
+                    for key in ("high_c", "low_c", "mean_c")
+                }
+                blend["precip_mm"] = sum(rw[model] * expert_days[model][day]["precip_mm"] for model in present)
+                symbol, condition = _weather_symbol(blend["precip_mm"])
+                days.append({
+                    "day": day,
+                    "valid_date": (init + pd.Timedelta(days=day)).strftime("%Y-%m-%d"),
+                    **{key: round(float(value), 2) for key, value in blend.items()},
+                    "symbol": symbol,
+                    "condition": condition,
+                    "experts": {
+                        model: {key: round(float(value), 2) for key, value in expert_days[model][day].items()}
+                        for model in present
+                    },
+                })
+            cities[city.name] = {
+                "latitude": city.lat,
+                "longitude": city.lon,
+                "temperature_method": temp_method,
+                "precipitation_method": rain_method,
+                "temperature_weights": temp_weights,
+                "precipitation_weights": rain_weights,
+                "available_models": available,
+                "days": days,
+            }
+        runs[run["id"]] = {
+            "initialization_utc": run["initialization_utc"],
+            "status": run.get("status", "complete"),
+            "available_models": run.get("available_models", [model["id"] for model in run["models"]]),
+            "missing_models": run.get("missing_models", []),
+            "cities": cities,
+        }
+    return {
+        "schema_version": 1,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "temperature_definition": "Online-weighted daily 2 m temperature high and low from native forecast steps.",
+        "precipitation_definition": "Online-weighted precipitation accumulated within each 24-hour forecast day.",
+        "runs": runs,
     }
 
 
