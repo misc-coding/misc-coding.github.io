@@ -17,4 +17,6 @@ node --check assets/app.js
 
 Live visit counting is intentionally disabled because no authenticated analytics backend is configured.
 
+Map coastlines use the public-domain [Natural Earth 1:50m coastline](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-coastline/).
+
 See [`assets/forecast_archive.json`](assets/forecast_archive.json), [`assets/weather_forecast.json`](assets/weather_forecast.json), and [`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.

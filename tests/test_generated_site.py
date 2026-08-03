@@ -20,6 +20,8 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('data-panel="validation"') == 1
     assert html.count('data-panel="method"') == 1
     assert "assets/scdlds-logo.jpeg" in html
+    assert "coastline overlay" in html
+    assert "Natural Earth" in html
     assert "https://scdlds.ashoka.edu.in/" in html
     assert "precipitation probability" not in html.lower()
 
@@ -59,6 +61,25 @@ def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
                 assert "precip_probability" not in day
 
 
+def test_local_coastline_overlay_covers_the_forecast_domain():
+    coastlines = load_json("assets/coastlines.json")
+    assert coastlines["source"] == "Natural Earth 1:50m Coastline"
+    assert coastlines["license"] == "Public domain"
+    assert coastlines["bounding_box"] == {
+        "lon_min": 67.0,
+        "lat_min": 6.0,
+        "lon_max": 99.0,
+        "lat_max": 38.0,
+    }
+    assert len(coastlines["lines"]) >= 20
+    points = [point for line in coastlines["lines"] for point in line]
+    assert len(points) >= 1_000
+    assert all(67.0 <= longitude <= 99.0 and 6.0 <= latitude <= 38.0 for longitude, latitude in points)
+    javascript = (ROOT / "assets/app.js").read_text()
+    assert 'fetch("assets/coastlines.json")' in javascript
+    assert "drawCoastlines(ctx, meta, width, height)" in javascript
+
+
 def test_validation_has_temperature_and_matched_accumulated_rainfall():
     validation = load_json("assets/validation_manifest.json")
     archive = load_json("assets/forecast_archive.json")
@@ -84,6 +105,7 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     assert '"$PYTHON" -m pytest -q' in publisher
     assert "node --check assets/app.js" in publisher
     assert "git push origin main" in publisher
+    assert 'shutil.copy2(coastlines, assets / coastlines.name)' in (ROOT / "scripts/publish_forecast_archive.py").read_text()
 
 
 def test_readme_records_build_status_and_counter_decision():

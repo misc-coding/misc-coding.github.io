@@ -1164,6 +1164,8 @@ ARCHIVE_JS = r"""
   let matchVariable = params.get("match_variable") === "temperature" ? "temperature" : "precipitation";
   let matchInit = runIds.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
   let payload = null;
+  let coastlines = [];
+  let coastlinePromise = null;
   let mapRequest = 0;
   let view = { scale: 1, x: 0, y: 0 };
   let drag = null;
@@ -1275,13 +1277,29 @@ ARCHIVE_JS = r"""
     return [45 + 205 * t, 110 + 70 * (1 - Math.abs(t - .5) * 2), 190 - 145 * t];
   }
 
+  function loadCoastlines() {
+    if (!coastlinePromise) {
+      coastlinePromise = fetch("assets/coastlines.json")
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then((data) => { coastlines = Array.isArray(data.lines) ? data.lines : []; })
+        .catch((error) => { console.warn("Coastline overlay unavailable.", error); });
+    }
+    return coastlinePromise;
+  }
+
   async function loadMap() {
     const run = activeRun();
     if (!q("#forecast-canvas") || !run.grid_metadata?.shape || !runModels(run).includes(mapModel)) return;
     const request = ++mapRequest;
     q("#map-readout").textContent = "Loading map…";
     try {
-      const response = await fetch(`assets/map_data/${init}/${mapModel}.bin`);
+      const [response] = await Promise.all([
+        fetch(`assets/map_data/${init}/${mapModel}.bin`),
+        loadCoastlines(),
+      ]);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const next = new Uint16Array(await response.arrayBuffer());
       if (request !== mapRequest) return;
@@ -1291,6 +1309,25 @@ ARCHIVE_JS = r"""
       if (request === mapRequest) q("#map-readout").textContent = "Map data unavailable.";
       console.error(error);
     }
+  }
+
+  function drawCoastlines(ctx, meta, width, height) {
+    const bounds = meta.bounding_box;
+    const x = (longitude) => width * (longitude - bounds.lon_min) / (bounds.lon_max - bounds.lon_min);
+    const y = (latitude) => height * (bounds.lat_max - latitude) / (bounds.lat_max - bounds.lat_min);
+    ctx.strokeStyle = "rgba(19, 44, 57, .9)";
+    ctx.lineWidth = 1.35 / view.scale;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    coastlines.forEach((line) => {
+      if (line.length < 2) return;
+      ctx.beginPath();
+      line.forEach(([longitude, latitude], index) => {
+        if (index === 0) ctx.moveTo(x(longitude), y(latitude));
+        else ctx.lineTo(x(longitude), y(latitude));
+      });
+      ctx.stroke();
+    });
   }
 
   function drawMap(run = activeRun()) {
@@ -1324,6 +1361,7 @@ ARCHIVE_JS = r"""
     ctx.drawImage(raster, 0, 0, width, height);
     ctx.strokeStyle = "rgba(255,255,255,.38)"; ctx.lineWidth = 1 / view.scale;
     for (let fraction = .2; fraction < 1; fraction += .2) { ctx.beginPath(); ctx.moveTo(width * fraction, 0); ctx.lineTo(width * fraction, height); ctx.moveTo(0, height * fraction); ctx.lineTo(width, height * fraction); ctx.stroke(); }
+    drawCoastlines(ctx, meta, width, height);
     Object.entries(validation.cities).forEach(([name, item]) => {
       const x = width * (item.longitude - meta.bounding_box.lon_min) / (meta.bounding_box.lon_max - meta.bounding_box.lon_min);
       const y = height * (meta.bounding_box.lat_max - item.latitude) / (meta.bounding_box.lat_max - meta.bounding_box.lat_min);
@@ -1542,7 +1580,7 @@ def build_html(
         <fieldset><legend>Endpoint</legend><div class="segmented"><button type="button" data-map-day="1" aria-pressed="true">Day 1</button><button type="button" data-map-day="3" aria-pressed="false">Day 3</button><button type="button" data-map-day="5" aria-pressed="false">Day 5</button></div></fieldset>
         <fieldset class="model-fieldset"><legend>Model</legend><div class="segmented">{model_buttons}</div></fieldset>
       </div>
-      <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field"></canvas><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · Day 1</h3><p id="map-description"></p><small>Click a city marker to open its validation.</small></aside></div>
+      <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field with coastline overlay"></canvas><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · Day 1</h3><p id="map-description"></p><small>Click a city marker to open its validation. Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>.</small></aside></div>
     </section>
 
     <section class="panel" data-panel="validation" hidden aria-label="Forecast validation">
@@ -1788,9 +1826,11 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
     assets = stage / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     logo = SITE_ROOT / "assets" / "scdlds-logo.jpeg"
-    if not logo.is_file():
-        raise RuntimeError(f"missing SCDLDS brand asset: {logo}")
+    coastlines = SITE_ROOT / "assets" / "coastlines.json"
+    if not logo.is_file() or not coastlines.is_file():
+        raise RuntimeError("missing static brand or coastline asset")
     shutil.copy2(logo, assets / logo.name)
+    shutil.copy2(coastlines, assets / coastlines.name)
     (assets / "style.css").write_text(ARCHIVE_CSS.strip() + "\n")
     (assets / "app.js").write_text(ARCHIVE_JS.strip() + "\n")
     (assets / "forecast_archive.json").write_text(json.dumps(archive, indent=2) + "\n")
@@ -1817,6 +1857,7 @@ def write_stage(stage: Path, archive: dict, validation: dict, combination: dict,
         "node --check assets/app.js\n"
         "```\n\n"
         "Live visit counting is intentionally disabled because no authenticated analytics backend is configured.\n\n"
+        "Map coastlines use the public-domain [Natural Earth 1:50m coastline](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-coastline/).\n\n"
         "See [`assets/forecast_archive.json`](assets/forecast_archive.json), "
         "[`assets/weather_forecast.json`](assets/weather_forecast.json), and "
         "[`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.\n"
@@ -1842,7 +1883,7 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
             path = stage / artifact["path"]
             if artifact.get("kind") != "grid" or not path.is_file() or path.stat().st_size < 50_000:
                 raise RuntimeError(f"invalid grid artifact: {artifact['path']}")
-    for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/weather_forecast.json"):
+    for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/weather_forecast.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
     for city in validation["cities"].values():

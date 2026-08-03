@@ -7,9 +7,9 @@ import { JSDOM, VirtualConsole } from "jsdom";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
-function canvasContext() {
+function canvasContext(stats) {
   return {
-    beginPath() {}, arc() {}, fill() {}, stroke() {}, fillRect() {}, fillText() {},
+    beginPath() {}, arc() {}, fill() {}, stroke() { stats.strokes += 1; }, fillRect() {}, fillText() {},
     moveTo() {}, lineTo() {}, save() {}, restore() {}, translate() {}, scale() {},
     drawImage() {}, putImageData() {},
     createImageData(width, height) {
@@ -36,29 +36,41 @@ async function loadSite() {
     virtualConsole,
   });
   const { window } = dom;
+  const stats = { strokes: 0, fetches: [] };
   Object.defineProperty(window, "devicePixelRatio", { value: 1 });
-  window.HTMLCanvasElement.prototype.getContext = canvasContext;
+  window.HTMLCanvasElement.prototype.getContext = () => canvasContext(stats);
   window.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({
     left: 0, top: 0, right: 900, bottom: 520, width: 900, height: 520,
   });
   window.HTMLCanvasElement.prototype.setPointerCapture = () => {};
   window.fetch = async (url) => {
     const relative = String(url).replace(/^\//, "");
+    stats.fetches.push(relative);
     try {
       const buffer = await fs.readFile(path.join(ROOT, relative));
       const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-      return { ok: true, status: 200, arrayBuffer: async () => arrayBuffer };
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => arrayBuffer,
+        json: async () => JSON.parse(buffer.toString("utf8")),
+      };
     } catch {
-      return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
+      return {
+        ok: false,
+        status: 404,
+        arrayBuffer: async () => new ArrayBuffer(0),
+        json: async () => ({}),
+      };
     }
   };
   window.eval(javascript);
   await new Promise((resolve) => setTimeout(resolve, 50));
-  return { dom, window, document: window.document, errors };
+  return { dom, window, document: window.document, errors, stats };
 }
 
 test("all dashboard controls update their panels without runtime errors", async () => {
-  const { dom, window, document, errors } = await loadSite();
+  const { dom, window, document, errors, stats } = await loadSite();
   assert.equal(document.querySelectorAll("#forecast-canvas").length, 1);
   assert.equal(document.querySelector('[data-panel="weather"]').hidden, false);
   assert.equal(document.querySelectorAll(".day-card").length, 5);
@@ -76,6 +88,8 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector('[data-tab="maps"]').click();
   await new Promise((resolve) => setTimeout(resolve, 30));
   assert.equal(document.querySelector('[data-panel="maps"]').hidden, false);
+  assert.ok(stats.fetches.includes("assets/coastlines.json"));
+  assert.ok(stats.strokes > 20, "coastline segments should be drawn over the field");
   document.querySelector('[data-map-variable="precipitation"]').click();
   document.querySelector('[data-map-day="5"]').click();
   await new Promise((resolve) => setTimeout(resolve, 50));

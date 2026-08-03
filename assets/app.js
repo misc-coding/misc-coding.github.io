@@ -26,6 +26,8 @@
   let matchVariable = params.get("match_variable") === "temperature" ? "temperature" : "precipitation";
   let matchInit = runIds.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
   let payload = null;
+  let coastlines = [];
+  let coastlinePromise = null;
   let mapRequest = 0;
   let view = { scale: 1, x: 0, y: 0 };
   let drag = null;
@@ -137,13 +139,29 @@
     return [45 + 205 * t, 110 + 70 * (1 - Math.abs(t - .5) * 2), 190 - 145 * t];
   }
 
+  function loadCoastlines() {
+    if (!coastlinePromise) {
+      coastlinePromise = fetch("assets/coastlines.json")
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then((data) => { coastlines = Array.isArray(data.lines) ? data.lines : []; })
+        .catch((error) => { console.warn("Coastline overlay unavailable.", error); });
+    }
+    return coastlinePromise;
+  }
+
   async function loadMap() {
     const run = activeRun();
     if (!q("#forecast-canvas") || !run.grid_metadata?.shape || !runModels(run).includes(mapModel)) return;
     const request = ++mapRequest;
     q("#map-readout").textContent = "Loading map…";
     try {
-      const response = await fetch(`assets/map_data/${init}/${mapModel}.bin`);
+      const [response] = await Promise.all([
+        fetch(`assets/map_data/${init}/${mapModel}.bin`),
+        loadCoastlines(),
+      ]);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const next = new Uint16Array(await response.arrayBuffer());
       if (request !== mapRequest) return;
@@ -153,6 +171,25 @@
       if (request === mapRequest) q("#map-readout").textContent = "Map data unavailable.";
       console.error(error);
     }
+  }
+
+  function drawCoastlines(ctx, meta, width, height) {
+    const bounds = meta.bounding_box;
+    const x = (longitude) => width * (longitude - bounds.lon_min) / (bounds.lon_max - bounds.lon_min);
+    const y = (latitude) => height * (bounds.lat_max - latitude) / (bounds.lat_max - bounds.lat_min);
+    ctx.strokeStyle = "rgba(19, 44, 57, .9)";
+    ctx.lineWidth = 1.35 / view.scale;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    coastlines.forEach((line) => {
+      if (line.length < 2) return;
+      ctx.beginPath();
+      line.forEach(([longitude, latitude], index) => {
+        if (index === 0) ctx.moveTo(x(longitude), y(latitude));
+        else ctx.lineTo(x(longitude), y(latitude));
+      });
+      ctx.stroke();
+    });
   }
 
   function drawMap(run = activeRun()) {
@@ -186,6 +223,7 @@
     ctx.drawImage(raster, 0, 0, width, height);
     ctx.strokeStyle = "rgba(255,255,255,.38)"; ctx.lineWidth = 1 / view.scale;
     for (let fraction = .2; fraction < 1; fraction += .2) { ctx.beginPath(); ctx.moveTo(width * fraction, 0); ctx.lineTo(width * fraction, height); ctx.moveTo(0, height * fraction); ctx.lineTo(width, height * fraction); ctx.stroke(); }
+    drawCoastlines(ctx, meta, width, height);
     Object.entries(validation.cities).forEach(([name, item]) => {
       const x = width * (item.longitude - meta.bounding_box.lon_min) / (meta.bounding_box.lon_max - meta.bounding_box.lon_min);
       const y = height * (meta.bounding_box.lat_max - item.latitude) / (meta.bounding_box.lat_max - meta.bounding_box.lat_min);
