@@ -1,0 +1,12 @@
+{
+  "name": "india-weather-forecast-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/frontend.test.mjs",
+    "check": "node --check assets/app.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

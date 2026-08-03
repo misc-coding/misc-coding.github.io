@@ -1,0 +1,4962 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-03T09:14:04.113807Z",
+  "temperature_definition": "Online-weighted daily 2 m temperature high and low from native forecast steps.",
+  "precipitation_definition": "Online-weighted precipitation accumulated within each 24-hour forecast day.",
+  "runs": {
+    "20260803_00": {
+      "initialization_utc": "2026-08-03T00:00:00Z",
+      "status": "partial",
+      "available_models": [
+        "weathernext2",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "missing_models": [
+        "gencast"
+      ],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 0.3230058657663633,
+            "gfs": 0.0,
+            "gefs": 0.028354061963406563,
+            "aifs": 0.33365214477947663,
+            "ifs_ens": 0.3149879274907535
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.5044434520525105,
+            "gfs": 0.0,
+            "gefs": 0.07962966207587048,
+            "aifs": 0.25587172002748987,
+            "ifs_ens": 0.1600551658441291
+          },
+          "available_models": [
+            "weathernext2",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-04",
+              "high_c": 32.08,
+              "low_c": 26.79,
+              "mean_c": 29.27,
+              "precip_mm": 13.11,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.03,
+                  "low_c": 26.09,
+                  "mean_c": 28.91,
+                  "precip_mm": 13.08
+                },
+                "gfs": {
+                  "high_c": 36.0,
+                  "low_c": 28.75,
+                  "mean_c": 32.11,
+                  "precip_mm": 7.62
+                },
+                "gefs": {
+                  "high_c": 35.81,
+                  "low_c": 29.79,
+                  "mean_c": 32.69,
+                  "precip_mm": 10.72
+                },
+                "aifs": {
+                  "high_c": 32.5,
+                  "low_c": 28.0,
+                  "mean_c": 30.34,
+                  "precip_mm": 14.28
+                },
+                "ifs_ens": {
+                  "high_c": 31.35,
+                  "low_c": 25.95,
+                  "mean_c": 28.2,
+                  "precip_mm": 12.52
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-05",
+              "high_c": 29.43,
+              "low_c": 26.21,
+              "mean_c": 27.77,
+              "precip_mm": 23.02,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.18,
+                  "low_c": 25.49,
+                  "mean_c": 26.87,
+                  "precip_mm": 29.08
+                },
+                "gfs": {
+                  "high_c": 37.0,
+                  "low_c": 28.75,
+                  "mean_c": 32.77,
+                  "precip_mm": 4.94
+                },
+                "gefs": {
+                  "high_c": 34.33,
+                  "low_c": 29.58,
+                  "mean_c": 31.92,
+                  "precip_mm": 15.87
+                },
+                "aifs": {
+                  "high_c": 30.0,
+                  "low_c": 27.25,
+                  "mean_c": 28.59,
+                  "precip_mm": 17.83
+                },
+                "ifs_ens": {
+                  "high_c": 29.65,
+                  "low_c": 25.53,
+                  "mean_c": 27.46,
+                  "precip_mm": 15.75
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-06",
+              "high_c": 30.0,
+              "low_c": 26.11,
+              "mean_c": 28.11,
+              "precip_mm": 17.94,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.97,
+                  "low_c": 25.63,
+                  "mean_c": 27.48,
+                  "precip_mm": 20.22
+                },
+                "gfs": {
+                  "high_c": 37.5,
+                  "low_c": 30.62,
+                  "mean_c": 33.6,
+                  "precip_mm": 4.63
+                },
+                "gefs": {
+                  "high_c": 35.35,
+                  "low_c": 29.49,
+                  "mean_c": 32.21,
+                  "precip_mm": 11.01
+                },
+                "aifs": {
+                  "high_c": 30.25,
+                  "low_c": 26.88,
+                  "mean_c": 28.78,
+                  "precip_mm": 17.22
+                },
+                "ifs_ens": {
+                  "high_c": 30.31,
+                  "low_c": 25.49,
+                  "mean_c": 27.68,
+                  "precip_mm": 15.35
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-07",
+              "high_c": 28.71,
+              "low_c": 25.72,
+              "mean_c": 27.18,
+              "precip_mm": 21.4,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.3,
+                  "low_c": 25.25,
+                  "mean_c": 26.35,
+                  "precip_mm": 22.7
+                },
+                "gfs": {
+                  "high_c": 36.75,
+                  "low_c": 26.38,
+                  "mean_c": 29.57,
+                  "precip_mm": 21.04
+                },
+                "gefs": {
+                  "high_c": 34.44,
+                  "low_c": 27.48,
+                  "mean_c": 30.47,
+                  "precip_mm": 14.89
+                },
+                "aifs": {
+                  "high_c": 28.5,
+                  "low_c": 26.25,
+                  "mean_c": 27.5,
+                  "precip_mm": 25.67
+                },
+                "ifs_ens": {
+                  "high_c": 29.86,
+                  "low_c": 25.47,
+                  "mean_c": 27.4,
+                  "precip_mm": 13.68
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-08",
+              "high_c": 28.88,
+              "low_c": 26.06,
+              "mean_c": 27.42,
+              "precip_mm": 24.87,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.7,
+                  "low_c": 25.47,
+                  "mean_c": 26.67,
+                  "precip_mm": 31.38
+                },
+                "gfs": {
+                  "high_c": 32.75,
+                  "low_c": 26.5,
+                  "mean_c": 29.53,
+                  "precip_mm": 11.94
+                },
+                "gefs": {
+                  "high_c": 33.02,
+                  "low_c": 28.3,
+                  "mean_c": 30.32,
+                  "precip_mm": 8.36
+                },
+                "aifs": {
+                  "high_c": 28.5,
+                  "low_c": 26.62,
+                  "mean_c": 27.56,
+                  "precip_mm": 25.38
+                },
+                "ifs_ens": {
+                  "high_c": 30.12,
+                  "low_c": 25.86,
+                  "mean_c": 27.78,
+                  "precip_mm": 11.74
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 0.2469514000299004,
+            "gfs": 0.0,
+            "gefs": 0.25219400594711877,
+            "aifs": 0.252910815125699,
+            "ifs_ens": 0.24794377889728172
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.24900990133028525,
+            "gfs": 0.0,
+            "gefs": 0.27289794087268665,
+            "aifs": 0.260279123148254,
+            "ifs_ens": 0.21781303464877413
+          },
+          "available_models": [
+            "weathernext2",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-04",
+              "high_c": 28.79,
+              "low_c": 26.27,
+              "mean_c": 27.43,
+              "precip_mm": 17.51,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.52,
+                  "low_c": 25.67,
+                  "mean_c": 27.06,
+                  "precip_mm": 11.3
+                },
+                "gfs": {
+                  "high_c": 28.75,
+                  "low_c": 27.0,
+                  "mean_c": 27.77,
+                  "precip_mm": 22.62
+                },
+                "gefs": {
+                  "high_c": 28.56,
+                  "low_c": 27.0,
+                  "mean_c": 27.67,
+                  "precip_mm": 25.55
+                },
+                "aifs": {
+                  "high_c": 28.75,
+                  "low_c": 26.5,
+                  "mean_c": 27.69,
+                  "precip_mm": 12.18
+                },
+                "ifs_ens": {
+                  "high_c": 29.33,
+                  "low_c": 25.89,
+                  "mean_c": 27.28,
+                  "precip_mm": 20.9
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-05",
+              "high_c": 28.37,
+              "low_c": 26.32,
+              "mean_c": 27.26,
+              "precip_mm": 11.45,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.59,
+                  "low_c": 25.48,
+                  "mean_c": 26.56,
+                  "precip_mm": 9.4
+                },
+                "gfs": {
+                  "high_c": 29.12,
+                  "low_c": 27.0,
+                  "mean_c": 27.96,
+                  "precip_mm": 10.38
+                },
+                "gefs": {
+                  "high_c": 28.83,
+                  "low_c": 27.11,
+                  "mean_c": 27.8,
+                  "precip_mm": 9.42
+                },
+                "aifs": {
+                  "high_c": 28.25,
+                  "low_c": 26.62,
+                  "mean_c": 27.44,
+                  "precip_mm": 14.21
+                },
+                "ifs_ens": {
+                  "high_c": 28.79,
+                  "low_c": 26.05,
+                  "mean_c": 27.23,
+                  "precip_mm": 13.04
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-06",
+              "high_c": 28.26,
+              "low_c": 26.5,
+              "mean_c": 27.28,
+              "precip_mm": 12.31,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.42,
+                  "low_c": 25.84,
+                  "mean_c": 26.58,
+                  "precip_mm": 10.95
+                },
+                "gfs": {
+                  "high_c": 29.0,
+                  "low_c": 26.88,
+                  "mean_c": 27.8,
+                  "precip_mm": 12.93
+                },
+                "gefs": {
+                  "high_c": 28.65,
+                  "low_c": 27.01,
+                  "mean_c": 27.71,
+                  "precip_mm": 13.13
+                },
+                "aifs": {
+                  "high_c": 28.12,
+                  "low_c": 26.75,
+                  "mean_c": 27.47,
+                  "precip_mm": 13.81
+                },
+                "ifs_ens": {
+                  "high_c": 28.85,
+                  "low_c": 26.39,
+                  "mean_c": 27.36,
+                  "precip_mm": 11.06
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-07",
+              "high_c": 28.52,
+              "low_c": 26.72,
+              "mean_c": 27.51,
+              "precip_mm": 8.64,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.38,
+                  "low_c": 26.13,
+                  "mean_c": 27.15,
+                  "precip_mm": 6.19
+                },
+                "gfs": {
+                  "high_c": 28.88,
+                  "low_c": 26.88,
+                  "mean_c": 27.71,
+                  "precip_mm": 11.13
+                },
+                "gefs": {
+                  "high_c": 28.4,
+                  "low_c": 26.92,
+                  "mean_c": 27.58,
+                  "precip_mm": 9.6
+                },
+                "aifs": {
+                  "high_c": 28.38,
+                  "low_c": 27.12,
+                  "mean_c": 27.72,
+                  "precip_mm": 10.42
+                },
+                "ifs_ens": {
+                  "high_c": 28.93,
+                  "low_c": 26.68,
+                  "mean_c": 27.57,
+                  "precip_mm": 8.09
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-08",
+              "high_c": 28.53,
+              "low_c": 26.55,
+              "mean_c": 27.51,
+              "precip_mm": 7.92,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.09,
+                  "low_c": 25.55,
+                  "mean_c": 26.95,
+                  "precip_mm": 6.54
+                },
+                "gfs": {
+                  "high_c": 28.75,
+                  "low_c": 27.12,
+                  "mean_c": 27.71,
+                  "precip_mm": 7.25
+                },
+                "gefs": {
+                  "high_c": 28.28,
+                  "low_c": 26.96,
+                  "mean_c": 27.51,
+                  "precip_mm": 8.72
+                },
+                "aifs": {
+                  "high_c": 28.75,
+                  "low_c": 27.0,
+                  "mean_c": 27.91,
+                  "precip_mm": 8.93
+                },
+                "ifs_ens": {
+                  "high_c": 29.0,
+                  "low_c": 26.68,
+                  "mean_c": 27.66,
+                  "precip_mm": 7.28
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 0.33643029647758815,
+            "gfs": 0.0,
+            "gefs": 0.1738299411927791,
+            "aifs": 0.1798948278374055,
+            "ifs_ens": 0.3098449344922272
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.39851230120943054,
+            "gfs": 0.0,
+            "gefs": 0.025660949759087524,
+            "aifs": 0.4331919843115458,
+            "ifs_ens": 0.14263476471993616
+          },
+          "available_models": [
+            "weathernext2",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-04",
+              "high_c": 27.36,
+              "low_c": 21.3,
+              "mean_c": 24.07,
+              "precip_mm": 5.88,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.17,
+                  "low_c": 21.1,
+                  "mean_c": 23.99,
+                  "precip_mm": 4.71
+                },
+                "gfs": {
+                  "high_c": 28.5,
+                  "low_c": 20.75,
+                  "mean_c": 24.19,
+                  "precip_mm": 2.94
+                },
+                "gefs": {
+                  "high_c": 29.39,
+                  "low_c": 22.02,
+                  "mean_c": 25.14,
+                  "precip_mm": 3.6
+                },
+                "aifs": {
+                  "high_c": 27.12,
+                  "low_c": 22.25,
+                  "mean_c": 24.78,
+                  "precip_mm": 5.24
+                },
+                "ifs_ens": {
+                  "high_c": 26.56,
+                  "low_c": 20.55,
+                  "mean_c": 23.13,
+                  "precip_mm": 11.53
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-05",
+              "high_c": 27.52,
+              "low_c": 21.07,
+              "mean_c": 23.85,
+              "precip_mm": 7.59,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.37,
+                  "low_c": 20.97,
+                  "mean_c": 23.89,
+                  "precip_mm": 5.97
+                },
+                "gfs": {
+                  "high_c": 26.5,
+                  "low_c": 20.12,
+                  "mean_c": 23.11,
+                  "precip_mm": 0.19
+                },
+                "gefs": {
+                  "high_c": 28.52,
+                  "low_c": 21.58,
+                  "mean_c": 24.75,
+                  "precip_mm": 3.61
+                },
+                "aifs": {
+                  "high_c": 27.0,
+                  "low_c": 21.88,
+                  "mean_c": 24.28,
+                  "precip_mm": 9.03
+                },
+                "ifs_ens": {
+                  "high_c": 27.43,
+                  "low_c": 20.41,
+                  "mean_c": 23.07,
+                  "precip_mm": 8.43
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-06",
+              "high_c": 27.42,
+              "low_c": 21.05,
+              "mean_c": 23.7,
+              "precip_mm": 6.23,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.97,
+                  "low_c": 20.78,
+                  "mean_c": 23.55,
+                  "precip_mm": 6.89
+                },
+                "gfs": {
+                  "high_c": 28.0,
+                  "low_c": 20.12,
+                  "mean_c": 23.31,
+                  "precip_mm": 1.56
+                },
+                "gefs": {
+                  "high_c": 28.48,
+                  "low_c": 21.52,
+                  "mean_c": 24.38,
+                  "precip_mm": 6.68
+                },
+                "aifs": {
+                  "high_c": 26.5,
+                  "low_c": 22.12,
+                  "mean_c": 24.38,
+                  "precip_mm": 5.48
+                },
+                "ifs_ens": {
+                  "high_c": 27.84,
+                  "low_c": 20.47,
+                  "mean_c": 23.09,
+                  "precip_mm": 6.56
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-07",
+              "high_c": 26.87,
+              "low_c": 21.16,
+              "mean_c": 23.43,
+              "precip_mm": 7.9,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.24,
+                  "low_c": 20.89,
+                  "mean_c": 23.07,
+                  "precip_mm": 9.76
+                },
+                "gfs": {
+                  "high_c": 29.0,
+                  "low_c": 20.38,
+                  "mean_c": 23.63,
+                  "precip_mm": 0.0
+                },
+                "gefs": {
+                  "high_c": 27.89,
+                  "low_c": 21.68,
+                  "mean_c": 24.15,
+                  "precip_mm": 2.25
+                },
+                "aifs": {
+                  "high_c": 26.62,
+                  "low_c": 22.25,
+                  "mean_c": 24.22,
+                  "precip_mm": 7.38
+                },
+                "ifs_ens": {
+                  "high_c": 27.12,
+                  "low_c": 20.52,
+                  "mean_c": 22.97,
+                  "precip_mm": 5.32
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-08",
+              "high_c": 26.01,
+              "low_c": 21.29,
+              "mean_c": 23.23,
+              "precip_mm": 6.29,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 25.53,
+                  "low_c": 21.04,
+                  "mean_c": 22.88,
+                  "precip_mm": 5.88
+                },
+                "gfs": {
+                  "high_c": 27.12,
+                  "low_c": 20.25,
+                  "mean_c": 23.18,
+                  "precip_mm": 1.88
+                },
+                "gefs": {
+                  "high_c": 26.29,
+                  "low_c": 21.62,
+                  "mean_c": 23.7,
+                  "precip_mm": 3.38
+                },
+                "aifs": {
+                  "high_c": 26.25,
+                  "low_c": 22.5,
+                  "mean_c": 24.19,
+                  "precip_mm": 6.72
+                },
+                "ifs_ens": {
+                  "high_c": 26.24,
+                  "low_c": 20.67,
+                  "mean_c": 22.8,
+                  "precip_mm": 6.68
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 0.31896791471029035,
+            "gfs": 0.0,
+            "gefs": 0.07290756459365588,
+            "aifs": 0.39757507680507126,
+            "ifs_ens": 0.2105494438909826
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.30707432721144,
+            "gfs": 0.0,
+            "gefs": 0.16397453089805783,
+            "aifs": 0.3140007589694508,
+            "ifs_ens": 0.2149503829210514
+          },
+          "available_models": [
+            "weathernext2",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-04",
+              "high_c": 32.74,
+              "low_c": 27.81,
+              "mean_c": 29.64,
+              "precip_mm": 11.52,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.6,
+                  "low_c": 27.05,
+                  "mean_c": 29.3,
+                  "precip_mm": 12.08
+                },
+                "gfs": {
+                  "high_c": 35.75,
+                  "low_c": 28.62,
+                  "mean_c": 31.7,
+                  "precip_mm": 0.88
+                },
+                "gefs": {
+                  "high_c": 34.59,
+                  "low_c": 28.17,
+                  "mean_c": 30.95,
+                  "precip_mm": 4.15
+                },
+                "aifs": {
+                  "high_c": 33.0,
+                  "low_c": 28.88,
+                  "mean_c": 30.22,
+                  "precip_mm": 14.31
+                },
+                "ifs_ens": {
+                  "high_c": 31.8,
+                  "low_c": 26.85,
+                  "mean_c": 28.59,
+                  "precip_mm": 12.28
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-05",
+              "high_c": 31.81,
+              "low_c": 27.33,
+              "mean_c": 29.23,
+              "precip_mm": 12.16,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.42,
+                  "low_c": 26.36,
+                  "mean_c": 28.6,
+                  "precip_mm": 12.87
+                },
+                "gfs": {
+                  "high_c": 35.75,
+                  "low_c": 28.5,
+                  "mean_c": 31.52,
+                  "precip_mm": 0.44
+                },
+                "gefs": {
+                  "high_c": 34.6,
+                  "low_c": 28.04,
+                  "mean_c": 30.74,
+                  "precip_mm": 3.93
+                },
+                "aifs": {
+                  "high_c": 32.25,
+                  "low_c": 28.5,
+                  "mean_c": 29.94,
+                  "precip_mm": 15.77
+                },
+                "ifs_ens": {
+                  "high_c": 30.61,
+                  "low_c": 26.35,
+                  "mean_c": 28.31,
+                  "precip_mm": 12.13
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-06",
+              "high_c": 30.24,
+              "low_c": 26.6,
+              "mean_c": 28.12,
+              "precip_mm": 25.65,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.25,
+                  "low_c": 25.71,
+                  "mean_c": 27.23,
+                  "precip_mm": 27.67
+                },
+                "gfs": {
+                  "high_c": 34.75,
+                  "low_c": 27.12,
+                  "mean_c": 30.77,
+                  "precip_mm": 7.94
+                },
+                "gefs": {
+                  "high_c": 33.03,
+                  "low_c": 27.42,
+                  "mean_c": 29.91,
+                  "precip_mm": 18.31
+                },
+                "aifs": {
+                  "high_c": 30.75,
+                  "low_c": 27.5,
+                  "mean_c": 28.62,
+                  "precip_mm": 30.96
+                },
+                "ifs_ens": {
+                  "high_c": 29.82,
+                  "low_c": 25.97,
+                  "mean_c": 27.88,
+                  "precip_mm": 20.62
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-07",
+              "high_c": 28.74,
+              "low_c": 26.32,
+              "mean_c": 27.47,
+              "precip_mm": 25.68,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.91,
+                  "low_c": 25.4,
+                  "mean_c": 26.73,
+                  "precip_mm": 21.07
+                },
+                "gfs": {
+                  "high_c": 27.75,
+                  "low_c": 26.5,
+                  "mean_c": 26.89,
+                  "precip_mm": 40.79
+                },
+                "gefs": {
+                  "high_c": 29.56,
+                  "low_c": 26.5,
+                  "mean_c": 27.95,
+                  "precip_mm": 21.74
+                },
+                "aifs": {
+                  "high_c": 28.88,
+                  "low_c": 27.25,
+                  "mean_c": 27.97,
+                  "precip_mm": 33.54
+                },
+                "ifs_ens": {
+                  "high_c": 29.44,
+                  "low_c": 25.9,
+                  "mean_c": 27.48,
+                  "precip_mm": 23.81
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-08",
+              "high_c": 29.55,
+              "low_c": 26.8,
+              "mean_c": 28.05,
+              "precip_mm": 13.64,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.45,
+                  "low_c": 26.13,
+                  "mean_c": 27.56,
+                  "precip_mm": 13.26
+                },
+                "gfs": {
+                  "high_c": 32.5,
+                  "low_c": 27.0,
+                  "mean_c": 29.02,
+                  "precip_mm": 6.01
+                },
+                "gefs": {
+                  "high_c": 31.21,
+                  "low_c": 26.98,
+                  "mean_c": 28.68,
+                  "precip_mm": 6.18
+                },
+                "aifs": {
+                  "high_c": 29.38,
+                  "low_c": 27.75,
+                  "mean_c": 28.59,
+                  "precip_mm": 16.05
+                },
+                "ifs_ens": {
+                  "high_c": 29.47,
+                  "low_c": 25.95,
+                  "mean_c": 27.53,
+                  "precip_mm": 16.35
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "20260802_00": {
+      "initialization_utc": "2026-08-02T00:00:00Z",
+      "status": "partial",
+      "available_models": [
+        "weathernext2"
+      ],
+      "missing_models": [
+        "gencast",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-03",
+              "high_c": 32.46,
+              "low_c": 26.78,
+              "mean_c": 29.58,
+              "precip_mm": 6.5,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.46,
+                  "low_c": 26.78,
+                  "mean_c": 29.58,
+                  "precip_mm": 6.5
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-04",
+              "high_c": 31.68,
+              "low_c": 25.87,
+              "mean_c": 28.55,
+              "precip_mm": 12.66,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.68,
+                  "low_c": 25.87,
+                  "mean_c": 28.55,
+                  "precip_mm": 12.66
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-05",
+              "high_c": 28.57,
+              "low_c": 25.37,
+              "mean_c": 27.04,
+              "precip_mm": 17.39,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.57,
+                  "low_c": 25.37,
+                  "mean_c": 27.04,
+                  "precip_mm": 17.39
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-06",
+              "high_c": 29.31,
+              "low_c": 25.74,
+              "mean_c": 27.57,
+              "precip_mm": 17.29,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.31,
+                  "low_c": 25.74,
+                  "mean_c": 27.57,
+                  "precip_mm": 17.29
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-07",
+              "high_c": 27.88,
+              "low_c": 25.23,
+              "mean_c": 26.63,
+              "precip_mm": 29.51,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.88,
+                  "low_c": 25.23,
+                  "mean_c": 26.63,
+                  "precip_mm": 29.51
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-03",
+              "high_c": 28.44,
+              "low_c": 25.41,
+              "mean_c": 26.64,
+              "precip_mm": 12.78,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.44,
+                  "low_c": 25.41,
+                  "mean_c": 26.64,
+                  "precip_mm": 12.78
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-04",
+              "high_c": 27.05,
+              "low_c": 25.5,
+              "mean_c": 26.28,
+              "precip_mm": 19.36,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.05,
+                  "low_c": 25.5,
+                  "mean_c": 26.28,
+                  "precip_mm": 19.36
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-05",
+              "high_c": 27.74,
+              "low_c": 25.6,
+              "mean_c": 26.57,
+              "precip_mm": 10.12,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.74,
+                  "low_c": 25.6,
+                  "mean_c": 26.57,
+                  "precip_mm": 10.12
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-06",
+              "high_c": 27.65,
+              "low_c": 25.82,
+              "mean_c": 26.67,
+              "precip_mm": 8.85,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.65,
+                  "low_c": 25.82,
+                  "mean_c": 26.67,
+                  "precip_mm": 8.85
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-07",
+              "high_c": 27.76,
+              "low_c": 25.99,
+              "mean_c": 26.86,
+              "precip_mm": 6.78,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.76,
+                  "low_c": 25.99,
+                  "mean_c": 26.86,
+                  "precip_mm": 6.78
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-03",
+              "high_c": 27.26,
+              "low_c": 21.48,
+              "mean_c": 24.55,
+              "precip_mm": 2.12,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.26,
+                  "low_c": 21.48,
+                  "mean_c": 24.55,
+                  "precip_mm": 2.12
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-04",
+              "high_c": 27.47,
+              "low_c": 21.1,
+              "mean_c": 23.72,
+              "precip_mm": 5.45,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.47,
+                  "low_c": 21.1,
+                  "mean_c": 23.72,
+                  "precip_mm": 5.45
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-05",
+              "high_c": 27.25,
+              "low_c": 20.5,
+              "mean_c": 23.33,
+              "precip_mm": 8.22,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.25,
+                  "low_c": 20.5,
+                  "mean_c": 23.33,
+                  "precip_mm": 8.22
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-06",
+              "high_c": 26.57,
+              "low_c": 20.53,
+              "mean_c": 23.32,
+              "precip_mm": 3.29,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.57,
+                  "low_c": 20.53,
+                  "mean_c": 23.32,
+                  "precip_mm": 3.29
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-07",
+              "high_c": 26.49,
+              "low_c": 20.8,
+              "mean_c": 23.2,
+              "precip_mm": 6.53,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.49,
+                  "low_c": 20.8,
+                  "mean_c": 23.2,
+                  "precip_mm": 6.53
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-03",
+              "high_c": 32.32,
+              "low_c": 27.14,
+              "mean_c": 29.13,
+              "precip_mm": 12.1,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.32,
+                  "low_c": 27.14,
+                  "mean_c": 29.13,
+                  "precip_mm": 12.1
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-04",
+              "high_c": 30.98,
+              "low_c": 26.88,
+              "mean_c": 28.65,
+              "precip_mm": 9.69,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.98,
+                  "low_c": 26.88,
+                  "mean_c": 28.65,
+                  "precip_mm": 9.69
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-05",
+              "high_c": 30.26,
+              "low_c": 26.44,
+              "mean_c": 28.09,
+              "precip_mm": 16.56,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.26,
+                  "low_c": 26.44,
+                  "mean_c": 28.09,
+                  "precip_mm": 16.56
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-06",
+              "high_c": 29.06,
+              "low_c": 25.58,
+              "mean_c": 27.15,
+              "precip_mm": 24.3,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.06,
+                  "low_c": 25.58,
+                  "mean_c": 27.15,
+                  "precip_mm": 24.3
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-07",
+              "high_c": 27.83,
+              "low_c": 25.41,
+              "mean_c": 26.71,
+              "precip_mm": 31.61,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.83,
+                  "low_c": 25.41,
+                  "mean_c": 26.71,
+                  "precip_mm": 31.61
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "20260801_00": {
+      "initialization_utc": "2026-08-01T00:00:00Z",
+      "status": "partial",
+      "available_models": [
+        "weathernext2"
+      ],
+      "missing_models": [
+        "gencast",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-02",
+              "high_c": 31.44,
+              "low_c": 27.04,
+              "mean_c": 29.17,
+              "precip_mm": 3.34,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.44,
+                  "low_c": 27.04,
+                  "mean_c": 29.17,
+                  "precip_mm": 3.34
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-03",
+              "high_c": 32.48,
+              "low_c": 26.84,
+              "mean_c": 29.86,
+              "precip_mm": 3.87,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.48,
+                  "low_c": 26.84,
+                  "mean_c": 29.86,
+                  "precip_mm": 3.87
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-04",
+              "high_c": 31.36,
+              "low_c": 26.15,
+              "mean_c": 28.55,
+              "precip_mm": 12.34,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.36,
+                  "low_c": 26.15,
+                  "mean_c": 28.55,
+                  "precip_mm": 12.34
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-05",
+              "high_c": 28.97,
+              "low_c": 25.9,
+              "mean_c": 27.39,
+              "precip_mm": 14.39,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.97,
+                  "low_c": 25.9,
+                  "mean_c": 27.39,
+                  "precip_mm": 14.39
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-06",
+              "high_c": 29.67,
+              "low_c": 25.33,
+              "mean_c": 27.57,
+              "precip_mm": 18.28,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.67,
+                  "low_c": 25.33,
+                  "mean_c": 27.57,
+                  "precip_mm": 18.28
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-02",
+              "high_c": 28.44,
+              "low_c": 26.42,
+              "mean_c": 27.3,
+              "precip_mm": 10.54,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.44,
+                  "low_c": 26.42,
+                  "mean_c": 27.3,
+                  "precip_mm": 10.54
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-03",
+              "high_c": 28.3,
+              "low_c": 25.88,
+              "mean_c": 26.92,
+              "precip_mm": 13.99,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.3,
+                  "low_c": 25.88,
+                  "mean_c": 26.92,
+                  "precip_mm": 13.99
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-04",
+              "high_c": 27.74,
+              "low_c": 25.48,
+              "mean_c": 26.52,
+              "precip_mm": 12.51,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.74,
+                  "low_c": 25.48,
+                  "mean_c": 26.52,
+                  "precip_mm": 12.51
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-05",
+              "high_c": 27.79,
+              "low_c": 25.55,
+              "mean_c": 26.65,
+              "precip_mm": 8.52,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.79,
+                  "low_c": 25.55,
+                  "mean_c": 26.65,
+                  "precip_mm": 8.52
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-06",
+              "high_c": 27.83,
+              "low_c": 25.68,
+              "mean_c": 26.64,
+              "precip_mm": 8.35,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.83,
+                  "low_c": 25.68,
+                  "mean_c": 26.64,
+                  "precip_mm": 8.35
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-02",
+              "high_c": 26.32,
+              "low_c": 21.08,
+              "mean_c": 23.55,
+              "precip_mm": 2.61,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.32,
+                  "low_c": 21.08,
+                  "mean_c": 23.55,
+                  "precip_mm": 2.61
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-03",
+              "high_c": 25.74,
+              "low_c": 21.14,
+              "mean_c": 23.51,
+              "precip_mm": 2.12,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 25.74,
+                  "low_c": 21.14,
+                  "mean_c": 23.51,
+                  "precip_mm": 2.12
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-04",
+              "high_c": 26.85,
+              "low_c": 20.41,
+              "mean_c": 23.57,
+              "precip_mm": 3.38,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.85,
+                  "low_c": 20.41,
+                  "mean_c": 23.57,
+                  "precip_mm": 3.38
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-05",
+              "high_c": 26.55,
+              "low_c": 20.53,
+              "mean_c": 23.16,
+              "precip_mm": 6.19,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.55,
+                  "low_c": 20.53,
+                  "mean_c": 23.16,
+                  "precip_mm": 6.19
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-06",
+              "high_c": 26.32,
+              "low_c": 20.43,
+              "mean_c": 23.42,
+              "precip_mm": 3.48,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.32,
+                  "low_c": 20.43,
+                  "mean_c": 23.42,
+                  "precip_mm": 3.48
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-02",
+              "high_c": 30.97,
+              "low_c": 27.09,
+              "mean_c": 28.62,
+              "precip_mm": 8.67,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.97,
+                  "low_c": 27.09,
+                  "mean_c": 28.62,
+                  "precip_mm": 8.67
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-03",
+              "high_c": 31.16,
+              "low_c": 27.01,
+              "mean_c": 28.62,
+              "precip_mm": 15.33,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.16,
+                  "low_c": 27.01,
+                  "mean_c": 28.62,
+                  "precip_mm": 15.33
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-04",
+              "high_c": 31.13,
+              "low_c": 26.56,
+              "mean_c": 28.41,
+              "precip_mm": 14.34,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.13,
+                  "low_c": 26.56,
+                  "mean_c": 28.41,
+                  "precip_mm": 14.34
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-05",
+              "high_c": 30.52,
+              "low_c": 26.36,
+              "mean_c": 28.22,
+              "precip_mm": 14.61,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.52,
+                  "low_c": 26.36,
+                  "mean_c": 28.22,
+                  "precip_mm": 14.61
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-06",
+              "high_c": 30.57,
+              "low_c": 25.77,
+              "mean_c": 27.64,
+              "precip_mm": 25.71,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.57,
+                  "low_c": 25.77,
+                  "mean_c": 27.64,
+                  "precip_mm": 25.71
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "20260731_00": {
+      "initialization_utc": "2026-07-31T00:00:00Z",
+      "status": "partial",
+      "available_models": [
+        "weathernext2"
+      ],
+      "missing_models": [
+        "gencast",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-01",
+              "high_c": 31.17,
+              "low_c": 27.09,
+              "mean_c": 29.41,
+              "precip_mm": 1.77,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.17,
+                  "low_c": 27.09,
+                  "mean_c": 29.41,
+                  "precip_mm": 1.77
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-02",
+              "high_c": 31.17,
+              "low_c": 26.82,
+              "mean_c": 29.27,
+              "precip_mm": 2.89,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.17,
+                  "low_c": 26.82,
+                  "mean_c": 29.27,
+                  "precip_mm": 2.89
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-03",
+              "high_c": 32.31,
+              "low_c": 26.77,
+              "mean_c": 29.56,
+              "precip_mm": 3.36,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.31,
+                  "low_c": 26.77,
+                  "mean_c": 29.56,
+                  "precip_mm": 3.36
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-04",
+              "high_c": 31.43,
+              "low_c": 26.61,
+              "mean_c": 28.93,
+              "precip_mm": 9.34,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.43,
+                  "low_c": 26.61,
+                  "mean_c": 28.93,
+                  "precip_mm": 9.34
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-05",
+              "high_c": 29.99,
+              "low_c": 25.96,
+              "mean_c": 27.8,
+              "precip_mm": 15.35,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.99,
+                  "low_c": 25.96,
+                  "mean_c": 27.8,
+                  "precip_mm": 15.35
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-01",
+              "high_c": 27.51,
+              "low_c": 26.47,
+              "mean_c": 26.96,
+              "precip_mm": 24.28,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.51,
+                  "low_c": 26.47,
+                  "mean_c": 26.96,
+                  "precip_mm": 24.28
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-02",
+              "high_c": 28.43,
+              "low_c": 25.84,
+              "mean_c": 26.93,
+              "precip_mm": 11.15,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.43,
+                  "low_c": 25.84,
+                  "mean_c": 26.93,
+                  "precip_mm": 11.15
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-03",
+              "high_c": 28.04,
+              "low_c": 25.3,
+              "mean_c": 26.36,
+              "precip_mm": 13.75,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.04,
+                  "low_c": 25.3,
+                  "mean_c": 26.36,
+                  "precip_mm": 13.75
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-04",
+              "high_c": 27.67,
+              "low_c": 25.22,
+              "mean_c": 26.33,
+              "precip_mm": 14.51,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.67,
+                  "low_c": 25.22,
+                  "mean_c": 26.33,
+                  "precip_mm": 14.51
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-05",
+              "high_c": 27.43,
+              "low_c": 25.43,
+              "mean_c": 26.37,
+              "precip_mm": 10.76,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.43,
+                  "low_c": 25.43,
+                  "mean_c": 26.37,
+                  "precip_mm": 10.76
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-01",
+              "high_c": 28.1,
+              "low_c": 21.34,
+              "mean_c": 24.42,
+              "precip_mm": 2.68,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.1,
+                  "low_c": 21.34,
+                  "mean_c": 24.42,
+                  "precip_mm": 2.68
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-02",
+              "high_c": 26.38,
+              "low_c": 21.14,
+              "mean_c": 23.22,
+              "precip_mm": 3.14,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.38,
+                  "low_c": 21.14,
+                  "mean_c": 23.22,
+                  "precip_mm": 3.14
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-03",
+              "high_c": 26.49,
+              "low_c": 20.89,
+              "mean_c": 23.37,
+              "precip_mm": 2.26,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.49,
+                  "low_c": 20.89,
+                  "mean_c": 23.37,
+                  "precip_mm": 2.26
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-04",
+              "high_c": 26.49,
+              "low_c": 20.64,
+              "mean_c": 23.49,
+              "precip_mm": 5.74,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.49,
+                  "low_c": 20.64,
+                  "mean_c": 23.49,
+                  "precip_mm": 5.74
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-05",
+              "high_c": 26.33,
+              "low_c": 20.61,
+              "mean_c": 23.12,
+              "precip_mm": 8.79,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.33,
+                  "low_c": 20.61,
+                  "mean_c": 23.12,
+                  "precip_mm": 8.79
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-08-01",
+              "high_c": 30.67,
+              "low_c": 26.58,
+              "mean_c": 28.33,
+              "precip_mm": 2.84,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.67,
+                  "low_c": 26.58,
+                  "mean_c": 28.33,
+                  "precip_mm": 2.84
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-02",
+              "high_c": 31.48,
+              "low_c": 26.89,
+              "mean_c": 28.82,
+              "precip_mm": 7.65,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.48,
+                  "low_c": 26.89,
+                  "mean_c": 28.82,
+                  "precip_mm": 7.65
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-03",
+              "high_c": 31.9,
+              "low_c": 26.71,
+              "mean_c": 28.82,
+              "precip_mm": 8.24,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.9,
+                  "low_c": 26.71,
+                  "mean_c": 28.82,
+                  "precip_mm": 8.24
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-04",
+              "high_c": 31.7,
+              "low_c": 26.77,
+              "mean_c": 28.66,
+              "precip_mm": 14.62,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.7,
+                  "low_c": 26.77,
+                  "mean_c": 28.66,
+                  "precip_mm": 14.62
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-05",
+              "high_c": 31.7,
+              "low_c": 26.8,
+              "mean_c": 28.61,
+              "precip_mm": 10.74,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.7,
+                  "low_c": 26.8,
+                  "mean_c": 28.61,
+                  "precip_mm": 10.74
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "20260730_00": {
+      "initialization_utc": "2026-07-30T00:00:00Z",
+      "status": "partial",
+      "available_models": [
+        "weathernext2"
+      ],
+      "missing_models": [
+        "gencast",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-31",
+              "high_c": 32.6,
+              "low_c": 27.88,
+              "mean_c": 30.04,
+              "precip_mm": 2.47,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.6,
+                  "low_c": 27.88,
+                  "mean_c": 30.04,
+                  "precip_mm": 2.47
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-01",
+              "high_c": 31.42,
+              "low_c": 26.77,
+              "mean_c": 29.49,
+              "precip_mm": 1.45,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.42,
+                  "low_c": 26.77,
+                  "mean_c": 29.49,
+                  "precip_mm": 1.45
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-02",
+              "high_c": 30.81,
+              "low_c": 26.43,
+              "mean_c": 29.0,
+              "precip_mm": 4.61,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.81,
+                  "low_c": 26.43,
+                  "mean_c": 29.0,
+                  "precip_mm": 4.61
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-03",
+              "high_c": 31.66,
+              "low_c": 26.84,
+              "mean_c": 29.36,
+              "precip_mm": 2.15,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.66,
+                  "low_c": 26.84,
+                  "mean_c": 29.36,
+                  "precip_mm": 2.15
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-04",
+              "high_c": 31.66,
+              "low_c": 26.52,
+              "mean_c": 28.93,
+              "precip_mm": 7.49,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.66,
+                  "low_c": 26.52,
+                  "mean_c": 28.93,
+                  "precip_mm": 7.49
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-31",
+              "high_c": 27.69,
+              "low_c": 26.37,
+              "mean_c": 26.92,
+              "precip_mm": 22.93,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.69,
+                  "low_c": 26.37,
+                  "mean_c": 26.92,
+                  "precip_mm": 22.93
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-01",
+              "high_c": 26.74,
+              "low_c": 26.16,
+              "mean_c": 26.4,
+              "precip_mm": 40.4,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.74,
+                  "low_c": 26.16,
+                  "mean_c": 26.4,
+                  "precip_mm": 40.4
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-02",
+              "high_c": 27.91,
+              "low_c": 25.84,
+              "mean_c": 26.8,
+              "precip_mm": 12.31,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.91,
+                  "low_c": 25.84,
+                  "mean_c": 26.8,
+                  "precip_mm": 12.31
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-03",
+              "high_c": 27.47,
+              "low_c": 25.58,
+              "mean_c": 26.48,
+              "precip_mm": 12.12,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.47,
+                  "low_c": 25.58,
+                  "mean_c": 26.48,
+                  "precip_mm": 12.12
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-04",
+              "high_c": 27.47,
+              "low_c": 25.58,
+              "mean_c": 26.48,
+              "precip_mm": 12.71,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.47,
+                  "low_c": 25.58,
+                  "mean_c": 26.48,
+                  "precip_mm": 12.71
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-31",
+              "high_c": 27.33,
+              "low_c": 21.8,
+              "mean_c": 24.38,
+              "precip_mm": 1.62,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.33,
+                  "low_c": 21.8,
+                  "mean_c": 24.38,
+                  "precip_mm": 1.62
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-01",
+              "high_c": 27.28,
+              "low_c": 21.18,
+              "mean_c": 24.09,
+              "precip_mm": 1.88,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.28,
+                  "low_c": 21.18,
+                  "mean_c": 24.09,
+                  "precip_mm": 1.88
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-02",
+              "high_c": 26.4,
+              "low_c": 20.88,
+              "mean_c": 23.4,
+              "precip_mm": 4.55,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.4,
+                  "low_c": 20.88,
+                  "mean_c": 23.4,
+                  "precip_mm": 4.55
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-03",
+              "high_c": 26.73,
+              "low_c": 20.68,
+              "mean_c": 23.61,
+              "precip_mm": 3.67,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.73,
+                  "low_c": 20.68,
+                  "mean_c": 23.61,
+                  "precip_mm": 3.67
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-04",
+              "high_c": 27.1,
+              "low_c": 20.98,
+              "mean_c": 24.1,
+              "precip_mm": 1.19,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.1,
+                  "low_c": 20.98,
+                  "mean_c": 24.1,
+                  "precip_mm": 1.19
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 1.0
+          },
+          "precipitation_weights": {
+            "weathernext2": 1.0
+          },
+          "available_models": [
+            "weathernext2"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-31",
+              "high_c": 29.29,
+              "low_c": 26.13,
+              "mean_c": 27.51,
+              "precip_mm": 9.26,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.29,
+                  "low_c": 26.13,
+                  "mean_c": 27.51,
+                  "precip_mm": 9.26
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-08-01",
+              "high_c": 30.19,
+              "low_c": 26.38,
+              "mean_c": 28.03,
+              "precip_mm": 3.84,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.19,
+                  "low_c": 26.38,
+                  "mean_c": 28.03,
+                  "precip_mm": 3.84
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-02",
+              "high_c": 31.08,
+              "low_c": 26.67,
+              "mean_c": 28.59,
+              "precip_mm": 5.11,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.08,
+                  "low_c": 26.67,
+                  "mean_c": 28.59,
+                  "precip_mm": 5.11
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-03",
+              "high_c": 31.4,
+              "low_c": 26.94,
+              "mean_c": 28.63,
+              "precip_mm": 13.1,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.4,
+                  "low_c": 26.94,
+                  "mean_c": 28.63,
+                  "precip_mm": 13.1
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-04",
+              "high_c": 30.86,
+              "low_c": 26.49,
+              "mean_c": 28.13,
+              "precip_mm": 15.4,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.86,
+                  "low_c": 26.49,
+                  "mean_c": 28.13,
+                  "precip_mm": 15.4
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "20260729_00": {
+      "initialization_utc": "2026-07-29T00:00:00Z",
+      "status": "complete",
+      "available_models": [
+        "weathernext2",
+        "gencast",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "missing_models": [],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 0.25238210679160694,
+            "gencast": 0.218645437930963,
+            "gfs": 0.0,
+            "gefs": 0.022154575668295873,
+            "aifs": 0.2607006254675629,
+            "ifs_ens": 0.24611725414157126
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.38039210260743606,
+            "gencast": 0.24591725581990742,
+            "gfs": 0.0,
+            "gefs": 0.06004735409630586,
+            "aifs": 0.19294844879640993,
+            "ifs_ens": 0.12069483867994069
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-30",
+              "high_c": 31.87,
+              "low_c": 27.78,
+              "mean_c": 29.72,
+              "precip_mm": 5.09,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.25,
+                  "low_c": 26.93,
+                  "mean_c": 28.99,
+                  "precip_mm": 5.79
+                },
+                "gencast": {
+                  "high_c": 31.75,
+                  "low_c": 28.11,
+                  "mean_c": 29.93,
+                  "precip_mm": 2.61
+                },
+                "gfs": {
+                  "high_c": 35.5,
+                  "low_c": 28.5,
+                  "mean_c": 31.93,
+                  "precip_mm": 0.0
+                },
+                "gefs": {
+                  "high_c": 35.92,
+                  "low_c": 29.13,
+                  "mean_c": 32.55,
+                  "precip_mm": 1.81
+                },
+                "aifs": {
+                  "high_c": 32.75,
+                  "low_c": 28.88,
+                  "mean_c": 30.62,
+                  "precip_mm": 6.15
+                },
+                "ifs_ens": {
+                  "high_c": 31.32,
+                  "low_c": 27.08,
+                  "mean_c": 29.07,
+                  "precip_mm": 7.9
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-31",
+              "high_c": 32.07,
+              "low_c": 27.89,
+              "mean_c": 29.95,
+              "precip_mm": 3.01,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.03,
+                  "low_c": 27.34,
+                  "mean_c": 29.58,
+                  "precip_mm": 2.79
+                },
+                "gencast": {
+                  "high_c": 31.16,
+                  "low_c": 28.15,
+                  "mean_c": 29.65,
+                  "precip_mm": 1.59
+                },
+                "gfs": {
+                  "high_c": 37.0,
+                  "low_c": 29.38,
+                  "mean_c": 33.11,
+                  "precip_mm": 0.62
+                },
+                "gefs": {
+                  "high_c": 37.94,
+                  "low_c": 30.91,
+                  "mean_c": 34.32,
+                  "precip_mm": 1.82
+                },
+                "aifs": {
+                  "high_c": 33.0,
+                  "low_c": 28.75,
+                  "mean_c": 30.84,
+                  "precip_mm": 4.71
+                },
+                "ifs_ens": {
+                  "high_c": 31.39,
+                  "low_c": 27.05,
+                  "mean_c": 29.27,
+                  "precip_mm": 4.49
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-01",
+              "high_c": 31.84,
+              "low_c": 27.13,
+              "mean_c": 29.59,
+              "precip_mm": 2.84,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.19,
+                  "low_c": 26.54,
+                  "mean_c": 29.23,
+                  "precip_mm": 2.09
+                },
+                "gencast": {
+                  "high_c": 31.2,
+                  "low_c": 26.88,
+                  "mean_c": 29.04,
+                  "precip_mm": 1.93
+                },
+                "gfs": {
+                  "high_c": 37.25,
+                  "low_c": 29.38,
+                  "mean_c": 32.95,
+                  "precip_mm": 0.19
+                },
+                "gefs": {
+                  "high_c": 37.22,
+                  "low_c": 30.67,
+                  "mean_c": 33.82,
+                  "precip_mm": 2.22
+                },
+                "aifs": {
+                  "high_c": 32.5,
+                  "low_c": 28.12,
+                  "mean_c": 30.5,
+                  "precip_mm": 4.53
+                },
+                "ifs_ens": {
+                  "high_c": 31.88,
+                  "low_c": 26.58,
+                  "mean_c": 29.12,
+                  "precip_mm": 4.68
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-02",
+              "high_c": 31.4,
+              "low_c": 26.94,
+              "mean_c": 29.24,
+              "precip_mm": 5.15,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.34,
+                  "low_c": 26.66,
+                  "mean_c": 29.32,
+                  "precip_mm": 2.77
+                },
+                "gencast": {
+                  "high_c": 30.55,
+                  "low_c": 26.56,
+                  "mean_c": 28.56,
+                  "precip_mm": 4.64
+                },
+                "gfs": {
+                  "high_c": 36.5,
+                  "low_c": 29.62,
+                  "mean_c": 33.41,
+                  "precip_mm": 1.69
+                },
+                "gefs": {
+                  "high_c": 37.05,
+                  "low_c": 29.96,
+                  "mean_c": 33.43,
+                  "precip_mm": 9.64
+                },
+                "aifs": {
+                  "high_c": 31.62,
+                  "low_c": 27.88,
+                  "mean_c": 29.88,
+                  "precip_mm": 8.76
+                },
+                "ifs_ens": {
+                  "high_c": 31.47,
+                  "low_c": 26.3,
+                  "mean_c": 28.7,
+                  "precip_mm": 5.68
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-03",
+              "high_c": 31.58,
+              "low_c": 27.01,
+              "mean_c": 29.3,
+              "precip_mm": 10.12,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.89,
+                  "low_c": 27.13,
+                  "mean_c": 29.66,
+                  "precip_mm": 3.64
+                },
+                "gencast": {
+                  "high_c": 30.25,
+                  "low_c": 26.54,
+                  "mean_c": 28.39,
+                  "precip_mm": 18.85
+                },
+                "gfs": {
+                  "high_c": 34.5,
+                  "low_c": 27.12,
+                  "mean_c": 31.79,
+                  "precip_mm": 11.39
+                },
+                "gefs": {
+                  "high_c": 34.1,
+                  "low_c": 28.88,
+                  "mean_c": 31.41,
+                  "precip_mm": 28.23
+                },
+                "aifs": {
+                  "high_c": 31.88,
+                  "low_c": 27.88,
+                  "mean_c": 29.94,
+                  "precip_mm": 10.15
+                },
+                "ifs_ens": {
+                  "high_c": 31.9,
+                  "low_c": 26.22,
+                  "mean_c": 28.86,
+                  "precip_mm": 3.69
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 0.19770550600343936,
+            "gencast": 0.1994153263374837,
+            "gfs": 0.0,
+            "gefs": 0.2019026559508168,
+            "aifs": 0.20247652239312877,
+            "ifs_ens": 0.1984999893151314
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.1979254219796924,
+            "gencast": 0.20515039393086087,
+            "gfs": 0.0,
+            "gefs": 0.21691282079973417,
+            "aifs": 0.20688275850241064,
+            "ifs_ens": 0.17312860478730185
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-30",
+              "high_c": 28.81,
+              "low_c": 26.85,
+              "mean_c": 27.74,
+              "precip_mm": 10.74,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.28,
+                  "low_c": 26.45,
+                  "mean_c": 27.56,
+                  "precip_mm": 10.35
+                },
+                "gencast": {
+                  "high_c": 27.98,
+                  "low_c": 26.52,
+                  "mean_c": 27.25,
+                  "precip_mm": 13.82
+                },
+                "gfs": {
+                  "high_c": 29.12,
+                  "low_c": 27.25,
+                  "mean_c": 28.08,
+                  "precip_mm": 8.12
+                },
+                "gefs": {
+                  "high_c": 28.89,
+                  "low_c": 26.98,
+                  "mean_c": 27.87,
+                  "precip_mm": 8.62
+                },
+                "aifs": {
+                  "high_c": 28.88,
+                  "low_c": 27.5,
+                  "mean_c": 28.22,
+                  "precip_mm": 11.48
+                },
+                "ifs_ens": {
+                  "high_c": 29.01,
+                  "low_c": 26.8,
+                  "mean_c": 27.8,
+                  "precip_mm": 9.33
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-31",
+              "high_c": 27.54,
+              "low_c": 26.58,
+              "mean_c": 26.99,
+              "precip_mm": 33.54,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.08,
+                  "low_c": 26.23,
+                  "mean_c": 26.6,
+                  "precip_mm": 32.44
+                },
+                "gencast": {
+                  "high_c": 26.94,
+                  "low_c": 26.43,
+                  "mean_c": 26.69,
+                  "precip_mm": 48.56
+                },
+                "gfs": {
+                  "high_c": 28.12,
+                  "low_c": 25.12,
+                  "mean_c": 26.58,
+                  "precip_mm": 55.26
+                },
+                "gefs": {
+                  "high_c": 27.73,
+                  "low_c": 26.38,
+                  "mean_c": 26.83,
+                  "precip_mm": 38.03
+                },
+                "aifs": {
+                  "high_c": 28.0,
+                  "low_c": 27.25,
+                  "mean_c": 27.62,
+                  "precip_mm": 30.69
+                },
+                "ifs_ens": {
+                  "high_c": 27.95,
+                  "low_c": 26.6,
+                  "mean_c": 27.19,
+                  "precip_mm": 14.79
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-01",
+              "high_c": 27.0,
+              "low_c": 26.35,
+              "mean_c": 26.71,
+              "precip_mm": 38.15,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.45,
+                  "low_c": 25.48,
+                  "mean_c": 26.1,
+                  "precip_mm": 32.56
+                },
+                "gencast": {
+                  "high_c": 26.39,
+                  "low_c": 26.01,
+                  "mean_c": 26.2,
+                  "precip_mm": 69.93
+                },
+                "gfs": {
+                  "high_c": 26.75,
+                  "low_c": 25.25,
+                  "mean_c": 25.83,
+                  "precip_mm": 45.54
+                },
+                "gefs": {
+                  "high_c": 26.9,
+                  "low_c": 26.44,
+                  "mean_c": 26.73,
+                  "precip_mm": 34.43
+                },
+                "aifs": {
+                  "high_c": 27.62,
+                  "low_c": 26.88,
+                  "mean_c": 27.22,
+                  "precip_mm": 33.54
+                },
+                "ifs_ens": {
+                  "high_c": 27.63,
+                  "low_c": 26.96,
+                  "mean_c": 27.27,
+                  "precip_mm": 17.08
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-02",
+              "high_c": 28.21,
+              "low_c": 26.26,
+              "mean_c": 27.2,
+              "precip_mm": 13.75,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.97,
+                  "low_c": 25.53,
+                  "mean_c": 26.59,
+                  "precip_mm": 10.11
+                },
+                "gencast": {
+                  "high_c": 27.9,
+                  "low_c": 26.03,
+                  "mean_c": 26.97,
+                  "precip_mm": 15.19
+                },
+                "gfs": {
+                  "high_c": 28.75,
+                  "low_c": 26.38,
+                  "mean_c": 27.38,
+                  "precip_mm": 31.43
+                },
+                "gefs": {
+                  "high_c": 28.34,
+                  "low_c": 26.86,
+                  "mean_c": 27.52,
+                  "precip_mm": 17.02
+                },
+                "aifs": {
+                  "high_c": 28.25,
+                  "low_c": 26.75,
+                  "mean_c": 27.56,
+                  "precip_mm": 13.8
+                },
+                "ifs_ens": {
+                  "high_c": 28.6,
+                  "low_c": 26.12,
+                  "mean_c": 27.35,
+                  "precip_mm": 12.03
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-03",
+              "high_c": 27.94,
+              "low_c": 25.98,
+              "mean_c": 26.91,
+              "precip_mm": 15.27,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.65,
+                  "low_c": 25.14,
+                  "mean_c": 26.29,
+                  "precip_mm": 11.41
+                },
+                "gencast": {
+                  "high_c": 27.52,
+                  "low_c": 25.84,
+                  "mean_c": 26.68,
+                  "precip_mm": 12.48
+                },
+                "gfs": {
+                  "high_c": 28.75,
+                  "low_c": 26.5,
+                  "mean_c": 27.58,
+                  "precip_mm": 16.14
+                },
+                "gefs": {
+                  "high_c": 28.21,
+                  "low_c": 26.77,
+                  "mean_c": 27.42,
+                  "precip_mm": 19.12
+                },
+                "aifs": {
+                  "high_c": 28.12,
+                  "low_c": 26.38,
+                  "mean_c": 27.25,
+                  "precip_mm": 15.99
+                },
+                "ifs_ens": {
+                  "high_c": 28.21,
+                  "low_c": 25.74,
+                  "mean_c": 26.88,
+                  "precip_mm": 17.29
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 0.24422621346410042,
+            "gencast": 0.274065932761885,
+            "gfs": 0.0,
+            "gefs": 0.12618907621783648,
+            "aifs": 0.13059178404710825,
+            "ifs_ens": 0.2249269935090698
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.2736797367333297,
+            "gencast": 0.3132464521101383,
+            "gfs": 0.0,
+            "gefs": 0.01762274828927685,
+            "aifs": 0.2974961321434034,
+            "ifs_ens": 0.09795493072385185
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-30",
+              "high_c": 27.64,
+              "low_c": 21.91,
+              "mean_c": 24.51,
+              "precip_mm": 1.62,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.22,
+                  "low_c": 21.81,
+                  "mean_c": 24.15,
+                  "precip_mm": 2.02
+                },
+                "gencast": {
+                  "high_c": 26.68,
+                  "low_c": 21.53,
+                  "mean_c": 24.1,
+                  "precip_mm": 1.39
+                },
+                "gfs": {
+                  "high_c": 27.12,
+                  "low_c": 20.75,
+                  "mean_c": 23.68,
+                  "precip_mm": 0.25
+                },
+                "gefs": {
+                  "high_c": 28.44,
+                  "low_c": 22.55,
+                  "mean_c": 25.0,
+                  "precip_mm": 0.36
+                },
+                "aifs": {
+                  "high_c": 28.38,
+                  "low_c": 23.25,
+                  "mean_c": 25.84,
+                  "precip_mm": 1.15
+                },
+                "ifs_ens": {
+                  "high_c": 28.4,
+                  "low_c": 21.35,
+                  "mean_c": 24.36,
+                  "precip_mm": 2.91
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-31",
+              "high_c": 27.49,
+              "low_c": 21.49,
+              "mean_c": 24.24,
+              "precip_mm": 1.33,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.94,
+                  "low_c": 21.22,
+                  "mean_c": 23.99,
+                  "precip_mm": 1.18
+                },
+                "gencast": {
+                  "high_c": 26.23,
+                  "low_c": 21.23,
+                  "mean_c": 23.73,
+                  "precip_mm": 0.68
+                },
+                "gfs": {
+                  "high_c": 27.5,
+                  "low_c": 19.88,
+                  "mean_c": 23.3,
+                  "precip_mm": 0.13
+                },
+                "gefs": {
+                  "high_c": 28.21,
+                  "low_c": 21.93,
+                  "mean_c": 24.57,
+                  "precip_mm": 0.3
+                },
+                "aifs": {
+                  "high_c": 28.0,
+                  "low_c": 22.88,
+                  "mean_c": 25.59,
+                  "precip_mm": 2.15
+                },
+                "ifs_ens": {
+                  "high_c": 28.91,
+                  "low_c": 21.04,
+                  "mean_c": 24.16,
+                  "precip_mm": 1.56
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-01",
+              "high_c": 27.59,
+              "low_c": 21.09,
+              "mean_c": 24.04,
+              "precip_mm": 3.05,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.3,
+                  "low_c": 20.94,
+                  "mean_c": 23.7,
+                  "precip_mm": 3.29
+                },
+                "gencast": {
+                  "high_c": 26.22,
+                  "low_c": 20.76,
+                  "mean_c": 23.49,
+                  "precip_mm": 1.96
+                },
+                "gfs": {
+                  "high_c": 27.88,
+                  "low_c": 19.62,
+                  "mean_c": 23.48,
+                  "precip_mm": 0.06
+                },
+                "gefs": {
+                  "high_c": 29.43,
+                  "low_c": 21.56,
+                  "mean_c": 25.03,
+                  "precip_mm": 0.21
+                },
+                "aifs": {
+                  "high_c": 28.5,
+                  "low_c": 22.25,
+                  "mean_c": 25.38,
+                  "precip_mm": 4.04
+                },
+                "ifs_ens": {
+                  "high_c": 28.02,
+                  "low_c": 20.73,
+                  "mean_c": 23.76,
+                  "precip_mm": 3.42
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-02",
+              "high_c": 26.75,
+              "low_c": 21.08,
+              "mean_c": 23.66,
+              "precip_mm": 4.58,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.44,
+                  "low_c": 21.14,
+                  "mean_c": 23.55,
+                  "precip_mm": 4.95
+                },
+                "gencast": {
+                  "high_c": 25.03,
+                  "low_c": 20.71,
+                  "mean_c": 22.87,
+                  "precip_mm": 3.85
+                },
+                "gfs": {
+                  "high_c": 29.12,
+                  "low_c": 19.62,
+                  "mean_c": 23.88,
+                  "precip_mm": 0.13
+                },
+                "gefs": {
+                  "high_c": 29.78,
+                  "low_c": 21.6,
+                  "mean_c": 25.18,
+                  "precip_mm": 1.81
+                },
+                "aifs": {
+                  "high_c": 27.0,
+                  "low_c": 22.12,
+                  "mean_c": 24.5,
+                  "precip_mm": 5.35
+                },
+                "ifs_ens": {
+                  "high_c": 27.35,
+                  "low_c": 20.55,
+                  "mean_c": 23.38,
+                  "precip_mm": 4.02
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-03",
+              "high_c": 27.14,
+              "low_c": 20.93,
+              "mean_c": 23.73,
+              "precip_mm": 3.35,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.86,
+                  "low_c": 20.9,
+                  "mean_c": 23.53,
+                  "precip_mm": 3.14
+                },
+                "gencast": {
+                  "high_c": 25.1,
+                  "low_c": 20.66,
+                  "mean_c": 22.88,
+                  "precip_mm": 2.56
+                },
+                "gfs": {
+                  "high_c": 31.0,
+                  "low_c": 19.62,
+                  "mean_c": 24.73,
+                  "precip_mm": 0.56
+                },
+                "gefs": {
+                  "high_c": 29.55,
+                  "low_c": 21.32,
+                  "mean_c": 25.01,
+                  "precip_mm": 4.03
+                },
+                "aifs": {
+                  "high_c": 27.25,
+                  "low_c": 22.25,
+                  "mean_c": 24.75,
+                  "precip_mm": 4.49
+                },
+                "ifs_ens": {
+                  "high_c": 28.51,
+                  "low_c": 20.31,
+                  "mean_c": 23.65,
+                  "precip_mm": 2.85
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 0.25466907399060723,
+            "gencast": 0.20158403950467532,
+            "gfs": 0.0,
+            "gefs": 0.05821056321241868,
+            "aifs": 0.3174302868163234,
+            "ifs_ens": 0.16810603647597533
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.25560614862043674,
+            "gencast": 0.16760821087972028,
+            "gfs": 0.0,
+            "gefs": 0.13649105314439294,
+            "aifs": 0.26137165354370684,
+            "ifs_ens": 0.17892293381174318
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-30",
+              "high_c": 29.6,
+              "low_c": 26.65,
+              "mean_c": 27.98,
+              "precip_mm": 10.16,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.77,
+                  "low_c": 25.92,
+                  "mean_c": 27.53,
+                  "precip_mm": 8.3
+                },
+                "gencast": {
+                  "high_c": 27.84,
+                  "low_c": 26.09,
+                  "mean_c": 26.96,
+                  "precip_mm": 6.38
+                },
+                "gfs": {
+                  "high_c": 33.0,
+                  "low_c": 27.12,
+                  "mean_c": 29.72,
+                  "precip_mm": 3.88
+                },
+                "gefs": {
+                  "high_c": 32.68,
+                  "low_c": 27.42,
+                  "mean_c": 29.6,
+                  "precip_mm": 6.23
+                },
+                "aifs": {
+                  "high_c": 30.12,
+                  "low_c": 27.75,
+                  "mean_c": 28.81,
+                  "precip_mm": 15.68
+                },
+                "ifs_ens": {
+                  "high_c": 29.39,
+                  "low_c": 26.11,
+                  "mean_c": 27.73,
+                  "precip_mm": 11.32
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-31",
+              "high_c": 29.55,
+              "low_c": 26.52,
+              "mean_c": 27.88,
+              "precip_mm": 10.64,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.86,
+                  "low_c": 25.67,
+                  "mean_c": 27.4,
+                  "precip_mm": 8.19
+                },
+                "gencast": {
+                  "high_c": 27.76,
+                  "low_c": 25.83,
+                  "mean_c": 26.8,
+                  "precip_mm": 12.32
+                },
+                "gfs": {
+                  "high_c": 31.38,
+                  "low_c": 27.0,
+                  "mean_c": 29.08,
+                  "precip_mm": 4.38
+                },
+                "gefs": {
+                  "high_c": 32.06,
+                  "low_c": 27.29,
+                  "mean_c": 29.44,
+                  "precip_mm": 2.46
+                },
+                "aifs": {
+                  "high_c": 29.88,
+                  "low_c": 27.75,
+                  "mean_c": 28.62,
+                  "precip_mm": 16.05
+                },
+                "ifs_ens": {
+                  "high_c": 29.74,
+                  "low_c": 26.02,
+                  "mean_c": 27.94,
+                  "precip_mm": 10.89
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-08-01",
+              "high_c": 29.98,
+              "low_c": 27.03,
+              "mean_c": 28.38,
+              "precip_mm": 6.35,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.17,
+                  "low_c": 26.23,
+                  "mean_c": 28.02,
+                  "precip_mm": 2.73
+                },
+                "gencast": {
+                  "high_c": 28.47,
+                  "low_c": 26.5,
+                  "mean_c": 27.48,
+                  "precip_mm": 6.86
+                },
+                "gfs": {
+                  "high_c": 32.5,
+                  "low_c": 27.5,
+                  "mean_c": 29.81,
+                  "precip_mm": 3.19
+                },
+                "gefs": {
+                  "high_c": 32.56,
+                  "low_c": 27.27,
+                  "mean_c": 29.66,
+                  "precip_mm": 2.38
+                },
+                "aifs": {
+                  "high_c": 30.12,
+                  "low_c": 28.25,
+                  "mean_c": 29.06,
+                  "precip_mm": 11.64
+                },
+                "ifs_ens": {
+                  "high_c": 30.33,
+                  "low_c": 26.48,
+                  "mean_c": 28.27,
+                  "precip_mm": 6.37
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-02",
+              "high_c": 30.91,
+              "low_c": 27.56,
+              "mean_c": 29.07,
+              "precip_mm": 6.22,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.71,
+                  "low_c": 26.91,
+                  "mean_c": 28.58,
+                  "precip_mm": 2.8
+                },
+                "gencast": {
+                  "high_c": 29.55,
+                  "low_c": 27.16,
+                  "mean_c": 28.35,
+                  "precip_mm": 8.58
+                },
+                "gfs": {
+                  "high_c": 34.0,
+                  "low_c": 28.12,
+                  "mean_c": 30.75,
+                  "precip_mm": 3.69
+                },
+                "gefs": {
+                  "high_c": 33.73,
+                  "low_c": 27.92,
+                  "mean_c": 30.44,
+                  "precip_mm": 3.4
+                },
+                "aifs": {
+                  "high_c": 31.38,
+                  "low_c": 28.75,
+                  "mean_c": 29.84,
+                  "precip_mm": 10.02
+                },
+                "ifs_ens": {
+                  "high_c": 31.0,
+                  "low_c": 26.65,
+                  "mean_c": 28.76,
+                  "precip_mm": 5.51
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-03",
+              "high_c": 31.42,
+              "low_c": 27.49,
+              "mean_c": 29.16,
+              "precip_mm": 10.15,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.59,
+                  "low_c": 27.15,
+                  "mean_c": 28.93,
+                  "precip_mm": 5.02
+                },
+                "gencast": {
+                  "high_c": 30.14,
+                  "low_c": 27.15,
+                  "mean_c": 28.65,
+                  "precip_mm": 9.06
+                },
+                "gfs": {
+                  "high_c": 34.5,
+                  "low_c": 28.62,
+                  "mean_c": 31.17,
+                  "precip_mm": 11.06
+                },
+                "gefs": {
+                  "high_c": 34.28,
+                  "low_c": 27.99,
+                  "mean_c": 30.75,
+                  "precip_mm": 6.78
+                },
+                "aifs": {
+                  "high_c": 31.75,
+                  "low_c": 28.38,
+                  "mean_c": 29.62,
+                  "precip_mm": 17.33
+                },
+                "ifs_ens": {
+                  "high_c": 31.11,
+                  "low_c": 26.55,
+                  "mean_c": 28.67,
+                  "precip_mm": 10.57
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "20260728_00": {
+      "initialization_utc": "2026-07-28T00:00:00Z",
+      "status": "complete",
+      "available_models": [
+        "weathernext2",
+        "gencast",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "missing_models": [],
+      "cities": {
+        "Delhi": {
+          "latitude": 28.61,
+          "longitude": 77.21,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 0.25238210679160694,
+            "gencast": 0.218645437930963,
+            "gfs": 0.0,
+            "gefs": 0.022154575668295873,
+            "aifs": 0.2607006254675629,
+            "ifs_ens": 0.24611725414157126
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.38039210260743606,
+            "gencast": 0.24591725581990742,
+            "gfs": 0.0,
+            "gefs": 0.06004735409630586,
+            "aifs": 0.19294844879640993,
+            "ifs_ens": 0.12069483867994069
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-29",
+              "high_c": 31.56,
+              "low_c": 27.1,
+              "mean_c": 29.21,
+              "precip_mm": 11.91,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.06,
+                  "low_c": 26.62,
+                  "mean_c": 28.82,
+                  "precip_mm": 10.44
+                },
+                "gencast": {
+                  "high_c": 31.87,
+                  "low_c": 27.25,
+                  "mean_c": 29.56,
+                  "precip_mm": 13.14
+                },
+                "gfs": {
+                  "high_c": 33.75,
+                  "low_c": 29.25,
+                  "mean_c": 31.06,
+                  "precip_mm": 8.68
+                },
+                "gefs": {
+                  "high_c": 34.23,
+                  "low_c": 29.79,
+                  "mean_c": 32.03,
+                  "precip_mm": 11.99
+                },
+                "aifs": {
+                  "high_c": 31.12,
+                  "low_c": 27.75,
+                  "mean_c": 29.12,
+                  "precip_mm": 13.25
+                },
+                "ifs_ens": {
+                  "high_c": 32.03,
+                  "low_c": 26.54,
+                  "mean_c": 29.15,
+                  "precip_mm": 11.8
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-30",
+              "high_c": 32.33,
+              "low_c": 27.63,
+              "mean_c": 30.04,
+              "precip_mm": 5.25,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 32.24,
+                  "low_c": 27.2,
+                  "mean_c": 29.83,
+                  "precip_mm": 3.27
+                },
+                "gencast": {
+                  "high_c": 31.46,
+                  "low_c": 27.6,
+                  "mean_c": 29.53,
+                  "precip_mm": 6.77
+                },
+                "gfs": {
+                  "high_c": 39.25,
+                  "low_c": 29.38,
+                  "mean_c": 33.79,
+                  "precip_mm": 1.69
+                },
+                "gefs": {
+                  "high_c": 37.52,
+                  "low_c": 30.88,
+                  "mean_c": 33.9,
+                  "precip_mm": 5.04
+                },
+                "aifs": {
+                  "high_c": 33.0,
+                  "low_c": 28.88,
+                  "mean_c": 31.12,
+                  "precip_mm": 5.37
+                },
+                "ifs_ens": {
+                  "high_c": 32.02,
+                  "low_c": 26.48,
+                  "mean_c": 29.19,
+                  "precip_mm": 8.28
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-07-31",
+              "high_c": 31.62,
+              "low_c": 27.8,
+              "mean_c": 29.69,
+              "precip_mm": 4.32,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.06,
+                  "low_c": 27.4,
+                  "mean_c": 29.32,
+                  "precip_mm": 2.86
+                },
+                "gencast": {
+                  "high_c": 32.0,
+                  "low_c": 27.92,
+                  "mean_c": 29.96,
+                  "precip_mm": 2.01
+                },
+                "gfs": {
+                  "high_c": 36.0,
+                  "low_c": 28.0,
+                  "mean_c": 31.54,
+                  "precip_mm": 1.13
+                },
+                "gefs": {
+                  "high_c": 34.1,
+                  "low_c": 29.06,
+                  "mean_c": 31.57,
+                  "precip_mm": 8.21
+                },
+                "aifs": {
+                  "high_c": 32.25,
+                  "low_c": 28.88,
+                  "mean_c": 30.66,
+                  "precip_mm": 6.35
+                },
+                "ifs_ens": {
+                  "high_c": 30.97,
+                  "low_c": 26.86,
+                  "mean_c": 28.64,
+                  "precip_mm": 8.45
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-01",
+              "high_c": 31.92,
+              "low_c": 27.11,
+              "mean_c": 29.65,
+              "precip_mm": 3.03,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.31,
+                  "low_c": 26.68,
+                  "mean_c": 29.34,
+                  "precip_mm": 2.46
+                },
+                "gencast": {
+                  "high_c": 31.62,
+                  "low_c": 26.73,
+                  "mean_c": 29.17,
+                  "precip_mm": 1.55
+                },
+                "gfs": {
+                  "high_c": 35.0,
+                  "low_c": 28.0,
+                  "mean_c": 31.81,
+                  "precip_mm": 0.13
+                },
+                "gefs": {
+                  "high_c": 36.37,
+                  "low_c": 30.21,
+                  "mean_c": 33.12,
+                  "precip_mm": 3.01
+                },
+                "aifs": {
+                  "high_c": 32.5,
+                  "low_c": 28.12,
+                  "mean_c": 30.62,
+                  "precip_mm": 4.64
+                },
+                "ifs_ens": {
+                  "high_c": 31.79,
+                  "low_c": 26.54,
+                  "mean_c": 29.06,
+                  "precip_mm": 5.29
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-02",
+              "high_c": 31.26,
+              "low_c": 26.85,
+              "mean_c": 29.09,
+              "precip_mm": 6.76,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.58,
+                  "low_c": 26.64,
+                  "mean_c": 28.85,
+                  "precip_mm": 4.85
+                },
+                "gencast": {
+                  "high_c": 30.87,
+                  "low_c": 26.33,
+                  "mean_c": 28.6,
+                  "precip_mm": 6.38
+                },
+                "gfs": {
+                  "high_c": 36.25,
+                  "low_c": 29.12,
+                  "mean_c": 33.05,
+                  "precip_mm": 1.94
+                },
+                "gefs": {
+                  "high_c": 36.68,
+                  "low_c": 30.02,
+                  "mean_c": 33.35,
+                  "precip_mm": 7.58
+                },
+                "aifs": {
+                  "high_c": 31.5,
+                  "low_c": 27.75,
+                  "mean_c": 29.78,
+                  "precip_mm": 10.89
+                },
+                "ifs_ens": {
+                  "high_c": 31.55,
+                  "low_c": 26.3,
+                  "mean_c": 28.67,
+                  "precip_mm": 6.51
+                }
+              }
+            }
+          ]
+        },
+        "Mumbai": {
+          "latitude": 19.08,
+          "longitude": 72.88,
+          "temperature_method": "eg",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 0.19770550600343936,
+            "gencast": 0.1994153263374837,
+            "gfs": 0.0,
+            "gefs": 0.2019026559508168,
+            "aifs": 0.20247652239312877,
+            "ifs_ens": 0.1984999893151314
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.1979254219796924,
+            "gencast": 0.20515039393086087,
+            "gfs": 0.0,
+            "gefs": 0.21691282079973417,
+            "aifs": 0.20688275850241064,
+            "ifs_ens": 0.17312860478730185
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-29",
+              "high_c": 28.81,
+              "low_c": 26.76,
+              "mean_c": 27.65,
+              "precip_mm": 14.29,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.15,
+                  "low_c": 26.34,
+                  "mean_c": 27.53,
+                  "precip_mm": 8.27
+                },
+                "gencast": {
+                  "high_c": 27.47,
+                  "low_c": 26.3,
+                  "mean_c": 26.88,
+                  "precip_mm": 19.97
+                },
+                "gfs": {
+                  "high_c": 29.12,
+                  "low_c": 27.0,
+                  "mean_c": 28.1,
+                  "precip_mm": 20.06
+                },
+                "gefs": {
+                  "high_c": 29.07,
+                  "low_c": 27.12,
+                  "mean_c": 27.98,
+                  "precip_mm": 19.92
+                },
+                "aifs": {
+                  "high_c": 29.12,
+                  "low_c": 27.38,
+                  "mean_c": 28.22,
+                  "precip_mm": 11.01
+                },
+                "ifs_ens": {
+                  "high_c": 29.24,
+                  "low_c": 26.64,
+                  "mean_c": 27.64,
+                  "precip_mm": 11.3
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-30",
+              "high_c": 28.44,
+              "low_c": 26.9,
+              "mean_c": 27.61,
+              "precip_mm": 10.38,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.25,
+                  "low_c": 26.6,
+                  "mean_c": 27.32,
+                  "precip_mm": 8.59
+                },
+                "gencast": {
+                  "high_c": 27.72,
+                  "low_c": 26.38,
+                  "mean_c": 27.05,
+                  "precip_mm": 15.65
+                },
+                "gfs": {
+                  "high_c": 29.25,
+                  "low_c": 27.38,
+                  "mean_c": 28.08,
+                  "precip_mm": 8.63
+                },
+                "gefs": {
+                  "high_c": 28.31,
+                  "low_c": 27.0,
+                  "mean_c": 27.63,
+                  "precip_mm": 8.01
+                },
+                "aifs": {
+                  "high_c": 28.88,
+                  "low_c": 27.5,
+                  "mean_c": 28.25,
+                  "precip_mm": 11.36
+                },
+                "ifs_ens": {
+                  "high_c": 29.03,
+                  "low_c": 27.0,
+                  "mean_c": 27.8,
+                  "precip_mm": 7.99
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-07-31",
+              "high_c": 27.56,
+              "low_c": 26.57,
+              "mean_c": 27.02,
+              "precip_mm": 27.5,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.3,
+                  "low_c": 26.35,
+                  "mean_c": 26.74,
+                  "precip_mm": 21.26
+                },
+                "gencast": {
+                  "high_c": 26.97,
+                  "low_c": 26.02,
+                  "mean_c": 26.49,
+                  "precip_mm": 38.44
+                },
+                "gfs": {
+                  "high_c": 28.12,
+                  "low_c": 25.75,
+                  "mean_c": 26.92,
+                  "precip_mm": 61.79
+                },
+                "gefs": {
+                  "high_c": 27.23,
+                  "low_c": 26.23,
+                  "mean_c": 26.67,
+                  "precip_mm": 42.18
+                },
+                "aifs": {
+                  "high_c": 28.12,
+                  "low_c": 27.25,
+                  "mean_c": 27.69,
+                  "precip_mm": 22.41
+                },
+                "ifs_ens": {
+                  "high_c": 28.18,
+                  "low_c": 26.97,
+                  "mean_c": 27.5,
+                  "precip_mm": 9.33
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-01",
+              "high_c": 27.35,
+              "low_c": 26.36,
+              "mean_c": 26.86,
+              "precip_mm": 25.67,
+              "symbol": "\ud83c\udf27\ufe0f",
+              "condition": "Heavy rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.06,
+                  "low_c": 25.9,
+                  "mean_c": 26.51,
+                  "precip_mm": 27.39
+                },
+                "gencast": {
+                  "high_c": 26.75,
+                  "low_c": 25.91,
+                  "mean_c": 26.33,
+                  "precip_mm": 35.14
+                },
+                "gfs": {
+                  "high_c": 27.25,
+                  "low_c": 25.0,
+                  "mean_c": 26.26,
+                  "precip_mm": 35.46
+                },
+                "gefs": {
+                  "high_c": 26.86,
+                  "low_c": 26.38,
+                  "mean_c": 26.66,
+                  "precip_mm": 28.38
+                },
+                "aifs": {
+                  "high_c": 28.0,
+                  "low_c": 26.75,
+                  "mean_c": 27.38,
+                  "precip_mm": 22.49
+                },
+                "ifs_ens": {
+                  "high_c": 28.07,
+                  "low_c": 26.84,
+                  "mean_c": 27.43,
+                  "precip_mm": 12.89
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-02",
+              "high_c": 28.05,
+              "low_c": 26.28,
+              "mean_c": 27.1,
+              "precip_mm": 13.5,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.57,
+                  "low_c": 25.58,
+                  "mean_c": 26.4,
+                  "precip_mm": 12.8
+                },
+                "gencast": {
+                  "high_c": 27.5,
+                  "low_c": 25.95,
+                  "mean_c": 26.73,
+                  "precip_mm": 13.14
+                },
+                "gfs": {
+                  "high_c": 28.62,
+                  "low_c": 26.0,
+                  "mean_c": 27.43,
+                  "precip_mm": 24.02
+                },
+                "gefs": {
+                  "high_c": 28.24,
+                  "low_c": 26.62,
+                  "mean_c": 27.38,
+                  "precip_mm": 16.55
+                },
+                "aifs": {
+                  "high_c": 28.25,
+                  "low_c": 26.88,
+                  "mean_c": 27.53,
+                  "precip_mm": 14.23
+                },
+                "ifs_ens": {
+                  "high_c": 28.66,
+                  "low_c": 26.36,
+                  "mean_c": 27.45,
+                  "precip_mm": 10.02
+                }
+              }
+            }
+          ]
+        },
+        "Bengaluru": {
+          "latitude": 12.97,
+          "longitude": 77.59,
+          "temperature_method": "hedge",
+          "precipitation_method": "hedge",
+          "temperature_weights": {
+            "weathernext2": 0.24422621346410042,
+            "gencast": 0.274065932761885,
+            "gfs": 0.0,
+            "gefs": 0.12618907621783648,
+            "aifs": 0.13059178404710825,
+            "ifs_ens": 0.2249269935090698
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.2736797367333297,
+            "gencast": 0.3132464521101383,
+            "gfs": 0.0,
+            "gefs": 0.01762274828927685,
+            "aifs": 0.2974961321434034,
+            "ifs_ens": 0.09795493072385185
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-29",
+              "high_c": 28.27,
+              "low_c": 21.86,
+              "mean_c": 24.88,
+              "precip_mm": 0.96,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.69,
+                  "low_c": 21.43,
+                  "mean_c": 24.64,
+                  "precip_mm": 0.9
+                },
+                "gencast": {
+                  "high_c": 27.31,
+                  "low_c": 21.76,
+                  "mean_c": 24.53,
+                  "precip_mm": 0.59
+                },
+                "gfs": {
+                  "high_c": 27.5,
+                  "low_c": 21.12,
+                  "mean_c": 24.19,
+                  "precip_mm": 0.31
+                },
+                "gefs": {
+                  "high_c": 29.48,
+                  "low_c": 22.63,
+                  "mean_c": 25.39,
+                  "precip_mm": 0.42
+                },
+                "aifs": {
+                  "high_c": 28.88,
+                  "low_c": 23.0,
+                  "mean_c": 25.88,
+                  "precip_mm": 1.07
+                },
+                "ifs_ens": {
+                  "high_c": 29.03,
+                  "low_c": 21.36,
+                  "mean_c": 24.69,
+                  "precip_mm": 2.08
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-30",
+              "high_c": 27.33,
+              "low_c": 21.77,
+              "mean_c": 24.27,
+              "precip_mm": 2.33,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.9,
+                  "low_c": 21.68,
+                  "mean_c": 24.09,
+                  "precip_mm": 2.48
+                },
+                "gencast": {
+                  "high_c": 25.91,
+                  "low_c": 21.27,
+                  "mean_c": 23.59,
+                  "precip_mm": 2.13
+                },
+                "gfs": {
+                  "high_c": 29.0,
+                  "low_c": 21.25,
+                  "mean_c": 24.05,
+                  "precip_mm": 0.0
+                },
+                "gefs": {
+                  "high_c": 28.79,
+                  "low_c": 22.56,
+                  "mean_c": 24.92,
+                  "precip_mm": 0.19
+                },
+                "aifs": {
+                  "high_c": 28.38,
+                  "low_c": 23.12,
+                  "mean_c": 25.78,
+                  "precip_mm": 2.04
+                },
+                "ifs_ens": {
+                  "high_c": 28.1,
+                  "low_c": 21.26,
+                  "mean_c": 24.05,
+                  "precip_mm": 3.83
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-07-31",
+              "high_c": 27.64,
+              "low_c": 21.63,
+              "mean_c": 24.32,
+              "precip_mm": 1.74,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 27.12,
+                  "low_c": 21.51,
+                  "mean_c": 24.06,
+                  "precip_mm": 2.07
+                },
+                "gencast": {
+                  "high_c": 26.1,
+                  "low_c": 21.28,
+                  "mean_c": 23.69,
+                  "precip_mm": 0.74
+                },
+                "gfs": {
+                  "high_c": 29.38,
+                  "low_c": 20.5,
+                  "mean_c": 24.26,
+                  "precip_mm": 0.0
+                },
+                "gefs": {
+                  "high_c": 29.18,
+                  "low_c": 21.88,
+                  "mean_c": 24.84,
+                  "precip_mm": 0.21
+                },
+                "aifs": {
+                  "high_c": 28.5,
+                  "low_c": 23.12,
+                  "mean_c": 25.91,
+                  "precip_mm": 2.23
+                },
+                "ifs_ens": {
+                  "high_c": 28.72,
+                  "low_c": 21.18,
+                  "mean_c": 24.14,
+                  "precip_mm": 2.84
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-01",
+              "high_c": 27.31,
+              "low_c": 21.35,
+              "mean_c": 24.1,
+              "precip_mm": 3.08,
+              "symbol": "\ud83c\udf24\ufe0f",
+              "condition": "Light rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 26.71,
+                  "low_c": 21.23,
+                  "mean_c": 23.84,
+                  "precip_mm": 2.36
+                },
+                "gencast": {
+                  "high_c": 26.04,
+                  "low_c": 21.12,
+                  "mean_c": 23.58,
+                  "precip_mm": 3.09
+                },
+                "gfs": {
+                  "high_c": 28.25,
+                  "low_c": 19.62,
+                  "mean_c": 23.78,
+                  "precip_mm": 0.06
+                },
+                "gefs": {
+                  "high_c": 29.78,
+                  "low_c": 21.57,
+                  "mean_c": 25.06,
+                  "precip_mm": 0.62
+                },
+                "aifs": {
+                  "high_c": 28.62,
+                  "low_c": 22.62,
+                  "mean_c": 25.66,
+                  "precip_mm": 3.39
+                },
+                "ifs_ens": {
+                  "high_c": 27.38,
+                  "low_c": 20.91,
+                  "mean_c": 23.59,
+                  "precip_mm": 4.53
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-02",
+              "high_c": 26.9,
+              "low_c": 21.08,
+              "mean_c": 23.68,
+              "precip_mm": 6.13,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 25.61,
+                  "low_c": 20.8,
+                  "mean_c": 22.98,
+                  "precip_mm": 8.69
+                },
+                "gencast": {
+                  "high_c": 25.75,
+                  "low_c": 21.02,
+                  "mean_c": 23.39,
+                  "precip_mm": 3.57
+                },
+                "gfs": {
+                  "high_c": 31.12,
+                  "low_c": 19.5,
+                  "mean_c": 24.42,
+                  "precip_mm": 1.5
+                },
+                "gefs": {
+                  "high_c": 30.03,
+                  "low_c": 21.62,
+                  "mean_c": 25.33,
+                  "precip_mm": 4.82
+                },
+                "aifs": {
+                  "high_c": 27.75,
+                  "low_c": 22.12,
+                  "mean_c": 24.66,
+                  "precip_mm": 7.2
+                },
+                "ifs_ens": {
+                  "high_c": 27.43,
+                  "low_c": 20.56,
+                  "mean_c": 23.32,
+                  "precip_mm": 4.16
+                }
+              }
+            }
+          ]
+        },
+        "Kolkata": {
+          "latitude": 22.57,
+          "longitude": 88.36,
+          "temperature_method": "hedge",
+          "precipitation_method": "eg",
+          "temperature_weights": {
+            "weathernext2": 0.25466907399060723,
+            "gencast": 0.20158403950467532,
+            "gfs": 0.0,
+            "gefs": 0.05821056321241868,
+            "aifs": 0.3174302868163234,
+            "ifs_ens": 0.16810603647597533
+          },
+          "precipitation_weights": {
+            "weathernext2": 0.25560614862043674,
+            "gencast": 0.16760821087972028,
+            "gfs": 0.0,
+            "gefs": 0.13649105314439294,
+            "aifs": 0.26137165354370684,
+            "ifs_ens": 0.17892293381174318
+          },
+          "available_models": [
+            "weathernext2",
+            "gencast",
+            "gfs",
+            "gefs",
+            "aifs",
+            "ifs_ens"
+          ],
+          "days": [
+            {
+              "day": 1,
+              "valid_date": "2026-07-29",
+              "high_c": 29.36,
+              "low_c": 26.42,
+              "mean_c": 27.79,
+              "precip_mm": 8.55,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.17,
+                  "low_c": 25.88,
+                  "mean_c": 27.42,
+                  "precip_mm": 6.68
+                },
+                "gencast": {
+                  "high_c": 27.31,
+                  "low_c": 25.86,
+                  "mean_c": 26.59,
+                  "precip_mm": 9.11
+                },
+                "gfs": {
+                  "high_c": 29.88,
+                  "low_c": 26.5,
+                  "mean_c": 27.77,
+                  "precip_mm": 11.93
+                },
+                "gefs": {
+                  "high_c": 30.39,
+                  "low_c": 26.87,
+                  "mean_c": 28.39,
+                  "precip_mm": 10.5
+                },
+                "aifs": {
+                  "high_c": 30.38,
+                  "low_c": 27.38,
+                  "mean_c": 28.72,
+                  "precip_mm": 10.1
+                },
+                "ifs_ens": {
+                  "high_c": 29.84,
+                  "low_c": 25.93,
+                  "mean_c": 27.86,
+                  "precip_mm": 6.92
+                }
+              }
+            },
+            {
+              "day": 2,
+              "valid_date": "2026-07-30",
+              "high_c": 28.94,
+              "low_c": 26.61,
+              "mean_c": 27.73,
+              "precip_mm": 12.03,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 28.37,
+                  "low_c": 25.87,
+                  "mean_c": 27.03,
+                  "precip_mm": 9.79
+                },
+                "gencast": {
+                  "high_c": 27.32,
+                  "low_c": 25.97,
+                  "mean_c": 26.64,
+                  "precip_mm": 12.26
+                },
+                "gfs": {
+                  "high_c": 33.25,
+                  "low_c": 27.25,
+                  "mean_c": 29.89,
+                  "precip_mm": 3.62
+                },
+                "gefs": {
+                  "high_c": 32.73,
+                  "low_c": 27.34,
+                  "mean_c": 29.71,
+                  "precip_mm": 5.74
+                },
+                "aifs": {
+                  "high_c": 29.5,
+                  "low_c": 27.75,
+                  "mean_c": 28.56,
+                  "precip_mm": 16.52
+                },
+                "ifs_ens": {
+                  "high_c": 29.37,
+                  "low_c": 26.07,
+                  "mean_c": 27.86,
+                  "precip_mm": 13.24
+                }
+              }
+            },
+            {
+              "day": 3,
+              "valid_date": "2026-07-31",
+              "high_c": 29.41,
+              "low_c": 26.69,
+              "mean_c": 27.98,
+              "precip_mm": 9.1,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 29.55,
+                  "low_c": 25.98,
+                  "mean_c": 27.66,
+                  "precip_mm": 5.56
+                },
+                "gencast": {
+                  "high_c": 27.85,
+                  "low_c": 26.08,
+                  "mean_c": 26.96,
+                  "precip_mm": 10.79
+                },
+                "gfs": {
+                  "high_c": 32.75,
+                  "low_c": 27.12,
+                  "mean_c": 29.69,
+                  "precip_mm": 3.56
+                },
+                "gefs": {
+                  "high_c": 32.58,
+                  "low_c": 27.3,
+                  "mean_c": 29.65,
+                  "precip_mm": 3.02
+                },
+                "aifs": {
+                  "high_c": 29.62,
+                  "low_c": 27.88,
+                  "mean_c": 28.59,
+                  "precip_mm": 13.36
+                },
+                "ifs_ens": {
+                  "high_c": 29.59,
+                  "low_c": 26.03,
+                  "mean_c": 27.94,
+                  "precip_mm": 10.98
+                }
+              }
+            },
+            {
+              "day": 4,
+              "valid_date": "2026-08-01",
+              "high_c": 30.07,
+              "low_c": 27.25,
+              "mean_c": 28.53,
+              "precip_mm": 7.09,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 30.49,
+                  "low_c": 26.68,
+                  "mean_c": 28.28,
+                  "precip_mm": 4.22
+                },
+                "gencast": {
+                  "high_c": 28.26,
+                  "low_c": 26.77,
+                  "mean_c": 27.51,
+                  "precip_mm": 8.53
+                },
+                "gfs": {
+                  "high_c": 32.75,
+                  "low_c": 27.12,
+                  "mean_c": 29.84,
+                  "precip_mm": 4.19
+                },
+                "gefs": {
+                  "high_c": 32.87,
+                  "low_c": 27.48,
+                  "mean_c": 29.92,
+                  "precip_mm": 3.17
+                },
+                "aifs": {
+                  "high_c": 30.38,
+                  "low_c": 28.38,
+                  "mean_c": 29.25,
+                  "precip_mm": 11.11
+                },
+                "ifs_ens": {
+                  "high_c": 30.07,
+                  "low_c": 26.5,
+                  "mean_c": 28.28,
+                  "precip_mm": 6.96
+                }
+              }
+            },
+            {
+              "day": 5,
+              "valid_date": "2026-08-02",
+              "high_c": 31.04,
+              "low_c": 27.53,
+              "mean_c": 29.09,
+              "precip_mm": 6.05,
+              "symbol": "\ud83c\udf26\ufe0f",
+              "condition": "Rain",
+              "experts": {
+                "weathernext2": {
+                  "high_c": 31.69,
+                  "low_c": 26.94,
+                  "mean_c": 28.91,
+                  "precip_mm": 3.08
+                },
+                "gencast": {
+                  "high_c": 28.84,
+                  "low_c": 27.13,
+                  "mean_c": 27.99,
+                  "precip_mm": 9.6
+                },
+                "gfs": {
+                  "high_c": 33.75,
+                  "low_c": 27.88,
+                  "mean_c": 30.39,
+                  "precip_mm": 10.31
+                },
+                "gefs": {
+                  "high_c": 33.76,
+                  "low_c": 27.92,
+                  "mean_c": 30.48,
+                  "precip_mm": 2.69
+                },
+                "aifs": {
+                  "high_c": 31.5,
+                  "low_c": 28.62,
+                  "mean_c": 29.84,
+                  "precip_mm": 9.1
+                },
+                "ifs_ens": {
+                  "high_c": 30.89,
+                  "low_c": 26.72,
+                  "mean_c": 28.77,
+                  "precip_mm": 5.09
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

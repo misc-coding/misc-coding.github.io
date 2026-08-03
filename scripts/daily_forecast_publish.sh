@@ -26,8 +26,10 @@ LOG="$LOG_DIR/publish_$(date -u +%Y%m%d).log"
     PUBLISH_ARGS+=(--backfill)
   fi
   "$PYTHON" scripts/publish_forecast_archive.py "${PUBLISH_ARGS[@]}"
-  if ! git diff --quiet -- index.html README.md assets scripts; then
-    git add index.html README.md assets scripts
+  "$PYTHON" -m pytest -q
+  node --check assets/app.js
+  if ! git diff --quiet -- index.html README.md assets scripts systemd tests package.json package-lock.json .github; then
+    git add index.html README.md assets scripts systemd tests package.json package-lock.json .github
     git commit -m "Update India forecast archive"
     git push origin main
   fi

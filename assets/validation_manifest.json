@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-08-03T08:33:29.482082Z",
+  "generated_at_utc": "2026-08-03T09:13:56.587602Z",
   "truth_source": "Open-Meteo hourly temperature_2m and precipitation",
   "temperature_definition": "Forecast 2 m temperature at the exact valid time, matched to Open-Meteo hourly temperature.",
   "precipitation_definition": "Forecast precipitation accumulated from initialization through each valid endpoint, matched to the sum of Open-Meteo hourly precipitation over the same interval.",
@@ -20,125 +20,205 @@
       },
       "summary": {
         "temperature": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 1.1139474051339282,
-                "3": 1.1762581961495537,
-                "5": 0.7775503976004465
+                "1": 0.45602010091145867,
+                "3": 0.5414306640625002,
+                "5": 0.3613433837890625
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.6509905133928571,
-                "3": 0.956600516183036,
-                "5": 0.7687177385602679
+                "1": 0.3702209472656257,
+                "3": 0.17851562500000107,
+                "5": 0.8185272216796875
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 3.132142857142857,
-                "3": 1.1607142857142863,
-                "5": 1.1535714285714285
+                "1": 2.3125,
+                "3": 1.512500000000001,
+                "5": 1.7124999999999986
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 2.9858298710414344,
-                "3": 2.545852552141462,
-                "5": 1.9260369982038223
+                "1": 2.627016067504883,
+                "3": 2.4629035949707028,
+                "5": 2.197580337524414
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.9178571428571429,
-                "3": 0.6357142857142856,
-                "5": 0.47142857142857153
+                "1": 0.875,
+                "3": 1.0999999999999996,
+                "5": 0.5625
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.1340339660644527,
-                "3": 1.6860641479492189,
-                "5": 1.2417369297572545
+                "1": 0.6593141555786133,
+                "3": 0.6818622589111332,
+                "5": 0.9901962280273438
               }
             }
           }
         },
         "precipitation": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 4.508664146491459,
-                "3": 8.200039563860212,
-                "5": 10.703495243617466
+                "1": 4.0133408745129895,
+                "3": 10.999968242645263,
+                "5": 17.66547050476074
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 3.6918819052832466,
-                "3": 7.519319111960276,
-                "5": 7.675350407191685
+                "1": 7.122978329658507,
+                "3": 14.626568937301634,
+                "5": 8.416129493713377
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 5.240221296037946,
-                "3": 9.572899845668248,
-                "5": 19.52981992449079
+                "1": 10.659112930297852,
+                "3": 22.495510482788085,
+                "5": 24.425672912597655
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 3.887675937361178,
-                "3": 9.642174703324708,
-                "5": 7.145454053523356
+                "1": 8.09900185717197,
+                "3": 13.10885955156882,
+                "5": 11.094357287355159
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 3.4343133926391602,
-                "3": 5.949869891575405,
-                "5": 5.856485666547504
+                "1": 5.300917625427245,
+                "3": 8.47034683227539,
+                "5": 4.053657913208006
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 3.3376085117596874,
-                "3": 4.897728570111643,
-                "5": 4.12439868608938
+                "1": 5.147539896861416,
+                "3": 5.844968127491846,
+                "5": 4.757433983676854
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260803_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260803_00/delhi-temperature.png",
+            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260803_00/delhi-precipitation.png",
+            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          }
+        },
+        "20260802_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260802_00/delhi-temperature.png",
+            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260802_00/delhi-precipitation.png",
+            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260801_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260801_00/delhi-temperature.png",
+            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260801_00/delhi-precipitation.png",
+            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260731_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260731_00/delhi-temperature.png",
+            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260731_00/delhi-precipitation.png",
+            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
+        "20260730_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260730_00/delhi-temperature.png",
+            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260730_00/delhi-precipitation.png",
+            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
         "20260729_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/delhi-temperature.png",
@@ -178,106 +258,6 @@
               5
             ]
           }
-        },
-        "20260727_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260727_00/delhi-temperature.png",
-            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260727_00/delhi-precipitation.png",
-            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260726_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260726_00/delhi-temperature.png",
-            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260726_00/delhi-precipitation.png",
-            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260725_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260725_00/delhi-temperature.png",
-            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260725_00/delhi-precipitation.png",
-            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260724_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260724_00/delhi-temperature.png",
-            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260724_00/delhi-precipitation.png",
-            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260723_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260723_00/delhi-temperature.png",
-            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260723_00/delhi-precipitation.png",
-            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
         }
       }
     },
@@ -296,125 +276,205 @@
       },
       "summary": {
         "temperature": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 1.1927917480468746,
-                "3": 1.0710292271205357,
-                "5": 1.1561349051339285
+                "1": 0.8229888916015623,
+                "3": 1.1783096313476564,
+                "5": 1.2783233642578118
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.0640642438616068,
-                "3": 0.9652553013392858,
-                "5": 1.050557163783482
+                "1": 0.8913543701171864,
+                "3": 1.186083984375001,
+                "5": 0.8038818359374993
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.5999999999999999,
-                "3": 0.6642857142857146,
-                "5": 0.38214285714285723
+                "1": 0.5250000000000004,
+                "3": 1.137500000000001,
+                "5": 0.11250000000000071
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.4709678649902343,
-                "3": 0.5122114453996934,
-                "5": 0.3945852007184715
+                "1": 0.4685482025146488,
+                "3": 0.6879026412963878,
+                "5": 0.3725803375244148
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.40357142857142847,
-                "3": 0.23571428571428601,
-                "5": 0.17857142857142808
+                "1": 0.33750000000000036,
+                "3": 0.13750000000000107,
+                "5": 0.07499999999999929
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.8213584899902341,
-                "3": 0.32829110281808027,
-                "5": 0.44285714285714256
+                "1": 0.5818632125854482,
+                "3": 0.20857830047607528,
+                "5": 0.6534311294555657
               }
             }
           }
         },
         "precipitation": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 11.422395188467846,
-                "3": 26.630659266880578,
-                "5": 31.89805210658482
+                "1": 7.999911244710287,
+                "3": 24.36034870147705,
+                "5": 23.29054946899414
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 9.342231505257745,
-                "3": 29.054582214355467,
-                "5": 44.92081800188337
+                "1": 6.9910050392150875,
+                "3": 70.67621994018555,
+                "5": 76.85162658691407
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 14.099977111816406,
-                "3": 30.638954380580362,
-                "5": 44.64129191807338
+                "1": 9.066949462890625,
+                "3": 67.200927734375,
+                "5": 88.92666168212891
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 13.996728053971728,
-                "3": 25.391374572898663,
-                "5": 35.9292282373711
+                "1": 8.747724981827195,
+                "3": 43.09577757929219,
+                "5": 51.83230309594656
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 5.921846226283482,
-                "3": 15.92146780831473,
-                "5": 20.359168352399553
+                "1": 2.8631072998046876,
+                "3": 27.74799346923828,
+                "5": 29.205668640136718
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 8.124239346636127,
-                "3": 11.420719631330574,
-                "5": 14.128912831694887
+                "1": 4.080574564164271,
+                "3": 2.4085975751222577,
+                "5": 3.2737171768501874
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260803_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260803_00/mumbai-temperature.png",
+            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260803_00/mumbai-precipitation.png",
+            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          }
+        },
+        "20260802_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260802_00/mumbai-temperature.png",
+            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260802_00/mumbai-precipitation.png",
+            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260801_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260801_00/mumbai-temperature.png",
+            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260801_00/mumbai-precipitation.png",
+            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260731_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260731_00/mumbai-temperature.png",
+            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260731_00/mumbai-precipitation.png",
+            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
+        "20260730_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260730_00/mumbai-temperature.png",
+            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260730_00/mumbai-precipitation.png",
+            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
         "20260729_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/mumbai-temperature.png",
@@ -454,106 +514,6 @@
               5
             ]
           }
-        },
-        "20260727_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260727_00/mumbai-temperature.png",
-            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260727_00/mumbai-precipitation.png",
-            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260726_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260726_00/mumbai-temperature.png",
-            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260726_00/mumbai-precipitation.png",
-            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260725_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260725_00/mumbai-temperature.png",
-            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260725_00/mumbai-precipitation.png",
-            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260724_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260724_00/mumbai-temperature.png",
-            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260724_00/mumbai-precipitation.png",
-            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260723_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260723_00/mumbai-temperature.png",
-            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260723_00/mumbai-precipitation.png",
-            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
         }
       }
     },
@@ -572,125 +532,205 @@
       },
       "summary": {
         "temperature": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 0.25404401506696367,
-                "3": 0.2837193080357144,
-                "5": 0.4493137904575895
+                "1": 0.2558970133463537,
+                "3": 0.49626617431640696,
+                "5": 0.6497955322265625
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.17126813616071448,
-                "3": 0.38446742466517847,
-                "5": 0.5865818568638395
+                "1": 0.1646697998046882,
+                "3": 0.5835357666015639,
+                "5": 0.6604156494140625
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.625,
-                "3": 0.9178571428571429,
-                "5": 1.2178571428571427
+                "1": 0.8125,
+                "3": 1.5375000000000014,
+                "5": 1.75
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.6609446389334549,
-                "3": 0.45794895717075945,
-                "5": 0.243894141060965
+                "1": 0.838709831237793,
+                "3": 0.16129016876220703,
+                "5": 0.05080623626708913
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.4357142857142864,
-                "3": 1.2035714285714287,
-                "5": 1.057142857142857
+                "1": 1.375,
+                "3": 1.0874999999999986,
+                "5": 0.6875
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.30966360909598173,
-                "3": 0.5961482456752231,
-                "5": 0.7957986559186665
+                "1": 0.39583301544189453,
+                "3": 0.645343399047853,
+                "5": 1.0674028396606445
               }
             }
           }
         },
         "precipitation": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 1.8516219479697091,
-                "3": 2.3911465712956024,
-                "5": 5.775303459167481
+                "1": 3.1145464817682895,
+                "3": 8.282303857803344,
+                "5": 12.158594799041747
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.8977537887437002,
-                "3": 3.9300830772944857,
-                "5": 7.454410920824323
+                "1": 1.609478658437729,
+                "3": 4.951598477363586,
+                "5": 17.41442461013794
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 2.783960178920201,
-                "3": 7.5443158830915165,
-                "5": 16.10252892630441
+                "1": 2.3180461883544923,
+                "3": 8.324061584472656,
+                "5": 26.19710464477539
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 2.64118668904472,
-                "3": 7.103685982648463,
-                "5": 13.225513967238909
+                "1": 2.2142077126933146,
+                "3": 7.858661551183513,
+                "5": 21.221829252387078
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.6983362913131714,
-                "3": 2.2279018572398592,
-                "5": 5.244289578710284
+                "1": 1.489686167240143,
+                "3": 2.359700453281402,
+                "5": 11.143059027194976
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.8287660475339536,
-                "3": 1.6418427785275918,
-                "5": 5.155841021504251
+                "1": 0.2842063325994785,
+                "3": 0.8332272976967037,
+                "5": 11.606632169589556
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260803_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260803_00/bengaluru-temperature.png",
+            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260803_00/bengaluru-precipitation.png",
+            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          }
+        },
+        "20260802_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260802_00/bengaluru-temperature.png",
+            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260802_00/bengaluru-precipitation.png",
+            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260801_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260801_00/bengaluru-temperature.png",
+            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260801_00/bengaluru-precipitation.png",
+            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260731_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260731_00/bengaluru-temperature.png",
+            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260731_00/bengaluru-precipitation.png",
+            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
+        "20260730_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260730_00/bengaluru-temperature.png",
+            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260730_00/bengaluru-precipitation.png",
+            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
         "20260729_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/bengaluru-temperature.png",
@@ -730,106 +770,6 @@
               5
             ]
           }
-        },
-        "20260727_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260727_00/bengaluru-temperature.png",
-            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260727_00/bengaluru-precipitation.png",
-            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260726_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260726_00/bengaluru-temperature.png",
-            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260726_00/bengaluru-precipitation.png",
-            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260725_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260725_00/bengaluru-temperature.png",
-            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260725_00/bengaluru-precipitation.png",
-            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260724_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260724_00/bengaluru-temperature.png",
-            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260724_00/bengaluru-precipitation.png",
-            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260723_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260723_00/bengaluru-temperature.png",
-            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260723_00/bengaluru-precipitation.png",
-            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
         }
       }
     },
@@ -848,125 +788,205 @@
       },
       "summary": {
         "temperature": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 0.5241228376116075,
-                "3": 0.35129481724330347,
-                "5": 0.45741228376116083
+                "1": 0.5836395263671879,
+                "3": 0.5787902832031246,
+                "5": 0.6952026367187507
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.5479875837053575,
-                "3": 0.46491001674107174,
-                "5": 0.5804399762834827
+                "1": 0.6279541015624996,
+                "3": 0.2621429443359382,
+                "5": 0.7927978515625007
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.6357142857142856,
-                "3": 1.1857142857142857,
-                "5": 1.3642857142857143
+                "1": 0.7000000000000011,
+                "3": 0.8625000000000007,
+                "5": 0.75
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.5163594382149833,
-                "3": 1.042857142857143,
-                "5": 1.2996543339320594
+                "1": 0.5471776962280277,
+                "3": 0.8342741012573249,
+                "5": 0.7657258987426765
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 1.0499999999999996,
-                "3": 1.2571428571428573,
-                "5": 1.2750000000000001
+                "1": 0.9625000000000004,
+                "3": 1.6125000000000007,
+                "5": 1.0625
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 0.5806024278913229,
-                "3": 0.4577035086495539,
-                "5": 0.6072830200195314
+                "1": 0.5779415130615231,
+                "3": 0.273039627075196,
+                "5": 0.8821084976196296
               }
             }
           }
         },
         "precipitation": {
-          "matched_points": 21,
+          "matched_points": 12,
           "models": {
             "weathernext2": {
               "label": "WeatherNext 2 / FGN",
-              "n": 21,
+              "n": 12,
               "mae_by_lead": {
-                "1": 12.08469773701259,
-                "3": 23.473740223475865,
-                "5": 43.42243990216936
+                "1": 7.792556897799173,
+                "3": 23.480233573913573,
+                "5": 47.26633567810058
               }
             },
             "gencast": {
               "label": "GenCast",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 10.888391944340297,
-                "3": 14.373570905412947,
-                "5": 29.071458326067237
+                "1": 8.665397691726685,
+                "3": 11.299026870727541,
+                "5": 28.71153755187988
               }
             },
             "gfs": {
               "label": "GFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 17.233070264543805,
-                "3": 38.78319091796875,
-                "5": 60.17312654767717
+                "1": 11.328034210205079,
+                "3": 24.863983535766604,
+                "5": 45.54057998657226
               }
             },
             "gefs": {
               "label": "GEFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 15.941782793265988,
-                "3": 35.780779641172224,
-                "5": 60.32821485099045
+                "1": 9.43217906762111,
+                "3": 24.983159918423464,
+                "5": 52.261200334702785
               }
             },
             "aifs": {
               "label": "AIFS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 10.907853916713169,
-                "3": 11.450446374075755,
-                "5": 19.64945444379533
+                "1": 4.513935852050781,
+                "3": 1.5250907897949197,
+                "5": 9.987792205810543
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
-              "n": 21,
+              "n": 6,
               "mae_by_lead": {
-                "1": 8.849011928453441,
-                "3": 19.701255940882923,
-                "5": 32.776613913672705
+                "1": 5.5803384669226945,
+                "3": 10.293112513687813,
+                "5": 31.52727476781292
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260803_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260803_00/kolkata-temperature.png",
+            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260803_00/kolkata-precipitation.png",
+            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
+            "matched_leads": []
+          }
+        },
+        "20260802_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260802_00/kolkata-temperature.png",
+            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260802_00/kolkata-precipitation.png",
+            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260801_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260801_00/kolkata-temperature.png",
+            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260801_00/kolkata-precipitation.png",
+            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
+            "matched_leads": [
+              1
+            ]
+          }
+        },
+        "20260731_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260731_00/kolkata-temperature.png",
+            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260731_00/kolkata-precipitation.png",
+            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
+        "20260730_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260730_00/kolkata-temperature.png",
+            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260730_00/kolkata-precipitation.png",
+            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
+            "matched_leads": [
+              1,
+              3
+            ]
+          }
+        },
         "20260729_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/kolkata-temperature.png",
@@ -1000,106 +1020,6 @@
           "precipitation": {
             "path": "assets/validation/timeseries/20260728_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260727_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260727_00/kolkata-temperature.png",
-            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260727_00/kolkata-precipitation.png",
-            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260727_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260726_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260726_00/kolkata-temperature.png",
-            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260726_00/kolkata-precipitation.png",
-            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260726_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260725_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260725_00/kolkata-temperature.png",
-            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260725_00/kolkata-precipitation.png",
-            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260725_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260724_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260724_00/kolkata-temperature.png",
-            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260724_00/kolkata-precipitation.png",
-            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260724_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          }
-        },
-        "20260723_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260723_00/kolkata-temperature.png",
-            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260723_00",
-            "matched_leads": [
-              1,
-              3,
-              5
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260723_00/kolkata-precipitation.png",
-            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260723_00",
             "matched_leads": [
               1,
               3,
