@@ -305,6 +305,8 @@ def test_build_html_has_tabs_every_run_and_unique_ids():
     assert html.count('id="forecast-canvas"') == 1
     assert 'value="20260730_00"' in html
     assert 'id="validation-image"' in html
+    assert 'id="validation-skill-chart"' in html
+    assert 'id="validation-models"' in html
     assert 'id="within-day-chart"' in html
     assert 'id="temporal-forecast-canvas"' in html
     assert 'id="imerg-early-canvas"' in html
@@ -326,7 +328,9 @@ def test_frontend_contract_covers_all_interactive_features():
         "[data-validation-city]", "[data-validation-variable]", "#match-init-select",
         "[data-match-variable]", "[data-within-day-model]", "[data-temporal-variable]",
         "#temporal-time-select", "[data-imerg-duration]", "#imerg-time-select",
-        "[data-imerg-validation-model]", "#imerg-validation-chart",
+        "[data-validation-model]", "#validation-skill-plot",
+        "[data-imerg-validation-model]", "[data-imerg-metric]", "[data-imerg-forecast]",
+        "#imerg-validation-chart",
     ):
         assert selector in javascript
     assert "pointerdown" in javascript

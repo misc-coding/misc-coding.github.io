@@ -173,13 +173,30 @@ legend { margin-bottom: 8px; }
 .temporal-canvas.is-unavailable { opacity: .48; }
 .map-value-readout { min-height: 1.6em; margin: 10px 0 0; color: #45606f; font-size: .72rem; }
 .imerg-section, .imerg-city-section { padding-top: 32px; border-top: 1px solid var(--line); }
-.validation-model-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-.validation-model-toggle { padding: 8px 11px; color: #263e4d; background: white; border: 1px solid var(--model-color); border-left: 5px solid var(--model-color); border-radius: 5px; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer; transition: opacity .15s ease, filter .15s ease; }
-.validation-model-toggle[aria-pressed="false"] { color: #87949c; border-color: #c8d0d5; background: #f2f4f5; opacity: .58; filter: grayscale(1); }
-.interactive-validation-chart { min-height: 310px; margin-top: 14px; overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: white; }
+.imerg-validation-toolbar { display: flex; flex-wrap: wrap; gap: 20px; margin: 18px 0 4px; }
+.imerg-validation-toolbar fieldset { min-width: 0; padding: 0; border: 0; }
+.imerg-validation-toolbar legend { margin-bottom: 5px; color: #607080; font-size: .67rem; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.validation-model-toggles { display: flex; flex-wrap: wrap; gap: 4px 15px; margin: 14px 0; padding: 10px 0; border-block: 1px solid #e5eaee; }
+.validation-model-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 5px 2px; color: #263e4d; background: transparent; border: 0; border-radius: 3px; font: inherit; font-size: .73rem; font-weight: 650; cursor: pointer; transition: color .15s ease, opacity .15s ease; }
+.validation-model-toggle::before { width: 9px; height: 9px; flex: 0 0 9px; background: var(--model-color); border-radius: 50%; content: ""; }
+.validation-model-toggle:hover, .validation-model-toggle:focus-visible { color: var(--blue-dark); outline: 2px solid #b9d5e9; outline-offset: 2px; }
+.validation-model-toggle[aria-pressed="false"] { color: #a0a8ae; opacity: .65; }
+.validation-model-toggle[aria-pressed="false"]::before { background: #bfc5c9; }
+.validation-score-strip { display: flex; flex-wrap: wrap; gap: 5px 15px; min-height: 1.5em; color: #607080; font-size: .68rem; }
+.interactive-validation-chart { position: relative; min-height: 310px; margin-top: 14px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+.interactive-validation-plot { overflow-x: auto; }
 .interactive-validation-chart svg { display: block; width: 100%; min-width: 720px; height: auto; }
-.interactive-chart-grid line { stroke: #dce4e8; stroke-width: 1; }
+.interactive-chart-grid line { stroke: #e3e8eb; stroke-width: 1; }
 .interactive-chart-grid text { fill: #657782; font-size: 11px; }
+.interactive-chart-grid .axis-title { fill: #405562; font-size: 12px; font-weight: 650; }
+.validation-series { vector-effect: non-scaling-stroke; }
+.validation-chart-point { cursor: crosshair; stroke: white; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.validation-chart-point:hover, .validation-chart-point:focus { r: 6px; outline: none; stroke: #172b3a; stroke-width: 2; }
+.validation-chart-tooltip { position: fixed; z-index: 100; max-width: 290px; padding: 8px 10px; color: white; background: rgba(23,43,58,.96); border-radius: 4px; box-shadow: 0 4px 14px rgba(23,43,58,.18); font-size: .7rem; line-height: 1.45; pointer-events: none; }
+.validation-static { margin-top: 14px; color: var(--muted); font-size: .75rem; }
+.validation-static summary { width: fit-content; color: var(--blue-dark); cursor: pointer; font-weight: 650; }
+.validation-static .chart-image { margin-top: 10px; }
+.empty-state { margin: 0; padding: 88px 24px; color: #647580; text-align: center; }
 .chart-caption { margin: 8px 2px 0; color: var(--muted); font-size: .75rem; }
 .data-note.is-loading::before { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border: 2px solid #b8c7d0; border-top-color: var(--blue); border-radius: 50%; content: ""; vertical-align: -2px; animation: loading-spin .75s linear infinite; }
 @keyframes loading-spin { to { transform: rotate(360deg); } }

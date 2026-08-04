@@ -2,7 +2,7 @@
 
 A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, native-time India maps, recent-error and simple-average mixtures, and matched Open-Meteo and IMERG validation.
 
-- Last successful build: `2026-08-04T10:07:00.689822Z`
+- Last successful build: `2026-08-04T10:46:14.747457Z`
 - Latest initialization: `2026-08-04T00:00:00Z`
 - Available models: WeatherNext 2 / FGN, GFS, GEFS, AIFS, IFS-ENS
 - Models still pending: gencast

@@ -177,6 +177,20 @@ test("all dashboard controls update their panels without runtime errors", async 
 
   document.querySelector('[data-tab="validation"]').click();
   await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.ok(document.querySelector("#validation-skill-chart svg"));
+  assert.ok(document.querySelectorAll("[data-validation-model]").length >= 2);
+  const skillLinesBefore = document.querySelectorAll("#validation-skill-chart .validation-series").length;
+  const skillToggle = document.querySelector("[data-validation-model]");
+  const skillModel = skillToggle.dataset.validationModel;
+  skillToggle.click();
+  assert.equal(document.querySelector(`[data-validation-model="${skillModel}"]`).getAttribute("aria-pressed"), "false");
+  assert.ok(document.querySelectorAll("#validation-skill-chart .validation-series").length < skillLinesBefore);
+  const skillPoint = document.querySelector("#validation-skill-chart [data-validation-point]");
+  skillPoint.dispatchEvent(new window.Event("pointerenter", { bubbles: true }));
+  assert.equal(document.querySelector("#validation-skill-tooltip").hidden, false);
+  assert.match(document.querySelector("#validation-skill-tooltip").textContent, /forecast horizon/);
+  skillPoint.dispatchEvent(new window.Event("pointerleave", { bubbles: true }));
+  assert.equal(document.querySelector("#validation-skill-tooltip").hidden, true);
   document.querySelector('[data-validation-variable="precipitation"]').click();
   assert.match(document.querySelector("#validation-image").getAttribute("src"), /precipitation\.png/);
   assert.match(document.querySelector("#validation-summary").textContent, /combined mean endpoint MAE/);
@@ -188,12 +202,35 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.match(document.querySelector("#imerg-map-note").textContent, /native 0\.1° grid/i);
   assert.ok(document.querySelector("#imerg-validation-chart svg"));
   assert.ok(document.querySelectorAll("[data-imerg-validation-model]").length >= 2);
-  assert.match(document.querySelector("#imerg-validation-summary").textContent, /six-hour intervals/);
+  assert.match(document.querySelector("#imerg-validation-summary").textContent, /[1-9]\d* realized common-grid six-hour intervals/);
   const validationToggle = document.querySelector("[data-imerg-validation-model]");
   const toggledModel = validationToggle.dataset.imergValidationModel;
+  const imergLinesBefore = document.querySelectorAll("#imerg-validation-chart .validation-series").length;
   validationToggle.click();
   assert.equal(document.querySelector(`[data-imerg-validation-model="${toggledModel}"]`).getAttribute("aria-pressed"), "false");
   assert.ok(document.querySelector("#imerg-validation-chart svg"));
+  assert.ok(document.querySelectorAll("#imerg-validation-chart .validation-series").length < imergLinesBefore);
+  document.querySelector('[data-imerg-metric="error"]').click();
+  assert.equal(document.querySelector('[data-imerg-metric="error"]').getAttribute("aria-pressed"), "true");
+  assert.match(document.querySelector("#imerg-validation-chart .axis-title").textContent, /Absolute error/);
+  document.querySelector('[data-imerg-forecast="raw"]').click();
+  assert.equal(document.querySelector('[data-imerg-forecast="raw"]').getAttribute("aria-pressed"), "true");
+  assert.match(document.querySelector("#imerg-validation-summary").textContent, /raw forecasts/);
+  const imergPoint = document.querySelector("#imerg-validation-chart [data-validation-point]");
+  imergPoint.dispatchEvent(new window.Event("pointerenter", { bubbles: true }));
+  assert.equal(document.querySelector("#imerg-validation-tooltip").hidden, false);
+  assert.match(document.querySelector("#imerg-validation-tooltip").textContent, /IST.*UTC/);
+  const validationInit = document.querySelector("#imerg-validation-init");
+  const realizedInit = validationInit.value;
+  const newestInit = document.querySelector("#init-select").value;
+  if ([...validationInit.options].some((option) => option.value === newestInit) && newestInit !== realizedInit) {
+    validationInit.value = newestInit;
+    validationInit.dispatchEvent(new window.Event("change", { bubbles: true }));
+    assert.match(document.querySelector("#imerg-validation-summary").textContent, /no completed IMERG Late intervals/);
+    assert.match(document.querySelector("#imerg-validation-chart .empty-state").textContent, /Waiting for observations/);
+    validationInit.value = realizedInit;
+    validationInit.dispatchEvent(new window.Event("change", { bubbles: true }));
+  }
   document.querySelector('[data-imerg-duration="6h"]').click();
   await new Promise((resolve) => setTimeout(resolve, 150));
   assert.ok(document.querySelector("#imerg-time-select").options.length >= 10);

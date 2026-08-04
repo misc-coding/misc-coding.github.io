@@ -18,7 +18,8 @@
   const allowedDays = new Set(["1", "3", "5"]);
   const allowedWeatherDays = new Set(["1", "2", "3", "4", "5"]);
   const cityGridColors = { weathernext2: "#2563a6", gencast: "#7c4db3", gfs: "#d4573b",
-    gefs: "#be7910", aifs: "#087f73", ifs_ens: "#34495e", imerg_combined: "#c51d3b" };
+    gefs: "#be7910", aifs: "#087f73", ifs_ens: "#34495e", combined: "#c51d3b",
+    imerg_combined: "#c51d3b" };
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
   const sourceModelTotal = site.models.filter((model) => !["combined", "simple_average"].includes(model.id)).length;
@@ -42,6 +43,10 @@
   let imergDuration = params.get("imerg_duration") === "6h" ? "6h" : "30min";
   let imergTimeIndex = Number(params.get("imerg_time") || -1);
   let imergValidationInit = params.get("imerg_validation_init") || "";
+  let imergValidationInitTouched = Boolean(params.get("imerg_validation_init"));
+  let imergValidationMetric = params.get("imerg_metric") === "error" ? "error" : "rainfall";
+  let imergValidationForecast = params.get("imerg_forecast") === "raw" ? "raw" : "corrected";
+  const validationVisibleModels = new Set();
   const imergVisibleModels = new Set();
   let payload = null;
   let coastlines = [];
@@ -60,7 +65,8 @@
       model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable,
       within_model: withinDayModel, temporal_variable: temporalVariable, temporal_init: temporalInit,
       temporal_model: temporalModel, temporal_time: temporalTimeIndex, imerg_duration: imergDuration,
-      imerg_time: imergTimeIndex, imerg_validation_init: imergValidationInit };
+      imerg_time: imergTimeIndex, imerg_validation_init: imergValidationInit,
+      imerg_metric: imergValidationMetric, imerg_forecast: imergValidationForecast };
     Object.entries(values).forEach(([key, value]) => { if (value) next.searchParams.set(key, value); });
     history.replaceState(null, "", next);
   }
@@ -575,6 +581,55 @@
     setUrl();
   }
 
+  function attachInteractiveChartTooltip(containerSelector, tooltipSelector) {
+    const container = q(containerSelector);
+    const tooltip = q(tooltipSelector);
+    if (!container || !tooltip) return;
+    const show = (event) => {
+      const point = event.currentTarget;
+      tooltip.textContent = `${point.dataset.label} · ${point.dataset.value} ${point.dataset.units} · ${point.dataset.detail}`;
+      const bounds = point.getBoundingClientRect();
+      const left = Number.isFinite(event.clientX) && event.clientX ? event.clientX : bounds.left + bounds.width / 2;
+      const top = Number.isFinite(event.clientY) && event.clientY ? event.clientY : bounds.top;
+      tooltip.style.left = `${Math.max(10, Math.min(window.innerWidth - 260, left + 12))}px`;
+      tooltip.style.top = `${Math.max(10, top - 52)}px`;
+      tooltip.hidden = false;
+    };
+    const hide = () => { tooltip.hidden = true; };
+    container.querySelectorAll("[data-validation-point]").forEach((point) => {
+      point.addEventListener("pointerenter", show);
+      point.addEventListener("pointermove", show);
+      point.addEventListener("pointerleave", hide);
+      point.addEventListener("focus", show);
+      point.addEventListener("blur", hide);
+    });
+  }
+
+  function validationSkillChart(summary, modelIds) {
+    const leads = [...new Set(Object.values(summary.models || {}).flatMap((model) => Object.keys(model.mae_by_lead || {}).map(Number)))].sort((a, b) => a - b);
+    if (!leads.length || !modelIds.length) return '<p class="empty-state">Select at least one model to draw the validation chart.</p>';
+    const width = 1000, height = 430, pad = { l: 70, r: 24, t: 28, b: 62 };
+    const unit = validationVariable === "temperature" ? "°C MAE" : "mm MAE";
+    const allValues = modelIds.flatMap((id) => Object.values(summary.models[id]?.mae_by_lead || {})).filter(Number.isFinite);
+    if (!allValues.length) return '<p class="empty-state">No matched validation scores are available for the selected models.</p>';
+    const high = Math.max(validationVariable === "temperature" ? 1 : 5, Math.ceil(Math.max(...allValues) * 1.12 * 10) / 10);
+    const x = (lead) => pad.l + leads.indexOf(lead) * (width - pad.l - pad.r) / Math.max(leads.length - 1, 1);
+    const y = (value) => pad.t + (high - value) / high * (height - pad.t - pad.b);
+    const ticks = [0, .25, .5, .75, 1].map((fraction) => high * fraction);
+    const grid = ticks.map((value) => `<g><line x1="${pad.l}" x2="${width - pad.r}" y1="${y(value)}" y2="${y(value)}"/><text x="${pad.l - 10}" y="${y(value) + 4}" text-anchor="end">${value.toFixed(high < 2 ? 2 : 1)}</text></g>`).join("");
+    const labels = leads.map((lead) => `<text x="${x(lead)}" y="${height - 30}" text-anchor="middle">+${lead * 24} h</text>`).join("");
+    const traces = modelIds.map((id) => {
+      const model = summary.models[id];
+      const color = cityGridColors[id] || "#64748b";
+      const points = leads.map((lead) => ({ lead, value: model?.mae_by_lead?.[String(lead)] })).filter((point) => Number.isFinite(point.value));
+      if (!points.length) return "";
+      const line = path(points.map((point) => [x(point.lead), y(point.value)]));
+      const dots = points.map((point) => `<circle class="validation-chart-point" data-validation-point tabindex="0" cx="${x(point.lead)}" cy="${y(point.value)}" r="4" fill="${color}" data-label="${model.label}" data-value="${point.value.toFixed(2)}" data-units="${unit}" data-detail="forecast horizon +${point.lead * 24} hours" aria-label="${model.label}, ${point.value.toFixed(2)} ${unit}, forecast horizon ${point.lead * 24} hours"></circle>`).join("");
+      return `<path class="validation-series" data-validation-series="${id}" d="${line}" fill="none" stroke="${color}" stroke-width="2.5"/>${dots}`;
+    }).join("");
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Mean absolute error by forecast horizon for selected models"><g class="interactive-chart-grid">${grid}${labels}<text class="axis-title" x="${(pad.l + width - pad.r) / 2}" y="${height - 7}" text-anchor="middle">Forecast horizon</text><text class="axis-title" transform="translate(17 ${(pad.t + height - pad.b) / 2}) rotate(-90)" text-anchor="middle">${unit}</text></g>${traces}</svg>`;
+  }
+
   function renderValidation() {
     selectButton("[data-validation-city]", city, "validationCity");
     selectButton("[data-validation-variable]", validationVariable, "validationVariable");
@@ -586,10 +641,22 @@
     q("#validation-image").src = overview.path; q("#validation-image").alt = overview.alt;
     q("#match-image").src = matched.path; q("#match-image").alt = matched.alt;
     const summary = item.summary[validationVariable];
+    const modelIds = Object.keys(summary.models || {});
+    [...validationVisibleModels].forEach((model) => { if (!modelIds.includes(model)) validationVisibleModels.delete(model); });
+    if (!validationVisibleModels.size) modelIds.forEach((model) => validationVisibleModels.add(model));
+    q("#validation-models").innerHTML = modelIds.map((model) => `<button type="button" class="validation-model-toggle" data-validation-model="${model}" aria-pressed="${validationVisibleModels.has(model)}" style="--model-color:${cityGridColors[model] || "#64748b"}">${summary.models[model].label}</button>`).join("");
+    qa("[data-validation-model]").forEach((button) => button.addEventListener("click", () => {
+      const model = button.dataset.validationModel;
+      if (validationVisibleModels.has(model)) validationVisibleModels.delete(model); else validationVisibleModels.add(model);
+      renderValidation();
+    }));
+    const selected = modelIds.filter((model) => validationVisibleModels.has(model));
+    q("#validation-skill-plot").innerHTML = validationSkillChart(summary, selected);
+    attachInteractiveChartTooltip("#validation-skill-plot", "#validation-skill-tooltip");
     const points = summary.matched_points;
     const leadErrors = Object.values(summary.models?.combined?.mae_by_lead || {});
     const combinedText = leadErrors.length ? ` · combined mean endpoint MAE ${(leadErrors.reduce((sum, value) => sum + value, 0) / leadErrors.length).toFixed(2)} ${validationVariable === "temperature" ? "°C" : "mm"}` : "";
-    q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations${combinedText}`;
+    q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations${combinedText}${selected.length ? "" : " · all model traces hidden"}`;
     setUrl();
   }
 
@@ -849,7 +916,13 @@
   }
 
   function imergValidationValue(row, model) {
-    return model === imerg.grid_ensemble?.model_id ? row.combined_mm : row.models?.[model]?.bias_corrected_mm;
+    if (model !== imerg.grid_ensemble?.model_id) {
+      return imergValidationForecast === "raw" ? row.models?.[model]?.raw_mm : row.models?.[model]?.bias_corrected_mm;
+    }
+    if (imergValidationForecast === "corrected") return row.combined_mm;
+    const inputs = Object.values(row.models || {}).filter((item) => Number.isFinite(item.raw_mm) && Number.isFinite(item.weight));
+    const totalWeight = inputs.reduce((sum, item) => sum + item.weight, 0);
+    return totalWeight > 0 ? inputs.reduce((sum, item) => sum + item.raw_mm * item.weight, 0) / totalWeight : null;
   }
 
   function imergValidationRmse(rows, model) {
@@ -861,15 +934,22 @@
   }
 
   function imergValidationChart(rows, modelIds) {
-    if (!rows.length) return '<p class="empty-state">No common six-hour validation rows are available.</p>';
+    if (!rows.length) return '<p class="empty-state"><strong>Waiting for observations.</strong><br>IMERG Late has not completed any six-hour intervals for this initialization yet. Choose an earlier initialization to validate realized forecasts.</p>';
+    if (!modelIds.length) return '<p class="empty-state">All model traces are hidden. Select a grey model name above to show it.</p>';
     const width = 1000, height = 430, pad = { l: 58, r: 24, t: 25, b: 58 };
     const timestamps = rows.map((row) => new Date(row.valid_time_utc).getTime());
     const x = (time) => pad.l + (time - timestamps[0]) / Math.max(timestamps[timestamps.length - 1] - timestamps[0], 1) * (width - pad.l - pad.r);
     const values = [];
     rows.forEach((row) => {
-      if (Number.isFinite(row.imerg_early_mm)) values.push(row.imerg_early_mm);
-      if (Number.isFinite(row.imerg_late_mm)) values.push(row.imerg_late_mm);
-      modelIds.forEach((model) => { const value = imergValidationValue(row, model); if (Number.isFinite(value)) values.push(value); });
+      if (imergValidationMetric === "rainfall") {
+        if (Number.isFinite(row.imerg_early_mm)) values.push(row.imerg_early_mm);
+        if (Number.isFinite(row.imerg_late_mm)) values.push(row.imerg_late_mm);
+      }
+      modelIds.forEach((model) => {
+        const forecast = imergValidationValue(row, model);
+        const value = imergValidationMetric === "error" && Number.isFinite(row.imerg_late_mm) ? Math.abs(forecast - row.imerg_late_mm) : forecast;
+        if (Number.isFinite(value)) values.push(value);
+      });
     });
     const high = Math.max(1, Math.ceil(Math.max(...values, 1) * 1.08));
     const y = (value) => pad.t + (high - value) / high * (height - pad.t - pad.b);
@@ -882,19 +962,27 @@
       const time = date.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
       return `<text x="${x(date.getTime())}" y="${height - 28}" text-anchor="middle">${day}</text><text x="${x(date.getTime())}" y="${height - 12}" text-anchor="middle">${time} UTC</text>`;
     }).join("");
-    const series = [
+    const observations = imergValidationMetric === "rainfall" ? [
       { id: "imerg_late", label: "IMERG Late", color: "#172b3a", width: 3, value: (row) => row.imerg_late_mm },
       { id: "imerg_early", label: "IMERG Early", color: "#2a9d8f", width: 2, dash: "5 4", value: (row) => row.imerg_early_mm },
-      ...modelIds.map((model) => ({ id: model, label: modelLabel(model), color: cityGridColors[model] || "#64748b", width: model === imerg.grid_ensemble?.model_id ? 3 : 1.8, value: (row) => imergValidationValue(row, model) })),
+    ] : [];
+    const series = [
+      ...observations,
+      ...modelIds.map((model) => ({ id: model, label: modelLabel(model), color: cityGridColors[model] || "#64748b", width: model === imerg.grid_ensemble?.model_id ? 3 : 2, value: (row) => {
+        const forecast = imergValidationValue(row, model);
+        return imergValidationMetric === "error" && Number.isFinite(forecast) && Number.isFinite(row.imerg_late_mm) ? Math.abs(forecast - row.imerg_late_mm) : forecast;
+      } })),
     ];
     const traces = series.map((item) => {
       const points = rows.map((row) => ({ row, value: item.value(row) })).filter((item) => Number.isFinite(item.value));
       if (!points.length) return "";
       const line = path(points.map((item) => [x(new Date(item.row.valid_time_utc).getTime()), y(item.value)]));
-      const dots = points.map((point) => `<circle cx="${x(new Date(point.row.valid_time_utc).getTime())}" cy="${y(point.value)}" r="${item.id.startsWith("imerg_") ? 3.4 : 2.7}" fill="${item.color}"><title>${item.label}: ${point.value.toFixed(2)} mm · ${exactTime(point.row.interval_start_utc)} → ${exactTime(point.row.valid_time_utc)}</title></circle>`).join("");
-      return `<path d="${line}" fill="none" stroke="${item.color}" stroke-width="${item.width}" ${item.dash ? `stroke-dasharray="${item.dash}"` : ""}/>${dots}`;
+      const units = imergValidationMetric === "error" ? "mm absolute error" : "mm / 6 h";
+      const dots = points.map((point) => `<circle class="validation-chart-point" data-validation-point tabindex="0" cx="${x(new Date(point.row.valid_time_utc).getTime())}" cy="${y(point.value)}" r="${item.id.startsWith("imerg_") ? 3.8 : 3.2}" fill="${item.color}" data-label="${item.label}" data-value="${point.value.toFixed(2)}" data-units="${units}" data-detail="${exactTime(point.row.interval_start_utc)} → ${exactTime(point.row.valid_time_utc)}" aria-label="${item.label}, ${point.value.toFixed(2)} ${units}"></circle>`).join("");
+      return `<path class="validation-series" d="${line}" fill="none" stroke="${item.color}" stroke-width="${item.width}" ${item.dash ? `stroke-dasharray="${item.dash}"` : ""}/>${dots}`;
     }).join("");
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Interactive six-hour model rainfall validation against IMERG"><g class="interactive-chart-grid">${grid}${labels}<text x="12" y="18">mm / 6 h</text></g>${traces}</svg>`;
+    const axisTitle = imergValidationMetric === "error" ? "Absolute error against IMERG Late (mm)" : "Six-hour rainfall (mm)";
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Interactive six-hour model rainfall validation against IMERG"><g class="interactive-chart-grid">${grid}${labels}<text class="axis-title" x="12" y="18">${axisTitle}</text></g>${traces}</svg>`;
   }
 
   function renderImergCityValidation() {
@@ -904,11 +992,12 @@
       q("#imerg-validation-chart").innerHTML = "";
       return;
     }
-    if (!runEntries.some((entry) => entry.id === imergValidationInit)) {
-      const scored = runEntries.map((entry) => ({
-        entry,
-        observed: (entry.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm)).length,
-      })).sort((a, b) => b.observed - a.observed);
+    const scored = runEntries.map((entry) => ({
+      entry,
+      observed: (entry.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm)).length,
+    })).sort((a, b) => b.observed - a.observed || new Date(b.entry.initialization_utc) - new Date(a.entry.initialization_utc));
+    const selectedScore = scored.find((item) => item.entry.id === imergValidationInit);
+    if (!selectedScore || (!imergValidationInitTouched && selectedScore.observed === 0)) {
       imergValidationInit = scored[0].entry.id;
     }
     imergValidationInit = populateSelect(q("#imerg-validation-init"), runEntries, imergValidationInit, (entry) => formatInit(entry.initialization_utc));
@@ -916,21 +1005,27 @@
     const modelIds = [...run.source_models, imerg.grid_ensemble.model_id];
     [...imergVisibleModels].forEach((model) => { if (!modelIds.includes(model)) imergVisibleModels.delete(model); });
     if (!imergVisibleModels.size) modelIds.forEach((model) => imergVisibleModels.add(model));
+    selectButton("[data-imerg-metric]", imergValidationMetric, "imergMetric");
+    selectButton("[data-imerg-forecast]", imergValidationForecast, "imergForecast");
     q("#imerg-validation-models").innerHTML = modelIds.map((model) => `<button type="button" class="validation-model-toggle" data-imerg-validation-model="${model}" aria-pressed="${imergVisibleModels.has(model)}" style="--model-color:${cityGridColors[model] || "#64748b"}">${modelLabel(model)}</button>`).join("");
     qa("[data-imerg-validation-model]").forEach((button) => button.addEventListener("click", () => {
       const model = button.dataset.imergValidationModel;
       if (imergVisibleModels.has(model)) imergVisibleModels.delete(model); else imergVisibleModels.add(model);
       renderImergCityValidation();
     }));
-    const rows = run.city_rows?.[city] || [];
+    const rows = (run.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm));
     const selected = modelIds.filter((model) => imergVisibleModels.has(model));
-    q("#imerg-validation-chart").innerHTML = imergValidationChart(rows, selected);
-    const realized = rows.filter((row) => Number.isFinite(row.imerg_late_mm)).length;
+    q("#imerg-validation-plot").innerHTML = imergValidationChart(rows, selected);
+    attachInteractiveChartTooltip("#imerg-validation-plot", "#imerg-validation-tooltip");
+    const realized = rows.length;
     const metrics = selected.map((model) => {
       const value = imergValidationRmse(rows, model);
       return `${modelLabel(model)} ${value == null ? "pending" : `${value.toFixed(2)} mm RMSE`}`;
     });
-    q("#imerg-validation-summary").textContent = `${city} · ${realized} realized common-grid six-hour intervals${metrics.length ? ` · ${metrics.join(" · ")}` : " · all model traces hidden"}. Biases and weights use only observations valid by initialization; the historical no-worse-than-best guardrail does not guarantee future performance.`;
+    q("#imerg-validation-scores").innerHTML = metrics.length ? metrics.map((metric) => `<span>${metric}</span>`).join("") : "";
+    q("#imerg-validation-summary").textContent = realized
+      ? `${city} · ${realized} realized common-grid six-hour intervals · ${imergValidationForecast === "raw" ? "raw" : "bias-corrected"} forecasts${metrics.length ? "" : " · all model traces hidden"}. Biases and weights use only observations valid by initialization.`
+      : `${city} · no completed IMERG Late intervals for this initialization yet. Choose an earlier initialization to validate realized forecasts.`;
     setUrl();
   }
 
@@ -950,8 +1045,10 @@
   q("#temporal-time-select").addEventListener("change", (event) => { temporalTimeIndex = Number(event.target.value); renderTemporalMaps(); });
   qa("[data-temporal-variable]").forEach((button) => button.addEventListener("click", () => { temporalVariable = button.dataset.temporalVariable; renderTemporalMaps(); }));
   qa("[data-imerg-duration]").forEach((button) => button.addEventListener("click", () => { imergDuration = button.dataset.imergDuration; imergTimeIndex = -1; renderImergMaps(); }));
+  qa("[data-imerg-metric]").forEach((button) => button.addEventListener("click", () => { imergValidationMetric = button.dataset.imergMetric; renderImergCityValidation(); }));
+  qa("[data-imerg-forecast]").forEach((button) => button.addEventListener("click", () => { imergValidationForecast = button.dataset.imergForecast; renderImergCityValidation(); }));
   q("#imerg-time-select").addEventListener("change", (event) => { imergTimeIndex = Number(event.target.value); renderImergMaps(); });
-  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergVisibleModels.clear(); renderImergCityValidation(); });
+  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationInitTouched = true; imergVisibleModels.clear(); renderImergCityValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
   canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });

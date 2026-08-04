@@ -34,6 +34,10 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('id="imerg-late-canvas"') == 1
     assert html.count('id="imerg-validation-chart"') == 1
     assert html.count('id="imerg-validation-models"') == 1
+    assert html.count('id="validation-skill-chart"') == 1
+    assert html.count('id="validation-models"') == 1
+    assert 'data-imerg-metric="error"' in html
+    assert 'data-imerg-forecast="raw"' in html
     assert "Forecast valid date and time" in html
     assert "OpenStreetMap contributors" in html or "OpenStreetMap contributors" in (ROOT / "assets/app.js").read_text()
     assert "fixed 0–45 °C scale" in html

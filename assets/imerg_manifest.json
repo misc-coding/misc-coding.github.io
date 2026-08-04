@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-08-04T10:08:56.213596Z",
+  "generated_at_utc": "2026-08-04T10:47:08.317525Z",
   "window": {
     "start_utc": "2026-07-31T19:00:00Z",
     "end_exclusive_utc": "2026-08-03T19:00:00Z",
     "half_hour_intervals": 144,
     "latest_source_interval_starts_utc": {
-      "early": "2026-08-04T04:30:00Z",
+      "early": "2026-08-04T05:30:00Z",
       "late": "2026-08-03T18:30:00Z"
     }
   },
