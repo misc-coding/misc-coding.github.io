@@ -24,6 +24,9 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('id="map-tooltip"') == 1
     assert html.count('id="map-animation"') == 1
     assert html.count('id="map-legend"') == 1
+    assert html.count('id="city-grid-map"') == 1
+    assert html.count('id="city-grid-time"') == 1
+    assert "OpenStreetMap contributors" in html or "OpenStreetMap contributors" in (ROOT / "assets/app.js").read_text()
     assert "fixed 0–45 °C scale" in html
     assert "Map rainfall is accumulated only since the previous published endpoint" in html
     assert "assets/scdlds-logo.jpeg" in html
@@ -63,6 +66,7 @@ def test_archive_is_sorted_retained_and_every_grid_exists():
 def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
     archive = load_json("assets/forecast_archive.json")
     weather = load_json("assets/weather_forecast.json")
+    assert weather["schema_version"] == 2
     validation = load_json("assets/validation_manifest.json")
     for run in archive["runs"]:
         product = weather["runs"][run["id"]]
@@ -75,6 +79,16 @@ def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
                 assert day["high_c"] >= day["low_c"]
                 assert day["precip_mm"] >= 0
                 assert "precip_probability" not in day
+                assert day["valid_start_utc"].endswith("Z")
+                assert day["valid_end_utc"].endswith("Z")
+                assert day["experts"]
+                for expert in day["experts"].values():
+                    assert -90 <= expert["grid_latitude"] <= 90
+                    assert -180 <= expert["grid_longitude"] <= 180
+                    assert expert["sample_times_utc"]
+                    assert all(value.endswith("Z") for value in expert["sample_times_utc"])
+                    assert expert["high_time_utc"] in expert["sample_times_utc"]
+                    assert expert["low_time_utc"] in expert["sample_times_utc"]
 
 
 def test_local_coastline_overlay_covers_the_forecast_domain():
@@ -131,6 +145,14 @@ def test_combined_model_has_maps_animations_and_causal_recent_error_metadata():
                 assert abs(sum(weights.values()) - 1) < 1e-8
         for variable in run["grid_metadata"]["variables"]:
             animation = ROOT / "assets" / "map_animations" / run["id"] / "combined" / f"{variable}.gif"
+            assert animation.is_file()
+            with Image.open(animation) as opened:
+                assert opened.n_frames == 3
+        average_payload = ROOT / item["simple_average_map_payload"]
+        assert average_payload.is_file()
+        assert average_payload.stat().st_size > 50_000
+        for variable in run["grid_metadata"]["variables"]:
+            animation = ROOT / "assets" / "map_animations" / run["id"] / "simple_average" / f"{variable}.gif"
             assert animation.is_file()
             with Image.open(animation) as opened:
                 assert opened.n_frames == 3

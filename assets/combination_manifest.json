@@ -1,12 +1,20 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-08-03T20:29:26.399548Z",
+  "generated_at_utc": "2026-08-04T07:57:04.010863Z",
   "model": {
     "id": "combined",
     "label": "Combined \u00b7 recent-error blend",
     "provider": "SCDLDS",
     "source_url": "assets/combination_manifest.json",
     "aggregation": "causal convex combination"
+  },
+  "simple_average_model": {
+    "id": "simple_average",
+    "label": "Simple average",
+    "provider": "SCDLDS",
+    "source_url": "assets/combination_manifest.json",
+    "aggregation": "equal-weight mean at each valid grid cell",
+    "definition": "Arithmetic mean of every available source-model value, recomputed independently at each grid cell and valid endpoint; missing values are omitted only at the affected cell."
   },
   "method": {
     "name": "Causally selected recent-error exponential weighting",
@@ -112,21 +120,21 @@
     "temperature": {
       "leads": {
         "1": {
-          "matched_points": 24,
-          "combined_prequential_rmse": 0.5762871421088455,
-          "uniform_prequential_rmse": 0.5762871421088455,
+          "matched_points": 28,
+          "combined_prequential_rmse": 0.5946755173396737,
+          "uniform_prequential_rmse": 0.5994461111426335,
           "source_rmse": {
-            "weathernext2": 0.6540982720175164,
+            "weathernext2": 0.6656748584884004,
             "gencast": 0.627888182407437,
-            "gfs": 1.3574447502568938,
-            "gefs": 1.4689070742230628,
-            "aifs": 0.9951444618747575,
-            "ifs_ens": 0.6524992205272506
+            "gfs": 1.3124404748406688,
+            "gefs": 1.5713609348270492,
+            "aifs": 1.0929937861976464,
+            "ifs_ens": 0.6649372584987631
           },
           "candidate_use_counts": {
             "uniform": 8,
             "ewa-w3-e20": 12,
-            "ewa-w7-e20": 4
+            "ewa-w7-e20": 8
           },
           "deployment": {
             "20260803_00": {
@@ -202,11 +210,11 @@
           }
         },
         "3": {
-          "matched_points": 16,
-          "combined_prequential_rmse": 0.8137564810458183,
-          "uniform_prequential_rmse": 0.8137564810458183,
+          "matched_points": 20,
+          "combined_prequential_rmse": 0.8303912810661687,
+          "uniform_prequential_rmse": 0.8303912810661687,
           "source_rmse": {
-            "weathernext2": 0.8421942907911756,
+            "weathernext2": 0.8527736921765675,
             "gencast": 0.6984154293514252,
             "gfs": 1.4965585521455558,
             "gefs": 1.5563922579337046,
@@ -214,7 +222,7 @@
             "ifs_ens": 0.5957089045249401
           },
           "candidate_use_counts": {
-            "uniform": 16
+            "uniform": 20
           },
           "deployment": {
             "20260803_00": {
@@ -290,11 +298,11 @@
           }
         },
         "5": {
-          "matched_points": 8,
-          "combined_prequential_rmse": 0.6048973854230234,
-          "uniform_prequential_rmse": 0.6048973854230234,
+          "matched_points": 12,
+          "combined_prequential_rmse": 0.6930746774740894,
+          "uniform_prequential_rmse": 0.6930746774740894,
           "source_rmse": {
-            "weathernext2": 0.8611212427051401,
+            "weathernext2": 0.8548519211263647,
             "gencast": 0.801753336270158,
             "gfs": 1.4880776189433127,
             "gefs": 1.253019407854921,
@@ -302,7 +310,7 @@
             "ifs_ens": 1.0145175875224863
           },
           "candidate_use_counts": {
-            "uniform": 8
+            "uniform": 12
           },
           "deployment": {
             "20260803_00": {
@@ -382,21 +390,21 @@
     "precipitation": {
       "leads": {
         "1": {
-          "matched_points": 24,
-          "combined_prequential_rmse": 8.119154057749475,
-          "uniform_prequential_rmse": 8.119154057749475,
+          "matched_points": 28,
+          "combined_prequential_rmse": 7.834621739096188,
+          "uniform_prequential_rmse": 7.860800655925817,
           "source_rmse": {
-            "weathernext2": 7.935358475942859,
+            "weathernext2": 7.527482145956443,
             "gencast": 8.18806372247037,
-            "gfs": 9.938300108518966,
-            "gefs": 8.65004148818883,
-            "aifs": 4.016828879790009,
-            "ifs_ens": 5.05192786452096
+            "gfs": 10.351026328069652,
+            "gefs": 9.118519602524586,
+            "aifs": 3.7267899873485995,
+            "ifs_ens": 5.104572096998451
           },
           "candidate_use_counts": {
             "uniform": 8,
             "ewa-w3-e20": 12,
-            "ewa-w7-e20": 4
+            "ewa-w7-e20": 8
           },
           "deployment": {
             "20260803_00": {
@@ -472,11 +480,11 @@
           }
         },
         "3": {
-          "matched_points": 16,
-          "combined_prequential_rmse": 22.63852870619097,
-          "uniform_prequential_rmse": 22.63852870619097,
+          "matched_points": 20,
+          "combined_prequential_rmse": 21.577983983921833,
+          "uniform_prequential_rmse": 21.577983983921833,
           "source_rmse": {
-            "weathernext2": 20.789126781999137,
+            "weathernext2": 20.03390229366181,
             "gencast": 38.856064742604396,
             "gfs": 38.02755299209226,
             "gefs": 26.39731752899212,
@@ -484,7 +492,7 @@
             "ifs_ens": 6.536669930582306
           },
           "candidate_use_counts": {
-            "uniform": 16
+            "uniform": 20
           },
           "deployment": {
             "20260803_00": {
@@ -560,11 +568,11 @@
           }
         },
         "5": {
-          "matched_points": 8,
-          "combined_prequential_rmse": 30.631240293651427,
-          "uniform_prequential_rmse": 30.631240293651427,
+          "matched_points": 12,
+          "combined_prequential_rmse": 28.711042078836513,
+          "uniform_prequential_rmse": 28.711042078836513,
           "source_rmse": {
-            "weathernext2": 28.963798581100598,
+            "weathernext2": 27.533187879336115,
             "gencast": 42.85652478983043,
             "gfs": 53.737706003166494,
             "gefs": 39.46326367215297,
@@ -572,7 +580,7 @@
             "ifs_ens": 17.559181340963793
           },
           "candidate_use_counts": {
-            "uniform": 8
+            "uniform": 12
           },
           "deployment": {
             "20260803_00": {
@@ -732,7 +740,8 @@
           "5": 8
         }
       },
-      "map_payload": "assets/map_data/20260803_00/combined.bin"
+      "map_payload": "assets/map_data/20260803_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260803_00/simple_average.bin"
     },
     "20260802_00": {
       "initialization_utc": "2026-08-02T00:00:00Z",
@@ -787,7 +796,8 @@
           "5": 4
         }
       },
-      "map_payload": "assets/map_data/20260802_00/combined.bin"
+      "map_payload": "assets/map_data/20260802_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260802_00/simple_average.bin"
     },
     "20260801_00": {
       "initialization_utc": "2026-08-01T00:00:00Z",
@@ -842,7 +852,8 @@
           "5": 0
         }
       },
-      "map_payload": "assets/map_data/20260801_00/combined.bin"
+      "map_payload": "assets/map_data/20260801_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260801_00/simple_average.bin"
     },
     "20260731_00": {
       "initialization_utc": "2026-07-31T00:00:00Z",
@@ -897,7 +908,8 @@
           "5": 0
         }
       },
-      "map_payload": "assets/map_data/20260731_00/combined.bin"
+      "map_payload": "assets/map_data/20260731_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260731_00/simple_average.bin"
     },
     "20260730_00": {
       "initialization_utc": "2026-07-30T00:00:00Z",
@@ -952,7 +964,8 @@
           "5": 0
         }
       },
-      "map_payload": "assets/map_data/20260730_00/combined.bin"
+      "map_payload": "assets/map_data/20260730_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260730_00/simple_average.bin"
     },
     "20260729_00": {
       "initialization_utc": "2026-07-29T00:00:00Z",
@@ -1042,7 +1055,8 @@
           "5": 0
         }
       },
-      "map_payload": "assets/map_data/20260729_00/combined.bin"
+      "map_payload": "assets/map_data/20260729_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260729_00/simple_average.bin"
     },
     "20260728_00": {
       "initialization_utc": "2026-07-28T00:00:00Z",
@@ -1132,7 +1146,8 @@
           "5": 0
         }
       },
-      "map_payload": "assets/map_data/20260728_00/combined.bin"
+      "map_payload": "assets/map_data/20260728_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260728_00/simple_average.bin"
     }
   }
 }

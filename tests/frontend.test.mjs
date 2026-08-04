@@ -75,10 +75,19 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.equal(document.querySelector('[data-panel="weather"]').hidden, false);
   assert.equal(document.querySelectorAll(".day-card").length, 5);
   assert.match(document.querySelector("#blend-note").textContent, /24-hour accumulation/);
+  assert.ok(document.querySelectorAll("#city-grid-map .city-grid-point").length > 0);
+  assert.match(document.querySelector("#city-grid-time").textContent, /IST.*UTC.*IST.*UTC/);
+  assert.match(document.querySelector("#city-grid-result").textContent, /simple average of shown inputs/);
+  assert.match(document.querySelector("#city-grid-samples").textContent, /Exact native sample times used/);
+
+  document.querySelector('[data-weather-day="3"]').click();
+  assert.equal(document.querySelector('[data-weather-day="3"]').getAttribute("aria-pressed"), "true");
+  assert.match(window.location.search, /weather_day=3/);
 
   document.querySelector('[data-weather-variable="precipitation"]').click();
   assert.equal(document.querySelector('[data-weather-variable="precipitation"]').getAttribute("aria-pressed"), "true");
   assert.match(document.querySelector("#weather-chart svg").getAttribute("aria-label"), /precipitation/);
+  assert.match(document.querySelector("#city-grid-result").textContent, /mm in 24 h/);
 
   const city = document.querySelector("#city-select");
   city.value = "Mumbai";
@@ -93,6 +102,12 @@ test("all dashboard controls update their panels without runtime errors", async 
   const canvas = document.querySelector("#forecast-canvas");
   assert.ok(canvas.height >= 774, "the India map should use the taller aspect ratio");
   assert.match(document.querySelector("#map-legend-title").textContent, /fixed scale/);
+  const simpleAverage = document.querySelector('[data-map-model="simple_average"]');
+  assert.equal(simpleAverage.disabled, false);
+  simpleAverage.click();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.match(document.querySelector("#map-description").textContent, /equal weight for each available model at this grid cell/);
+  assert.match(document.querySelector("#map-animation").getAttribute("src"), /\/simple_average\/temperature\.gif$/);
   const combined = document.querySelector('[data-map-model="combined"]');
   assert.equal(combined.disabled, false);
   combined.click();

@@ -15,12 +15,16 @@
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
   const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Interval rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
+  const allowedWeatherDays = new Set(["1", "2", "3", "4", "5"]);
+  const cityGridColors = { weathernext2: "#2563a6", gencast: "#7c4db3", gfs: "#d4573b",
+    gefs: "#be7910", aifs: "#087f73", ifs_ens: "#34495e" };
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
   let tab = allowedTabs.has(params.get("tab")) ? params.get("tab") : "weather";
   let init = runIds.has(params.get("init")) ? params.get("init") : runs[0].id;
   let city = cityNames.includes(params.get("city")) ? params.get("city") : cityNames[0];
   let weatherVariable = params.get("weather") === "precipitation" ? "precipitation" : "temperature";
+  let weatherDay = allowedWeatherDays.has(params.get("weather_day")) ? params.get("weather_day") : "1";
   let mapVariable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let mapDay = allowedDays.has(params.get("day")) ? params.get("day") : "1";
   let mapModel = params.get("model") || (spatialCombination.runs?.[runs[0].id]?.map_payload ? "combined" : runs[0].available_models?.[0]) || runs[0].models[0].id;
@@ -36,7 +40,7 @@
 
   function setUrl() {
     const next = new URL(location.href);
-    const values = { tab, init, city, weather: weatherVariable, variable: mapVariable, day: mapDay,
+    const values = { tab, init, city, weather: weatherVariable, weather_day: weatherDay, variable: mapVariable, day: mapDay,
       model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable };
     Object.entries(values).forEach(([key, value]) => next.searchParams.set(key, value));
     history.replaceState(null, "", next);
@@ -62,7 +66,10 @@
   function sourceRunModels(run = activeRun()) { return run.available_models || run.models.map((model) => model.id); }
   function runModels(run = activeRun()) {
     const models = sourceRunModels(run);
-    return spatialCombination.runs?.[run.id]?.map_payload ? ["combined", ...models] : models;
+    const mixtures = [];
+    if (spatialCombination.runs?.[run.id]?.map_payload) mixtures.push("combined");
+    if (spatialCombination.runs?.[run.id]?.simple_average_map_payload) mixtures.push("simple_average");
+    return [...mixtures, ...models];
   }
   function modelLabel(model) {
     const item = site.models.find((candidate) => candidate.id === model);
@@ -71,6 +78,16 @@
   function formatInit(value) {
     return new Date(value).toLocaleString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short",
       year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) + " UTC";
+  }
+
+  function formatZoned(value, timeZone, suffix) {
+    const formatted = new Intl.DateTimeFormat("en-GB", { timeZone, day: "2-digit", month: "short",
+      year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value));
+    return `${formatted} ${suffix}`;
+  }
+
+  function exactTime(value) {
+    return `${formatZoned(value, "Asia/Kolkata", "IST")} · ${formatZoned(value, "UTC", "UTC")}`;
   }
 
   function renderRun() {
@@ -116,6 +133,72 @@
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Five-day ${weatherVariable} forecast"><g class="chart-grid">${grid}</g><path class="weather-area" d="${area}"/><path class="weather-line" d="${line}"/><g class="weather-points">${dots}</g></svg>`;
   }
 
+  function cityMapWorld(latitude, longitude, zoom) {
+    const size = 256 * (2 ** zoom);
+    const limitedLatitude = Math.max(-85.0511, Math.min(85.0511, latitude));
+    const sine = Math.sin(limitedLatitude * Math.PI / 180);
+    return {
+      x: (longitude + 180) / 360 * size,
+      y: (.5 - Math.log((1 + sine) / (1 - sine)) / (4 * Math.PI)) * size,
+    };
+  }
+
+  function renderCityGridMap(item, day) {
+    const map = q("#city-grid-map");
+    const list = q("#grid-input-list");
+    if (!item || !day || !Object.keys(day.experts || {}).length) {
+      map.innerHTML = '<p class="empty-state">Contributing grid points are unavailable for this selection.</p>';
+      list.innerHTML = "";
+      q("#city-grid-result").textContent = "No grid inputs available.";
+      q("#city-grid-time").textContent = "";
+      q("#city-grid-samples").textContent = "";
+      return;
+    }
+    const width = 760, height = 410, zoom = 8, tileSize = 256, tileCount = 2 ** zoom;
+    const center = cityMapWorld(item.latitude, item.longitude, zoom);
+    const left = center.x - width / 2, top = center.y - height / 2;
+    const tileImages = [];
+    for (let tileY = Math.floor(top / tileSize); tileY <= Math.floor((top + height) / tileSize); tileY += 1) {
+      if (tileY < 0 || tileY >= tileCount) continue;
+      for (let tileX = Math.floor(left / tileSize); tileX <= Math.floor((left + width) / tileSize); tileX += 1) {
+        const wrappedX = ((tileX % tileCount) + tileCount) % tileCount;
+        tileImages.push(`<image class="city-map-tile" href="https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png" x="${tileX * tileSize - left}" y="${tileY * tileSize - top}" width="256" height="256"/>`);
+      }
+    }
+    const experts = Object.entries(day.experts);
+    const valueFor = (expert) => weatherVariable === "temperature" ? expert.mean_c : expert.precip_mm;
+    const unit = weatherVariable === "temperature" ? "°C" : "mm";
+    const markers = experts.map(([model, expert], index) => {
+      const actual = cityMapWorld(expert.grid_latitude, expert.grid_longitude, zoom);
+      const x = actual.x - left, y = actual.y - top;
+      const angle = -Math.PI / 2 + index * 2 * Math.PI / Math.max(experts.length, 1);
+      const calloutX = Math.max(64, Math.min(width - 64, x + Math.cos(angle) * 84));
+      const calloutY = Math.max(28, Math.min(height - 28, y + Math.sin(angle) * 72));
+      const color = cityGridColors[model] || "#41687f";
+      const shortLabel = modelLabel(model).replace("WeatherNext 2", "WN2").replace("IFS-ENS", "IFS");
+      const title = `${modelLabel(model)}: ${valueFor(expert).toFixed(1)} ${unit} at ${expert.grid_latitude.toFixed(4)}° N, ${expert.grid_longitude.toFixed(4)}° E`;
+      return `<g><line class="city-grid-leader" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${calloutX.toFixed(1)}" y2="${calloutY.toFixed(1)}"/><circle class="city-grid-point" data-grid-model="${model}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${color}"><title>${title}</title></circle><g class="city-grid-callout" transform="translate(${calloutX.toFixed(1)} ${calloutY.toFixed(1)})"><rect x="-48" y="-20" width="96" height="40" rx="5"/><circle cx="-37" cy="-7" r="4" fill="${color}"/><text class="model" x="-28" y="-3">${shortLabel}</text><text class="value" x="0" y="13" text-anchor="middle">${valueFor(expert).toFixed(1)} ${unit}</text></g></g>`;
+    }).join("");
+    map.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${city} source forecast grid points over a city street map"><rect width="${width}" height="${height}" class="city-map-fallback"/>${tileImages.join("")}<g class="city-grid-overlay">${markers}<g class="city-location" transform="translate(${width / 2} ${height / 2})"><circle r="9"/><circle r="3"/><text x="13" y="4">${city}</text></g></g></svg><span class="osm-attribution">© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></span>`;
+
+    const weights = weatherVariable === "temperature" ? item.temperature_weights : item.precipitation_weights;
+    list.innerHTML = experts.map(([model, expert]) => {
+      const detail = weatherVariable === "temperature"
+        ? `Mean ${expert.mean_c.toFixed(1)} °C · high ${expert.high_c.toFixed(1)} °C at ${exactTime(expert.high_time_utc)} · low ${expert.low_c.toFixed(1)} °C at ${exactTime(expert.low_time_utc)}`
+        : `${expert.precip_mm.toFixed(1)} mm accumulated over this exact 24-hour window`;
+      return `<article class="grid-input"><span class="grid-swatch" style="background:${cityGridColors[model] || "#41687f"}"></span><div><strong>${modelLabel(model)}</strong><small>${expert.grid_latitude.toFixed(4)}° N · ${expert.grid_longitude.toFixed(4)}° E</small><p>${detail}</p></div><b>${((weights[model] || 0) * 100).toFixed(1)}%</b></article>`;
+    }).join("");
+
+    const simpleAverage = experts.reduce((sum, [, expert]) => sum + valueFor(expert), 0) / experts.length;
+    const combined = weatherVariable === "temperature"
+      ? `Recent-error blend: mean ${day.mean_c.toFixed(1)} °C · high ${day.high_c.toFixed(1)} °C · low ${day.low_c.toFixed(1)} °C`
+      : `Recent-error blend: ${day.precip_mm.toFixed(1)} mm in 24 h`;
+    q("#city-grid-result").textContent = `${combined} · simple average of shown inputs: ${simpleAverage.toFixed(1)} ${unit}`;
+    q("#city-grid-time").textContent = `Valid ${exactTime(day.valid_start_utc)} → ${exactTime(day.valid_end_utc)}`;
+    const samples = [...new Set(experts.flatMap(([, expert]) => expert.sample_times_utc || []))].sort();
+    q("#city-grid-samples").textContent = `Exact native sample times used (${samples.length} unique): ${samples.map(exactTime).join(" · ")}`;
+  }
+
   function renderWeather() {
     q("#city-select").value = city;
     selectButton("[data-weather-variable]", weatherVariable, "weatherVariable");
@@ -124,17 +207,20 @@
     const days = item?.days || [];
     q("#weather-location").textContent = city;
     q("#weather-meta").textContent = item
-      ? `Initialized ${formatInit(run.initialization_utc)} · ${item.available_models.length} contributing model${item.available_models.length === 1 ? "" : "s"}`
+      ? `Initialized ${exactTime(run.initialization_utc)} · ${item.available_models.length} contributing model${item.available_models.length === 1 ? "" : "s"}`
       : "Forecast unavailable for this selection";
     const first = days[0];
     q("#weather-now").innerHTML = first
       ? `<span aria-hidden="true">${first.symbol}</span><strong>${Math.round(first.mean_c)}°C</strong><small>${first.condition}<br>${first.precip_mm.toFixed(1)} mm in 24 h</small>`
       : "";
     q("#weather-chart").innerHTML = weatherChart(days);
-    q("#daily-cards").innerHTML = days.map((day, index) => `<article class="day-card${index === 0 ? " is-first" : ""}"><strong>${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short" })}</strong><time>${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</time><span class="weather-icon" aria-label="${day.condition}">${day.symbol}</span><p><b>${Math.round(day.high_c)}°</b> <span>${Math.round(day.low_c)}°</span></p><small>${day.precip_mm.toFixed(1)} mm</small></article>`).join("");
+    if (!days.some((day) => String(day.day) === weatherDay) && days.length) weatherDay = String(days[0].day);
+    q("#daily-cards").innerHTML = days.map((day) => `<button type="button" class="day-card" data-weather-day="${day.day}" aria-pressed="${String(day.day) === weatherDay}"><strong>${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short" })}</strong><time datetime="${day.valid_end_utc}">${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}<span>ends ${new Date(day.valid_end_utc).toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })} IST</span></time><span class="weather-icon" aria-label="${day.condition}">${day.symbol}</span><p><b>${Math.round(day.high_c)}°</b> <span>${Math.round(day.low_c)}°</span></p><small>${day.precip_mm.toFixed(1)} mm</small></button>`).join("");
+    qa("[data-weather-day]").forEach((button) => button.addEventListener("click", () => { weatherDay = button.dataset.weatherDay; renderWeather(); setUrl(); }));
     q("#blend-note").textContent = item
       ? `Temperature: ${item.temperature_method} weights · rainfall: ${item.precipitation_method} weights. Rainfall is a 24-hour accumulation, not a probability.`
       : "";
+    renderCityGridMap(item, days.find((day) => String(day.day) === weatherDay));
   }
 
   function mapColor(number) {
@@ -331,7 +417,9 @@
     const blend = spatialCombination.runs?.[run.id];
     const candidate = blend?.selected_candidates?.[learnerVariable]?.[mapDay];
     const training = blend?.training_samples?.[learnerVariable]?.[mapDay];
-    const blendNote = mapModel === "combined" ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples` : "";
+    const blendNote = mapModel === "combined"
+      ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples`
+      : mapModel === "simple_average" ? ` · equal weight for each available model at this grid cell` : "";
     q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}${blendNote}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
     renderMapLegend();

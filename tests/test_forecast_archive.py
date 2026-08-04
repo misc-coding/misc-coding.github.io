@@ -195,7 +195,41 @@ def test_daily_city_series_matches_native_step_accumulation():
     assert result[1]["low_c"] == 20
     assert result[1]["high_c"] == 23
     assert result[1]["precip_mm"] == 4.0
+    assert result[1]["grid_latitude"] == 28.6
+    assert result[1]["grid_longitude"] == 77.2
+    assert result[1]["valid_start_utc"] == "2026-07-30T00:00:00Z"
+    assert result[1]["valid_end_utc"] == "2026-07-31T00:00:00Z"
+    assert result[1]["sample_times_utc"] == [
+        "2026-07-30T06:00:00Z", "2026-07-30T12:00:00Z",
+        "2026-07-30T18:00:00Z", "2026-07-31T00:00:00Z",
+    ]
+    assert result[1]["high_time_utc"] == "2026-07-31T00:00:00Z"
+    assert result[1]["low_time_utc"] == "2026-07-30T06:00:00Z"
     assert result[5]["precip_mm"] == 4.0
+
+
+def test_simple_average_map_is_computed_independently_at_each_valid_grid_cell(tmp_path):
+    tag = "20260730_00"
+    target = tmp_path / "assets" / "map_data" / tag
+    target.mkdir(parents=True)
+    first = np.array([[[10.0, np.nan]], [[11.0, 21.0]], [[12.0, 22.0]]])
+    second = np.array([[[30.0, 50.0]], [[31.0, 51.0]], [[32.0, 52.0]]])
+    (target / "gfs.bin").write_bytes(archive._encode_grid(first, "temperature").reshape(-1).tobytes())
+    (target / "aifs.bin").write_bytes(archive._encode_grid(second, "temperature").reshape(-1).tobytes())
+    manifest = {"runs": [{
+        "id": tag,
+        "grid_metadata": {"shape": [3, 1, 2], "variables": ["temperature"], "lead_days": [1, 3, 5]},
+    }]}
+    combination = {"runs": {tag: {
+        "available_models": ["gfs", "aifs"],
+        "weights": {"temperature": {str(day): {"gfs": .25, "aifs": .75} for day in (1, 3, 5)}},
+    }}}
+    assert archive.write_combined_map_payloads(tmp_path, manifest, combination) == 2
+    encoded = np.fromfile(target / "simple_average.bin", dtype="<u2").reshape(3, 1, 2)
+    averaged = archive._decode_grid(encoded, "temperature")
+    np.testing.assert_allclose(averaged[:, 0, 0], [20.0, 21.0, 22.0])
+    np.testing.assert_allclose(averaged[:, 0, 1], [50.0, 36.0, 37.0])
+    assert combination["runs"][tag]["simple_average_map_payload"].endswith("simple_average.bin")
 
 
 def test_weather_symbols_use_accumulated_rain_not_probability():

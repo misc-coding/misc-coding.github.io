@@ -46,6 +46,14 @@ COMBINED_MODEL = {
     "source_url": "assets/combination_manifest.json",
     "aggregation": "causal convex combination",
 }
+SIMPLE_AVERAGE_MODEL_ID = "simple_average"
+SIMPLE_AVERAGE_MODEL = {
+    "id": SIMPLE_AVERAGE_MODEL_ID,
+    "label": "Simple average",
+    "provider": "SCDLDS",
+    "source_url": "assets/combination_manifest.json",
+    "aggregation": "equal-weight mean at each valid grid cell",
+}
 COMBINATION_SCALES = {"temperature": 5.0, "precipitation": 25.0}
 COMBINATION_CANDIDATES = (
     {"id": "uniform", "label": "Equal weights", "window_days": None, "eta": 0.0},
@@ -417,7 +425,7 @@ def _decode_grid(encoded: np.ndarray, variable: str) -> np.ndarray:
 
 
 def write_combined_map_payloads(stage: Path, archive: dict, combination: dict) -> int:
-    """Blend full spatial fields using causal, lead-specific recent-error weights."""
+    """Write recent-error and equal-weight blends independently at every grid cell."""
     created = 0
     for run in archive["runs"]:
         meta = run["grid_metadata"]
@@ -434,29 +442,42 @@ def write_combined_map_payloads(stage: Path, archive: dict, combination: dict) -
             source_payloads[model] = payload
 
         encoded_fields = []
+        average_fields = []
         for variable_index, variable in enumerate(meta["variables"]):
             learner_variable = "precipitation" if variable == "precipitation" else "temperature"
             for lead_index, day in enumerate(meta["lead_days"]):
                 weights = combination["runs"][run["id"]]["weights"][learner_variable][str(day)]
                 numerator = np.zeros((n_lat, n_lon), dtype=np.float64)
                 denominator = np.zeros((n_lat, n_lon), dtype=np.float64)
+                average_numerator = np.zeros((n_lat, n_lon), dtype=np.float64)
+                average_denominator = np.zeros((n_lat, n_lon), dtype=np.float64)
                 start = variable_index * grid_size + lead_index * n_lat * n_lon
                 for model, payload in source_payloads.items():
                     weight = float(weights.get(model, 0.0))
-                    if weight <= 0:
-                        continue
                     values = _decode_grid(payload[start:start + n_lat * n_lon].reshape(n_lat, n_lon), variable)
                     valid = np.isfinite(values)
-                    numerator[valid] += weight * values[valid]
-                    denominator[valid] += weight
+                    average_numerator[valid] += values[valid]
+                    average_denominator[valid] += 1.0
+                    if weight > 0:
+                        numerator[valid] += weight * values[valid]
+                        denominator[valid] += weight
                 combined = np.full((n_lat, n_lon), np.nan, dtype=np.float32)
                 valid = denominator > 0
                 combined[valid] = (numerator[valid] / denominator[valid]).astype(np.float32)
                 encoded_fields.append(_encode_grid(combined, variable).reshape(-1))
+                simple_average = np.full((n_lat, n_lon), np.nan, dtype=np.float32)
+                average_valid = average_denominator > 0
+                simple_average[average_valid] = (
+                    average_numerator[average_valid] / average_denominator[average_valid]
+                ).astype(np.float32)
+                average_fields.append(_encode_grid(simple_average, variable).reshape(-1))
         target = stage / "assets" / "map_data" / run["id"] / f"{COMBINED_MODEL_ID}.bin"
         target.write_bytes(np.concatenate(encoded_fields).astype("<u2").tobytes())
         combination["runs"][run["id"]]["map_payload"] = target.relative_to(stage).as_posix()
-        created += 1
+        average_target = stage / "assets" / "map_data" / run["id"] / f"{SIMPLE_AVERAGE_MODEL_ID}.bin"
+        average_target.write_bytes(np.concatenate(average_fields).astype("<u2").tobytes())
+        combination["runs"][run["id"]]["simple_average_map_payload"] = average_target.relative_to(stage).as_posix()
+        created += 2
     return created
 
 
@@ -501,6 +522,9 @@ def render_map_animations(stage: Path, archive: dict, coastline_path: Path) -> i
         combined_path = stage / "assets" / "map_data" / run["id"] / f"{COMBINED_MODEL_ID}.bin"
         if combined_path.is_file():
             models.append(COMBINED_MODEL_ID)
+        average_path = stage / "assets" / "map_data" / run["id"] / f"{SIMPLE_AVERAGE_MODEL_ID}.bin"
+        if average_path.is_file():
+            models.append(SIMPLE_AVERAGE_MODEL_ID)
         for model in models:
             payload_path = stage / "assets" / "map_data" / run["id"] / f"{model}.bin"
             payload = np.fromfile(payload_path, dtype="<u2")
@@ -642,6 +666,7 @@ MODEL_COLORS = {
     "weathernext2": "#3b82f6", "gencast": "#a855f7", "gfs": "#e05d44",
     "gefs": "#f59e0b", "aifs": "#0f9b8e", "ifs_ens": "#374151",
     COMBINED_MODEL_ID: "#c51d3b",
+    SIMPLE_AVERAGE_MODEL_ID: "#476b84",
 }
 
 
@@ -789,6 +814,10 @@ def research_online_combination(records: dict, archive: dict) -> dict:
         "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "model": COMBINED_MODEL,
+        "simple_average_model": {
+            **SIMPLE_AVERAGE_MODEL,
+            "definition": "Arithmetic mean of every available source-model value, recomputed independently at each grid cell and valid endpoint; missing values are omitted only at the affected cell.",
+        },
         "method": {
             "name": "Causally selected recent-error exponential weighting",
             "selection_metric": "Prequential root mean squared error",
@@ -1118,16 +1147,18 @@ def _learned_city_weights(cfg, city_name: str, variable: str, available: list[st
     return _normalized_weights({}, available), "uniform"
 
 
-def _daily_city_series(series: xr.Dataset, city, init: pd.Timestamp) -> dict[int, dict[str, float]]:
+def _daily_city_series(series: xr.Dataset, city, init: pd.Timestamp) -> dict[int, dict[str, object]]:
     """Reduce a native-step model series to daily high/low and 24-hour rain."""
     point = series.sel(lat=city.lat, lon=city.lon, method="nearest")
     times = pd.to_datetime(point["valid_time"].values).tz_localize(None)
+    grid_latitude = float(point["lat"].item())
+    grid_longitude = float(point["lon"].item())
     previous = np.concatenate([
         np.asarray([np.datetime64(init, "ns")]),
         times.values[:-1].astype("datetime64[ns]"),
     ])
     hours = (times.values.astype("datetime64[ns]") - previous) / np.timedelta64(1, "h")
-    out: dict[int, dict[str, float]] = {}
+    out: dict[int, dict[str, object]] = {}
     for day in DAILY_LEAD_DAYS:
         start = init + pd.Timedelta(days=day - 1)
         end = init + pd.Timedelta(days=day)
@@ -1137,11 +1168,20 @@ def _daily_city_series(series: xr.Dataset, city, init: pd.Timestamp) -> dict[int
         temperatures = np.asarray(point["t2m_C"].isel(valid_time=chosen).values, dtype=float)
         rates = np.asarray(point["precip_mmday"].isel(valid_time=chosen).values, dtype=float)
         rain = float(np.sum(np.clip(rates, 0, None) * np.clip(hours[chosen], 0, None) / 24.0))
+        high_offset = int(np.nanargmax(temperatures))
+        low_offset = int(np.nanargmin(temperatures))
         out[day] = {
             "high_c": float(np.nanmax(temperatures)),
             "low_c": float(np.nanmin(temperatures)),
             "mean_c": float(np.nanmean(temperatures)),
             "precip_mm": max(0.0, rain),
+            "grid_latitude": grid_latitude,
+            "grid_longitude": grid_longitude,
+            "valid_start_utc": utc_text(start),
+            "valid_end_utc": utc_text(end),
+            "sample_times_utc": [utc_text(times[index]) for index in chosen],
+            "high_time_utc": utc_text(times[chosen[high_offset]]),
+            "low_time_utc": utc_text(times[chosen[low_offset]]),
         }
     return out
 
@@ -1204,11 +1244,25 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
                 days.append({
                     "day": day,
                     "valid_date": (init + pd.Timedelta(days=day)).strftime("%Y-%m-%d"),
+                    "valid_start_utc": utc_text(init + pd.Timedelta(days=day - 1)),
+                    "valid_end_utc": utc_text(init + pd.Timedelta(days=day)),
                     **{key: round(float(value), 2) for key, value in blend.items()},
                     "symbol": symbol,
                     "condition": condition,
                     "experts": {
-                        model: {key: round(float(value), 2) for key, value in expert_days[model][day].items()}
+                        model: {
+                            "high_c": round(float(expert_days[model][day]["high_c"]), 2),
+                            "low_c": round(float(expert_days[model][day]["low_c"]), 2),
+                            "mean_c": round(float(expert_days[model][day]["mean_c"]), 2),
+                            "precip_mm": round(float(expert_days[model][day]["precip_mm"]), 2),
+                            "grid_latitude": round(float(expert_days[model][day]["grid_latitude"]), 4),
+                            "grid_longitude": round(float(expert_days[model][day]["grid_longitude"]), 4),
+                            "valid_start_utc": expert_days[model][day]["valid_start_utc"],
+                            "valid_end_utc": expert_days[model][day]["valid_end_utc"],
+                            "sample_times_utc": expert_days[model][day]["sample_times_utc"],
+                            "high_time_utc": expert_days[model][day]["high_time_utc"],
+                            "low_time_utc": expert_days[model][day]["low_time_utc"],
+                        }
                         for model in present
                     },
                 })
@@ -1230,7 +1284,7 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
             "cities": cities,
         }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "temperature_definition": "Online-weighted daily 2 m temperature high and low from native forecast steps.",
         "precipitation_definition": "Online-weighted precipitation accumulated within each 24-hour forecast day.",
@@ -1565,12 +1619,16 @@ ARCHIVE_JS = r"""
   const allowedVariables = new Set(["temperature", "temperature_high", "temperature_low", "precipitation"]);
   const mapVariableLabels = { temperature: "Temperature", temperature_high: "Daily high", temperature_low: "Daily low", precipitation: "Interval rainfall" };
   const allowedDays = new Set(["1", "3", "5"]);
+  const allowedWeatherDays = new Set(["1", "2", "3", "4", "5"]);
+  const cityGridColors = { weathernext2: "#2563a6", gencast: "#7c4db3", gfs: "#d4573b",
+    gefs: "#be7910", aifs: "#087f73", ifs_ens: "#34495e" };
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
   let tab = allowedTabs.has(params.get("tab")) ? params.get("tab") : "weather";
   let init = runIds.has(params.get("init")) ? params.get("init") : runs[0].id;
   let city = cityNames.includes(params.get("city")) ? params.get("city") : cityNames[0];
   let weatherVariable = params.get("weather") === "precipitation" ? "precipitation" : "temperature";
+  let weatherDay = allowedWeatherDays.has(params.get("weather_day")) ? params.get("weather_day") : "1";
   let mapVariable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let mapDay = allowedDays.has(params.get("day")) ? params.get("day") : "1";
   let mapModel = params.get("model") || (spatialCombination.runs?.[runs[0].id]?.map_payload ? "combined" : runs[0].available_models?.[0]) || runs[0].models[0].id;
@@ -1586,7 +1644,7 @@ ARCHIVE_JS = r"""
 
   function setUrl() {
     const next = new URL(location.href);
-    const values = { tab, init, city, weather: weatherVariable, variable: mapVariable, day: mapDay,
+    const values = { tab, init, city, weather: weatherVariable, weather_day: weatherDay, variable: mapVariable, day: mapDay,
       model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable };
     Object.entries(values).forEach(([key, value]) => next.searchParams.set(key, value));
     history.replaceState(null, "", next);
@@ -1612,7 +1670,10 @@ ARCHIVE_JS = r"""
   function sourceRunModels(run = activeRun()) { return run.available_models || run.models.map((model) => model.id); }
   function runModels(run = activeRun()) {
     const models = sourceRunModels(run);
-    return spatialCombination.runs?.[run.id]?.map_payload ? ["combined", ...models] : models;
+    const mixtures = [];
+    if (spatialCombination.runs?.[run.id]?.map_payload) mixtures.push("combined");
+    if (spatialCombination.runs?.[run.id]?.simple_average_map_payload) mixtures.push("simple_average");
+    return [...mixtures, ...models];
   }
   function modelLabel(model) {
     const item = site.models.find((candidate) => candidate.id === model);
@@ -1621,6 +1682,16 @@ ARCHIVE_JS = r"""
   function formatInit(value) {
     return new Date(value).toLocaleString("en-GB", { timeZone: "UTC", day: "2-digit", month: "short",
       year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) + " UTC";
+  }
+
+  function formatZoned(value, timeZone, suffix) {
+    const formatted = new Intl.DateTimeFormat("en-GB", { timeZone, day: "2-digit", month: "short",
+      year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value));
+    return `${formatted} ${suffix}`;
+  }
+
+  function exactTime(value) {
+    return `${formatZoned(value, "Asia/Kolkata", "IST")} · ${formatZoned(value, "UTC", "UTC")}`;
   }
 
   function renderRun() {
@@ -1666,6 +1737,72 @@ ARCHIVE_JS = r"""
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Five-day ${weatherVariable} forecast"><g class="chart-grid">${grid}</g><path class="weather-area" d="${area}"/><path class="weather-line" d="${line}"/><g class="weather-points">${dots}</g></svg>`;
   }
 
+  function cityMapWorld(latitude, longitude, zoom) {
+    const size = 256 * (2 ** zoom);
+    const limitedLatitude = Math.max(-85.0511, Math.min(85.0511, latitude));
+    const sine = Math.sin(limitedLatitude * Math.PI / 180);
+    return {
+      x: (longitude + 180) / 360 * size,
+      y: (.5 - Math.log((1 + sine) / (1 - sine)) / (4 * Math.PI)) * size,
+    };
+  }
+
+  function renderCityGridMap(item, day) {
+    const map = q("#city-grid-map");
+    const list = q("#grid-input-list");
+    if (!item || !day || !Object.keys(day.experts || {}).length) {
+      map.innerHTML = '<p class="empty-state">Contributing grid points are unavailable for this selection.</p>';
+      list.innerHTML = "";
+      q("#city-grid-result").textContent = "No grid inputs available.";
+      q("#city-grid-time").textContent = "";
+      q("#city-grid-samples").textContent = "";
+      return;
+    }
+    const width = 760, height = 410, zoom = 8, tileSize = 256, tileCount = 2 ** zoom;
+    const center = cityMapWorld(item.latitude, item.longitude, zoom);
+    const left = center.x - width / 2, top = center.y - height / 2;
+    const tileImages = [];
+    for (let tileY = Math.floor(top / tileSize); tileY <= Math.floor((top + height) / tileSize); tileY += 1) {
+      if (tileY < 0 || tileY >= tileCount) continue;
+      for (let tileX = Math.floor(left / tileSize); tileX <= Math.floor((left + width) / tileSize); tileX += 1) {
+        const wrappedX = ((tileX % tileCount) + tileCount) % tileCount;
+        tileImages.push(`<image class="city-map-tile" href="https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png" x="${tileX * tileSize - left}" y="${tileY * tileSize - top}" width="256" height="256"/>`);
+      }
+    }
+    const experts = Object.entries(day.experts);
+    const valueFor = (expert) => weatherVariable === "temperature" ? expert.mean_c : expert.precip_mm;
+    const unit = weatherVariable === "temperature" ? "°C" : "mm";
+    const markers = experts.map(([model, expert], index) => {
+      const actual = cityMapWorld(expert.grid_latitude, expert.grid_longitude, zoom);
+      const x = actual.x - left, y = actual.y - top;
+      const angle = -Math.PI / 2 + index * 2 * Math.PI / Math.max(experts.length, 1);
+      const calloutX = Math.max(64, Math.min(width - 64, x + Math.cos(angle) * 84));
+      const calloutY = Math.max(28, Math.min(height - 28, y + Math.sin(angle) * 72));
+      const color = cityGridColors[model] || "#41687f";
+      const shortLabel = modelLabel(model).replace("WeatherNext 2", "WN2").replace("IFS-ENS", "IFS");
+      const title = `${modelLabel(model)}: ${valueFor(expert).toFixed(1)} ${unit} at ${expert.grid_latitude.toFixed(4)}° N, ${expert.grid_longitude.toFixed(4)}° E`;
+      return `<g><line class="city-grid-leader" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${calloutX.toFixed(1)}" y2="${calloutY.toFixed(1)}"/><circle class="city-grid-point" data-grid-model="${model}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${color}"><title>${title}</title></circle><g class="city-grid-callout" transform="translate(${calloutX.toFixed(1)} ${calloutY.toFixed(1)})"><rect x="-48" y="-20" width="96" height="40" rx="5"/><circle cx="-37" cy="-7" r="4" fill="${color}"/><text class="model" x="-28" y="-3">${shortLabel}</text><text class="value" x="0" y="13" text-anchor="middle">${valueFor(expert).toFixed(1)} ${unit}</text></g></g>`;
+    }).join("");
+    map.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${city} source forecast grid points over a city street map"><rect width="${width}" height="${height}" class="city-map-fallback"/>${tileImages.join("")}<g class="city-grid-overlay">${markers}<g class="city-location" transform="translate(${width / 2} ${height / 2})"><circle r="9"/><circle r="3"/><text x="13" y="4">${city}</text></g></g></svg><span class="osm-attribution">© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></span>`;
+
+    const weights = weatherVariable === "temperature" ? item.temperature_weights : item.precipitation_weights;
+    list.innerHTML = experts.map(([model, expert]) => {
+      const detail = weatherVariable === "temperature"
+        ? `Mean ${expert.mean_c.toFixed(1)} °C · high ${expert.high_c.toFixed(1)} °C at ${exactTime(expert.high_time_utc)} · low ${expert.low_c.toFixed(1)} °C at ${exactTime(expert.low_time_utc)}`
+        : `${expert.precip_mm.toFixed(1)} mm accumulated over this exact 24-hour window`;
+      return `<article class="grid-input"><span class="grid-swatch" style="background:${cityGridColors[model] || "#41687f"}"></span><div><strong>${modelLabel(model)}</strong><small>${expert.grid_latitude.toFixed(4)}° N · ${expert.grid_longitude.toFixed(4)}° E</small><p>${detail}</p></div><b>${((weights[model] || 0) * 100).toFixed(1)}%</b></article>`;
+    }).join("");
+
+    const simpleAverage = experts.reduce((sum, [, expert]) => sum + valueFor(expert), 0) / experts.length;
+    const combined = weatherVariable === "temperature"
+      ? `Recent-error blend: mean ${day.mean_c.toFixed(1)} °C · high ${day.high_c.toFixed(1)} °C · low ${day.low_c.toFixed(1)} °C`
+      : `Recent-error blend: ${day.precip_mm.toFixed(1)} mm in 24 h`;
+    q("#city-grid-result").textContent = `${combined} · simple average of shown inputs: ${simpleAverage.toFixed(1)} ${unit}`;
+    q("#city-grid-time").textContent = `Valid ${exactTime(day.valid_start_utc)} → ${exactTime(day.valid_end_utc)}`;
+    const samples = [...new Set(experts.flatMap(([, expert]) => expert.sample_times_utc || []))].sort();
+    q("#city-grid-samples").textContent = `Exact native sample times used (${samples.length} unique): ${samples.map(exactTime).join(" · ")}`;
+  }
+
   function renderWeather() {
     q("#city-select").value = city;
     selectButton("[data-weather-variable]", weatherVariable, "weatherVariable");
@@ -1674,17 +1811,20 @@ ARCHIVE_JS = r"""
     const days = item?.days || [];
     q("#weather-location").textContent = city;
     q("#weather-meta").textContent = item
-      ? `Initialized ${formatInit(run.initialization_utc)} · ${item.available_models.length} contributing model${item.available_models.length === 1 ? "" : "s"}`
+      ? `Initialized ${exactTime(run.initialization_utc)} · ${item.available_models.length} contributing model${item.available_models.length === 1 ? "" : "s"}`
       : "Forecast unavailable for this selection";
     const first = days[0];
     q("#weather-now").innerHTML = first
       ? `<span aria-hidden="true">${first.symbol}</span><strong>${Math.round(first.mean_c)}°C</strong><small>${first.condition}<br>${first.precip_mm.toFixed(1)} mm in 24 h</small>`
       : "";
     q("#weather-chart").innerHTML = weatherChart(days);
-    q("#daily-cards").innerHTML = days.map((day, index) => `<article class="day-card${index === 0 ? " is-first" : ""}"><strong>${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short" })}</strong><time>${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</time><span class="weather-icon" aria-label="${day.condition}">${day.symbol}</span><p><b>${Math.round(day.high_c)}°</b> <span>${Math.round(day.low_c)}°</span></p><small>${day.precip_mm.toFixed(1)} mm</small></article>`).join("");
+    if (!days.some((day) => String(day.day) === weatherDay) && days.length) weatherDay = String(days[0].day);
+    q("#daily-cards").innerHTML = days.map((day) => `<button type="button" class="day-card" data-weather-day="${day.day}" aria-pressed="${String(day.day) === weatherDay}"><strong>${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short" })}</strong><time datetime="${day.valid_end_utc}">${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}<span>ends ${new Date(day.valid_end_utc).toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })} IST</span></time><span class="weather-icon" aria-label="${day.condition}">${day.symbol}</span><p><b>${Math.round(day.high_c)}°</b> <span>${Math.round(day.low_c)}°</span></p><small>${day.precip_mm.toFixed(1)} mm</small></button>`).join("");
+    qa("[data-weather-day]").forEach((button) => button.addEventListener("click", () => { weatherDay = button.dataset.weatherDay; renderWeather(); setUrl(); }));
     q("#blend-note").textContent = item
       ? `Temperature: ${item.temperature_method} weights · rainfall: ${item.precipitation_method} weights. Rainfall is a 24-hour accumulation, not a probability.`
       : "";
+    renderCityGridMap(item, days.find((day) => String(day.day) === weatherDay));
   }
 
   function mapColor(number) {
@@ -1881,7 +2021,9 @@ ARCHIVE_JS = r"""
     const blend = spatialCombination.runs?.[run.id];
     const candidate = blend?.selected_candidates?.[learnerVariable]?.[mapDay];
     const training = blend?.training_samples?.[learnerVariable]?.[mapDay];
-    const blendNote = mapModel === "combined" ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples` : "";
+    const blendNote = mapModel === "combined"
+      ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples`
+      : mapModel === "simple_average" ? ` · equal weight for each available model at this grid cell` : "";
     q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}${blendNote}`;
     q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
     renderMapLegend();
@@ -2024,7 +2166,7 @@ def build_html(
     """Build one accessible, light-mode application with unique control IDs."""
     latest = archive["runs"][0]
     source_models = _model_catalog(archive)
-    models = [COMBINED_MODEL, *source_models]
+    models = [COMBINED_MODEL, SIMPLE_AVERAGE_MODEL, *source_models]
     cities = list(validation["cities"])
     default_city = cities[0]
     weather = weather or {"runs": {run["id"]: {"cities": {}} for run in archive["runs"]}}
@@ -2089,10 +2231,14 @@ def build_html(
       <div class="panel-heading"><div><p class="eyebrow">Five-day outlook</p><h2 id="weather-location">{default_city}</h2><p id="weather-meta"></p></div><label class="select-control" for="city-select">City<select id="city-select">{city_options}</select></label></div>
       <div class="weather-summary"><div id="weather-now" class="weather-now"></div><div class="segmented compact"><button type="button" data-weather-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-weather-variable="precipitation" aria-pressed="false">Accumulated rainfall</button></div></div>
       <div id="weather-chart" class="weather-chart"></div><div id="daily-cards" class="daily-cards"></div><p id="blend-note" class="data-note"></p>
+      <section class="city-grid-section" aria-labelledby="city-grid-heading"><div class="subheading"><div><p class="eyebrow">Inputs behind the city forecast</p><h3 id="city-grid-heading">Contributing forecast grid points</h3><p>Select a day above to inspect the exact source cells, values, weights, and validity times used for the city summary.</p></div></div>
+        <div class="city-grid-layout"><div id="city-grid-map" class="city-grid-map"></div><aside class="city-grid-details"><p class="eyebrow">Selected daily period</p><strong id="city-grid-result"></strong><p id="city-grid-time" class="exact-time"></p><div id="grid-input-list" class="grid-input-list"></div></aside></div>
+        <details class="sample-times"><summary>Exact native forecast times used</summary><p id="city-grid-samples"></p></details>
+      </section>
     </section>
 
     <section class="panel" data-panel="maps" hidden aria-label="Interactive forecast maps">
-      <div class="panel-heading"><div><p class="eyebrow">Forecast maps</p><h2>India field explorer</h2><p>Choose the recent-error combined field or a source model, then select a variable and endpoint.</p></div></div>
+      <div class="panel-heading"><div><p class="eyebrow">Forecast maps</p><h2>India field explorer</h2><p>Compare the recent-error blend, the simple grid-cell average, or any source model.</p></div></div>
       <div class="control-grid">
         <fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-map-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-map-variable="temperature_high" aria-pressed="false">Daily high</button><button type="button" data-map-variable="temperature_low" aria-pressed="false">Daily low</button><button type="button" data-map-variable="precipitation" aria-pressed="false">Interval rainfall</button></div></fieldset>
         <fieldset><legend>Endpoint</legend><div class="segmented"><button type="button" data-map-day="1" aria-pressed="true">Day 1</button><button type="button" data-map-day="3" aria-pressed="false">Day 3</button><button type="button" data-map-day="5" aria-pressed="false">Day 5</button></div></fieldset>
@@ -2115,7 +2261,7 @@ def build_html(
       <div class="panel-heading"><div><p class="eyebrow">About the data</p><h2>Method and sources</h2><p>The site updates from the newest available 00 UTC initialization. Late models are added when they become available.</p></div></div>
       <div class="method-grid"><article><strong>1. Load</strong><p>Model fields are reduced to a common India grid and consistent units.</p></article><article><strong>2. Combine</strong><p>A causal search chooses equal weighting or recent-window exponential weighting separately for each variable and lead.</p></article><article><strong>3. Verify</strong><p>Open-Meteo temperature and rainfall are matched to the same forecast valid periods; historical blend predictions never use later observations.</p></article></div>
       <div class="table-wrap"><table><thead><tr><th>Model</th><th>Source</th><th>Members used</th><th>Reference</th></tr></thead><tbody>{source_rows}</tbody></table></div>
-      <p class="method-note">Combined-map weights pool recent errors across the four validation cities and are constant across the India grid. Temperature and rainfall use separate lead-specific weights. The online search follows <a href="https://doi.org/10.1006/inco.1996.2612">exponentiated-gradient learning</a> and <a href="https://doi.org/10.1111/rssc.12455">sequential weather-forecast aggregation</a>; exact candidates, selected weights, and prequential scores are in the <a href="assets/combination_manifest.json">combination metadata</a>. Daily city rainfall is accumulated within each 24-hour forecast day. Map rainfall is accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5. This is a research product, not an official forecast or warning.</p>
+      <p class="method-note">The simple-average map takes the arithmetic mean of all available source-model values independently at each grid cell. The recent-error blend instead pools recent errors across the four validation cities and applies lead- and variable-specific weights across the India grid. The online search follows <a href="https://doi.org/10.1006/inco.1996.2612">exponentiated-gradient learning</a> and <a href="https://doi.org/10.1111/rssc.12455">sequential weather-forecast aggregation</a>; exact candidates, selected weights, and prequential scores are in the <a href="assets/combination_manifest.json">combination metadata</a>. Daily city rainfall is accumulated within each 24-hour forecast day. Map rainfall is accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5. This is a research product, not an official forecast or warning.</p>
     </section>
   </main>
   <footer><div class="shell footer-row"><span>India Weather Forecasts · SCDLDS research</span><a href="https://scdlds.ashoka.edu.in/">Safexpress Centre for Data, Learning and Decision Sciences</a></div></footer>
@@ -2270,15 +2416,50 @@ select { width: 100%; padding: 9px 34px 9px 10px; color: var(--ink); background:
 .weather-area { fill: rgba(54, 133, 192, .12); }
 .weather-line { fill: none; stroke: var(--blue); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .daily-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding-top: 20px; }
-.day-card { display: grid; justify-items: center; min-height: 190px; padding: 16px 10px; border: 1px solid transparent; border-radius: 8px; }
-.day-card.is-first { background: #f0f5fa; border-color: #dbe8f2; }
+.day-card { display: grid; justify-items: center; min-height: 190px; padding: 16px 10px; color: var(--ink); background: white; border: 1px solid transparent; border-radius: 8px; font: inherit; cursor: pointer; }
+.day-card:hover { background: #f7fafc; border-color: #dbe3e8; }
+.day-card[aria-pressed="true"] { background: #f0f5fa; border-color: #91b7d4; box-shadow: inset 0 0 0 1px #91b7d4; }
 .day-card > strong { font-size: 1rem; }
-.day-card time { color: var(--muted); font-size: .7rem; }
+.day-card time { display: grid; color: var(--muted); font-size: .7rem; }
+.day-card time span { margin-top: 2px; font-size: .62rem; }
 .weather-icon { margin: 12px 0 7px; font-size: 2.6rem; }
 .day-card p { margin: 0 0 5px; }
 .day-card p span, .day-card small { color: #7c8992; }
 .day-card small { font-size: .74rem; }
 .data-note { margin: 20px 0 0; color: var(--muted); font-size: .76rem; }
+.city-grid-section { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--line); }
+.city-grid-section .subheading { margin-bottom: 17px; }
+.city-grid-section .subheading h3 { margin-bottom: 5px; font-size: 1.35rem; }
+.city-grid-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); height: 560px; border: 1px solid #cbd7df; border-radius: 8px; overflow: hidden; }
+.city-grid-map { position: relative; min-height: 0; overflow: hidden; background: #e7eff1; }
+.city-grid-map > svg { display: block; width: 100%; height: 100%; }
+.city-map-fallback { fill: #e7eff1; }
+.city-map-tile { opacity: .88; }
+.city-grid-overlay { font-family: system-ui, sans-serif; }
+.city-grid-leader { stroke: #415967; stroke-width: 1.25; stroke-dasharray: 3 2; }
+.city-grid-point { stroke: white; stroke-width: 2.5; }
+.city-grid-callout rect { fill: rgba(255,255,255,.96); stroke: #8fa1ad; stroke-width: 1; }
+.city-grid-callout text.model { fill: #263e4d; font-size: 10px; font-weight: 700; }
+.city-grid-callout text.value { fill: #405562; font-size: 10px; }
+.city-location circle:first-child { fill: white; stroke: #172f3d; stroke-width: 2; }
+.city-location circle:nth-child(2) { fill: #c51d3b; }
+.city-location text { fill: #172f3d; font-size: 12px; font-weight: 750; paint-order: stroke; stroke: white; stroke-width: 3px; }
+.osm-attribution { position: absolute; right: 4px; bottom: 4px; padding: 2px 4px; color: #374d5a; background: rgba(255,255,255,.9); font-size: .58rem; }
+.osm-attribution a { color: #315f80; }
+.city-grid-details { padding: 20px; overflow-y: auto; background: #f8fafb; border-left: 1px solid var(--line); }
+.city-grid-details > strong { display: block; font-size: .9rem; line-height: 1.5; }
+.exact-time { margin: 9px 0 15px; color: var(--muted); font-size: .72rem; line-height: 1.55; }
+.grid-input-list { display: grid; gap: 8px; }
+.grid-input { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding-top: 8px; border-top: 1px solid #dde4e8; }
+.grid-swatch { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; }
+.grid-input strong, .grid-input small { display: block; }
+.grid-input strong { font-size: .75rem; }
+.grid-input small { color: #647580; font-size: .62rem; }
+.grid-input p { margin: 3px 0 0; color: #52646f; font-size: .64rem; line-height: 1.45; }
+.grid-input > b { color: #39586b; font-size: .68rem; }
+.sample-times { margin-top: 12px; color: #52646f; font-size: .7rem; }
+.sample-times summary { color: #315f80; font-weight: 700; cursor: pointer; }
+.sample-times p { margin: 8px 0 0; line-height: 1.7; }
 .empty-state { padding: 60px 20px; color: var(--muted); text-align: center; }
 .control-grid { display: flex; flex-wrap: wrap; gap: 20px 32px; margin: 25px 0; padding: 17px; background: #f7f9fa; border: 1px solid var(--line); border-radius: 7px; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -2339,6 +2520,10 @@ footer a { color: var(--blue); }
   .panel-heading, .subheading { align-items: start; flex-direction: column; }
   .map-layout { grid-template-columns: 1fr; }
   .map-layout aside { border-top: 1px solid var(--line); border-left: 0; }
+  .city-grid-layout { grid-template-columns: 1fr; }
+  .city-grid-layout { height: auto; }
+  .city-grid-map { min-height: 410px; }
+  .city-grid-details { overflow-y: visible; border-top: 1px solid var(--line); border-left: 0; }
   .map-animation { grid-template-columns: 1fr; }
   .map-animation img { border-top: 1px solid var(--line); border-left: 0; }
   .method-grid { grid-template-columns: 1fr; }
@@ -2353,6 +2538,7 @@ footer a { color: var(--blue); }
   .weather-summary { align-items: flex-start; flex-direction: column; }
   .weather-now strong { font-size: 2.8rem; }
   .daily-cards { grid-template-columns: repeat(5, minmax(108px, 1fr)); overflow-x: auto; }
+  .city-grid-map { min-height: 330px; }
   .control-grid { display: grid; }
   #forecast-canvas { min-height: 540px; }
   .footer-row { flex-direction: column; }
@@ -2388,7 +2574,7 @@ def write_stage(
     (stage / "README.md").write_text(
         "# India Weather Forecasts\n\n"
         "A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, "
-        "hoverable India maps, a recent-error combined model, animated forecasts, and Open-Meteo validation.\n\n"
+        "hoverable India maps, recent-error and simple-average mixtures, animated forecasts, and Open-Meteo validation.\n\n"
         f"- Last successful build: `{archive['generated_at_utc']}`\n"
         f"- Latest initialization: `{latest['initialization_utc']}`\n"
         f"- Available models: {available}\n"
@@ -2402,6 +2588,8 @@ def write_stage(
         "```\n\n"
         "Live visit counting is intentionally disabled because no authenticated analytics backend is configured.\n\n"
         "Map coastlines use the public-domain [Natural Earth 1:50m coastline](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-coastline/).\n\n"
+        "City grid-input maps load visible basemap tiles on demand from "
+        "[OpenStreetMap](https://www.openstreetmap.org/copyright); attribution remains visible on each map.\n\n"
         "Temperature maps use a fixed 0–45 °C yellow-to-red scale. Map rainfall is interval accumulation "
         "between published endpoints (initialization→Day 1, Day 1→Day 3, and Day 3→Day 5), while city "
         "and validation rainfall retain their stated matched daily accumulation windows.\n\n"
@@ -2410,6 +2598,8 @@ def write_stage(
         "available at initialization time, pooled across the four validation cities, and applied uniformly over the map. "
         "Historical combined validation is prequential. Full learner metadata and weights are in "
         "[`assets/combination_manifest.json`](assets/combination_manifest.json).\n\n"
+        "The simple-average map is a separate baseline: it takes the arithmetic mean of all available "
+        "source-model values independently at every grid cell and endpoint.\n\n"
         "See [`assets/forecast_archive.json`](assets/forecast_archive.json), "
         "[`assets/weather_forecast.json`](assets/weather_forecast.json), and "
         "[`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.\n"
@@ -2450,6 +2640,13 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
             animation = stage / "assets" / "map_animations" / run["id"] / COMBINED_MODEL_ID / f"{variable}.gif"
             if not animation.is_file() or animation.stat().st_size < 5_000:
                 raise RuntimeError(f"missing combined map animation: {animation}")
+        average_payload = stage / "assets" / "map_data" / run["id"] / f"{SIMPLE_AVERAGE_MODEL_ID}.bin"
+        if not average_payload.is_file() or average_payload.stat().st_size < 50_000:
+            raise RuntimeError(f"missing simple-average map payload: {average_payload}")
+        for variable in GRID_VARIABLES:
+            animation = stage / "assets" / "map_animations" / run["id"] / SIMPLE_AVERAGE_MODEL_ID / f"{variable}.gif"
+            if not animation.is_file() or animation.stat().st_size < 5_000:
+                raise RuntimeError(f"missing simple-average map animation: {animation}")
     for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/combination_manifest.json", "assets/weather_forecast.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
@@ -2594,7 +2791,7 @@ def main():
         validation_records = _validation_records(archive, cfg, openmeteo)
         spatial_combination = research_online_combination(validation_records, archive)
         combined_payload_count = write_combined_map_payloads(stage, archive, spatial_combination)
-        print(f"rendered {combined_payload_count} combined spatial map payloads", flush=True)
+        print(f"rendered {combined_payload_count} mixture spatial map payloads", flush=True)
         validation = render_validation(
             archive, cfg, openmeteo, stage,
             records=validation_records, combination=spatial_combination,
