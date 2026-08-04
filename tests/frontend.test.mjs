@@ -79,6 +79,15 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.match(document.querySelector("#city-grid-time").textContent, /IST.*UTC.*IST.*UTC/);
   assert.match(document.querySelector("#city-grid-result").textContent, /simple average of shown inputs/);
   assert.match(document.querySelector("#city-grid-samples").textContent, /Exact native sample times used/);
+  assert.ok(document.querySelectorAll("#city-grid-map .forecast-grid-cell").length >= 9);
+  assert.match(document.querySelector("#city-grid-model-note").textContent, /loaded grid.*cells shown.*valid.*IST.*UTC/);
+  assert.match(document.querySelector("#weather-chart .date.time").textContent, /IST.*UTC/);
+  const gfsCityGrid = document.querySelector('[data-city-grid-model="gfs"]');
+  if (gfsCityGrid) {
+    gfsCityGrid.click();
+    assert.equal(document.querySelector('[data-city-grid-model="gfs"]').getAttribute("aria-pressed"), "true");
+    assert.match(document.querySelector("#city-grid-model-note").textContent, /GFS loaded grid/);
+  }
 
   document.querySelector('[data-weather-day="3"]').click();
   assert.equal(document.querySelector('[data-weather-day="3"]').getAttribute("aria-pressed"), "true");
@@ -127,15 +136,17 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector('[data-map-variable="precipitation"]').click();
   document.querySelector('[data-map-day="5"]').click();
   await new Promise((resolve) => setTimeout(resolve, 50));
-  assert.match(document.querySelector("#map-title").textContent, /Interval rainfall · Day 5/);
-  assert.match(document.querySelector("#map-description").textContent, /Day 3 → Day 5 \(48 h\) accumulation/);
+  assert.equal(document.querySelector('[data-map-day="5"]').getAttribute("aria-pressed"), "true");
+  assert.match(document.querySelector("#map-title").textContent, /Interval rainfall · .*2026.*IST.*UTC/);
+  assert.doesNotMatch(document.querySelector("#map-title").textContent, /Day [135]|T\+/);
+  assert.match(document.querySelector("#map-description").textContent, /IST.*UTC → .*IST.*UTC \(48 h\) accumulation/);
   assert.match(document.querySelector("#map-legend-title").textContent, /Interval rainfall/);
-  assert.match(document.querySelector("#map-legend-note").textContent, /Day 3 → Day 5/);
+  assert.match(document.querySelector("#map-legend-note").textContent, /IST.*UTC → .*IST.*UTC/);
   assert.match(document.querySelector("#map-animation").getAttribute("src"), /precipitation\.gif$/);
-  assert.match(document.querySelector("#animation-description").textContent, /previous published endpoint/);
+  assert.match(document.querySelector("#animation-description").textContent, /exact windows:.*IST.*UTC/);
   canvas.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 450, clientY: 260, bubbles: true }));
   assert.match(tooltip.textContent, /mm/);
-  assert.match(tooltip.textContent, /Day 3 → Day 5.*accumulation/);
+  assert.match(tooltip.textContent, /IST.*UTC → .*IST.*UTC.*accumulation/);
   const gfs = document.querySelector('[data-map-model="gfs"]');
   if (!gfs.disabled) {
     gfs.click();
@@ -148,7 +159,7 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector('[data-tab="validation"]').click();
   document.querySelector('[data-validation-variable="precipitation"]').click();
   assert.match(document.querySelector("#validation-image").getAttribute("src"), /precipitation\.png/);
-  assert.match(document.querySelector("#validation-summary").textContent, /combined mean lead MAE/);
+  assert.match(document.querySelector("#validation-summary").textContent, /combined mean endpoint MAE/);
   document.querySelector('[data-match-variable="temperature"]').click();
   assert.match(document.querySelector("#match-image").getAttribute("src"), /temperature\.png/);
 

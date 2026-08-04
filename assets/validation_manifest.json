@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-08-04T07:57:04.369945Z",
+  "generated_at_utc": "2026-08-04T08:30:43.600478Z",
   "truth_source": "Open-Meteo hourly temperature_2m and precipitation",
   "temperature_definition": "Forecast 2 m temperature at the exact valid time, matched to Open-Meteo hourly temperature.",
   "precipitation_definition": "Forecast precipitation accumulated from initialization through each valid endpoint, matched to the sum of Open-Meteo hourly precipitation over the same interval.",
@@ -704,15 +704,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260803_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260803_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -720,15 +720,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260802_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260802_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -736,17 +736,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260801_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260801_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -754,17 +754,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260731_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260731_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -772,19 +772,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260730_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260730_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -792,19 +792,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260729_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -812,19 +812,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260728_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260728_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           }
         }
@@ -986,15 +986,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260803_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260803_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1002,15 +1002,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260802_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260802_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1018,17 +1018,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260801_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260801_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1036,17 +1036,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260731_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260731_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1054,19 +1054,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260730_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260730_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1074,19 +1074,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260729_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1094,19 +1094,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260728_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260728_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           }
         }
@@ -1268,15 +1268,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260803_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260803_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1284,15 +1284,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260802_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260802_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1300,17 +1300,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260801_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260801_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1318,17 +1318,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260731_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260731_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1336,19 +1336,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260730_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260730_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1356,19 +1356,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260729_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1376,19 +1376,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260728_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260728_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           }
         }
@@ -1550,15 +1550,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260803_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260803_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1566,15 +1566,15 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260802_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260802_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260802_00",
-            "matched_leads": [
-              1
+            "matched_valid_times_utc": [
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1582,17 +1582,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260801_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260801_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1600,17 +1600,17 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260731_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260731_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260731_00",
-            "matched_leads": [
-              1,
-              3
+            "matched_valid_times_utc": [
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1618,19 +1618,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260730_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260730_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260730_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z",
+              "2026-08-04T00:00:00Z"
             ]
           }
         },
@@ -1638,19 +1638,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260729_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260729_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260729_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-30T00:00:00Z",
+              "2026-08-01T00:00:00Z",
+              "2026-08-03T00:00:00Z"
             ]
           }
         },
@@ -1658,19 +1658,19 @@
           "temperature": {
             "path": "assets/validation/timeseries/20260728_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260728_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260728_00",
-            "matched_leads": [
-              1,
-              3,
-              5
+            "matched_valid_times_utc": [
+              "2026-07-29T00:00:00Z",
+              "2026-07-31T00:00:00Z",
+              "2026-08-02T00:00:00Z"
             ]
           }
         }

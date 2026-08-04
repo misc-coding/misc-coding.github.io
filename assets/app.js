@@ -20,11 +20,13 @@
     gefs: "#be7910", aifs: "#087f73", ifs_ens: "#34495e" };
   const runIds = new Set(runs.map((run) => run.id));
   const cityNames = Object.keys(validation.cities);
+  const sourceModelTotal = site.models.filter((model) => !["combined", "simple_average"].includes(model.id)).length;
   let tab = allowedTabs.has(params.get("tab")) ? params.get("tab") : "weather";
   let init = runIds.has(params.get("init")) ? params.get("init") : runs[0].id;
   let city = cityNames.includes(params.get("city")) ? params.get("city") : cityNames[0];
   let weatherVariable = params.get("weather") === "precipitation" ? "precipitation" : "temperature";
   let weatherDay = allowedWeatherDays.has(params.get("weather_day")) ? params.get("weather_day") : "1";
+  let cityGridModel = params.get("grid_model") || null;
   let mapVariable = allowedVariables.has(params.get("variable")) ? params.get("variable") : "temperature";
   let mapDay = allowedDays.has(params.get("day")) ? params.get("day") : "1";
   let mapModel = params.get("model") || (spatialCombination.runs?.[runs[0].id]?.map_payload ? "combined" : runs[0].available_models?.[0]) || runs[0].models[0].id;
@@ -40,9 +42,10 @@
 
   function setUrl() {
     const next = new URL(location.href);
-    const values = { tab, init, city, weather: weatherVariable, weather_day: weatherDay, variable: mapVariable, day: mapDay,
+    const values = { tab, init, city, weather: weatherVariable, weather_day: weatherDay, grid_model: cityGridModel,
+      variable: mapVariable, day: mapDay,
       model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable };
-    Object.entries(values).forEach(([key, value]) => next.searchParams.set(key, value));
+    Object.entries(values).forEach(([key, value]) => { if (value) next.searchParams.set(key, value); });
     history.replaceState(null, "", next);
   }
 
@@ -90,10 +93,23 @@
     return `${formatZoned(value, "Asia/Kolkata", "IST")} · ${formatZoned(value, "UTC", "UTC")}`;
   }
 
+  function validTime(run, day = Number(mapDay)) {
+    const published = run.lead_days?.find((item) => Number(item.day) === Number(day));
+    return published?.valid_time_utc || new Date(new Date(run.initialization_utc).getTime() + Number(day) * 86400000).toISOString();
+  }
+
+  function compactValidTime(value) {
+    const ist = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short",
+      year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value));
+    const utc = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit",
+      hourCycle: "h23" }).format(new Date(value));
+    return `${ist} IST · ${utc} UTC`;
+  }
+
   function renderRun() {
     const run = activeRun();
     q("#init-select").value = init;
-    q("#run-status").textContent = `${formatInit(run.initialization_utc)} · ${sourceRunModels(run).length} of ${site.models.length - 1} source models`;
+    q("#run-status").textContent = `${formatInit(run.initialization_utc)} · ${sourceRunModels(run).length} of ${sourceModelTotal} source models`;
     q("#availability-note").textContent = run.status === "partial"
       ? `Partial run. Waiting for: ${(run.missing_models || []).map(modelLabel).join(", ")}.`
       : "All configured models are available for this initialization.";
@@ -104,6 +120,12 @@
       button.disabled = !enabled;
       button.title = enabled ? "" : "Not available for this initialization";
       button.setAttribute("aria-pressed", String(button.dataset.mapModel === mapModel));
+    });
+    qa("[data-map-day]").forEach((button) => {
+      const valid = validTime(run, button.dataset.mapDay);
+      button.innerHTML = `<span>${formatZoned(valid, "Asia/Kolkata", "IST")}</span><small>${formatZoned(valid, "UTC", "UTC")}</small>`;
+      button.title = `Forecast valid ${exactTime(valid)}`;
+      button.setAttribute("aria-pressed", String(button.dataset.mapDay === mapDay));
     });
     renderWeather();
     loadMap();
@@ -117,7 +139,7 @@
   }
 
   function weatherChart(days) {
-    const width = 920, height = 260, pad = { l: 45, r: 20, t: 22, b: 42 };
+    const width = 920, height = 270, pad = { l: 45, r: 20, t: 22, b: 58 };
     const value = (day) => weatherVariable === "temperature" ? day.mean_c : day.precip_mm;
     const values = days.map(value);
     if (!values.length) return '<p class="empty-state">No five-day city forecast is available for this run.</p>';
@@ -129,7 +151,13 @@
     const area = `${line} L${x(days.length - 1)},${height - pad.b} L${x(0)},${height - pad.b} Z`;
     const gridValues = [low, (low + high) / 2, high];
     const grid = gridValues.map((number) => `<g><line x1="${pad.l}" x2="${width - pad.r}" y1="${y(number)}" y2="${y(number)}"/><text x="${pad.l - 8}" y="${y(number) + 4}" text-anchor="end">${number.toFixed(weatherVariable === "temperature" ? 0 : 1)}</text></g>`).join("");
-    const dots = days.map((day, index) => `<g><circle cx="${x(index)}" cy="${y(value(day))}" r="4"/><text x="${x(index)}" y="${y(value(day)) - 12}" text-anchor="middle">${value(day).toFixed(1)}${weatherVariable === "temperature" ? "°" : " mm"}</text><text class="date" x="${x(index)}" y="${height - 15}" text-anchor="middle">${new Date(day.valid_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</text></g>`).join("");
+    const dots = days.map((day, index) => {
+      const valid = new Date(day.valid_end_utc);
+      const date = valid.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" });
+      const ist = valid.toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      const utc = valid.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      return `<g><circle cx="${x(index)}" cy="${y(value(day))}" r="4"/><text x="${x(index)}" y="${y(value(day)) - 12}" text-anchor="middle">${value(day).toFixed(1)}${weatherVariable === "temperature" ? "°" : " mm"}</text><text class="date" x="${x(index)}" y="${height - 27}" text-anchor="middle">${date}</text><text class="date time" x="${x(index)}" y="${height - 12}" text-anchor="middle">${ist} IST · ${utc} UTC</text></g>`;
+    }).join("");
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Five-day ${weatherVariable} forecast"><g class="chart-grid">${grid}</g><path class="weather-area" d="${area}"/><path class="weather-line" d="${line}"/><g class="weather-points">${dots}</g></svg>`;
   }
 
@@ -166,20 +194,58 @@
       }
     }
     const experts = Object.entries(day.experts);
+    if (!day.experts[cityGridModel]) cityGridModel = experts[0][0];
+    q("#city-grid-models").innerHTML = experts.map(([model]) => `<button type="button" data-city-grid-model="${model}" aria-pressed="${model === cityGridModel}">${modelLabel(model)}</button>`).join("");
+    qa("[data-city-grid-model]").forEach((button) => button.addEventListener("click", () => {
+      cityGridModel = button.dataset.cityGridModel;
+      renderCityGridMap(item, day);
+      setUrl();
+    }));
     const valueFor = (expert) => weatherVariable === "temperature" ? expert.mean_c : expert.precip_mm;
     const unit = weatherVariable === "temperature" ? "°C" : "mm";
-    const markers = experts.map(([model, expert], index) => {
+    const selectedExpert = day.experts[cityGridModel];
+    const localGrid = selectedExpert.local_grid;
+    const gridKey = weatherVariable === "temperature" ? "mean_c" : "precip_mm";
+    const cellColor = (value) => {
+      if (weatherVariable === "precipitation") {
+        const fraction = Math.max(0, Math.min(1, value / 60));
+        return [225 - 185 * fraction, 241 - 80 * fraction, 248 - 25 * fraction];
+      }
+      const stops = [[255, 255, 204], [254, 217, 118], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
+      const scaled = Math.max(0, Math.min(1, value / 45)) * (stops.length - 1);
+      const stop = Math.min(stops.length - 2, Math.floor(scaled));
+      const fraction = scaled - stop;
+      return stops[stop].map((channel, offset) => Math.round(channel + (stops[stop + 1][offset] - channel) * fraction));
+    };
+    const bounds = (values, index, fallback) => {
+      const lower = index > 0 ? (values[index - 1] + values[index]) / 2 : values[index] - (values[1] - values[0] || fallback) / 2;
+      const upper = index < values.length - 1 ? (values[index] + values[index + 1]) / 2 : values[index] + (values[index] - values[index - 1] || fallback) / 2;
+      return [lower, upper];
+    };
+    const cells = localGrid.latitudes.flatMap((latitude, latIndex) => localGrid.longitudes.map((longitude, lonIndex) => {
+      const value = localGrid[gridKey][latIndex][lonIndex];
+      if (value === null) return "";
+      const [south, north] = bounds(localGrid.latitudes, latIndex, localGrid.latitude_spacing_degrees || .25);
+      const [west, east] = bounds(localGrid.longitudes, lonIndex, localGrid.longitude_spacing_degrees || .25);
+      const northwest = cityMapWorld(north, west, zoom);
+      const southeast = cityMapWorld(south, east, zoom);
+      const x = northwest.x - left, y = northwest.y - top;
+      const cellWidth = southeast.x - northwest.x, cellHeight = southeast.y - northwest.y;
+      const color = cellColor(value);
+      return `<g><rect class="forecast-grid-cell" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cellWidth.toFixed(1)}" height="${cellHeight.toFixed(1)}" fill="rgb(${color.join(",")})"><title>${modelLabel(cityGridModel)} grid cell centered ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E: ${value.toFixed(1)} ${unit}, valid ${exactTime(day.valid_end_utc)}</title></rect><text class="forecast-grid-value" x="${(x + cellWidth / 2).toFixed(1)}" y="${(y + cellHeight / 2 + 3).toFixed(1)}" text-anchor="middle">${value.toFixed(1)}</text></g>`;
+    })).join("");
+    const markers = [[cityGridModel, selectedExpert]].map(([model, expert]) => {
       const actual = cityMapWorld(expert.grid_latitude, expert.grid_longitude, zoom);
       const x = actual.x - left, y = actual.y - top;
-      const angle = -Math.PI / 2 + index * 2 * Math.PI / Math.max(experts.length, 1);
-      const calloutX = Math.max(64, Math.min(width - 64, x + Math.cos(angle) * 84));
-      const calloutY = Math.max(28, Math.min(height - 28, y + Math.sin(angle) * 72));
+      const calloutX = Math.max(64, Math.min(width - 64, x + 92));
+      const calloutY = Math.max(28, Math.min(height - 28, y - 58));
       const color = cityGridColors[model] || "#41687f";
       const shortLabel = modelLabel(model).replace("WeatherNext 2", "WN2").replace("IFS-ENS", "IFS");
       const title = `${modelLabel(model)}: ${valueFor(expert).toFixed(1)} ${unit} at ${expert.grid_latitude.toFixed(4)}° N, ${expert.grid_longitude.toFixed(4)}° E`;
       return `<g><line class="city-grid-leader" x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${calloutX.toFixed(1)}" y2="${calloutY.toFixed(1)}"/><circle class="city-grid-point" data-grid-model="${model}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${color}"><title>${title}</title></circle><g class="city-grid-callout" transform="translate(${calloutX.toFixed(1)} ${calloutY.toFixed(1)})"><rect x="-48" y="-20" width="96" height="40" rx="5"/><circle cx="-37" cy="-7" r="4" fill="${color}"/><text class="model" x="-28" y="-3">${shortLabel}</text><text class="value" x="0" y="13" text-anchor="middle">${valueFor(expert).toFixed(1)} ${unit}</text></g></g>`;
     }).join("");
-    map.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${city} source forecast grid points over a city street map"><rect width="${width}" height="${height}" class="city-map-fallback"/>${tileImages.join("")}<g class="city-grid-overlay">${markers}<g class="city-location" transform="translate(${width / 2} ${height / 2})"><circle r="9"/><circle r="3"/><text x="13" y="4">${city}</text></g></g></svg><span class="osm-attribution">© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></span>`;
+    map.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${modelLabel(cityGridModel)} forecast grid and values over ${city}"><rect width="${width}" height="${height}" class="city-map-fallback"/>${tileImages.join("")}<g class="forecast-grid-mesh">${cells}</g><g class="city-grid-overlay">${markers}<g class="city-location" transform="translate(${width / 2} ${height / 2})"><circle r="9"/><circle r="3"/><text x="13" y="4">${city}</text></g></g></svg><span class="osm-attribution">© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></span>`;
+    q("#city-grid-model-note").textContent = `${modelLabel(cityGridModel)} loaded grid · ${localGrid.latitudes.length} × ${localGrid.longitudes.length} cells shown · ${localGrid.latitude_spacing_degrees?.toFixed(3) || "n/a"}° latitude × ${localGrid.longitude_spacing_degrees?.toFixed(3) || "n/a"}° longitude · valid ${exactTime(day.valid_end_utc)}`;
 
     const weights = weatherVariable === "temperature" ? item.temperature_weights : item.precipitation_weights;
     list.innerHTML = experts.map(([model, expert]) => {
@@ -235,10 +301,11 @@
     return stops[index].map((channel, offset) => channel + (stops[index + 1][offset] - channel) * fraction);
   }
 
-  function precipitationWindow(day = Number(mapDay)) {
-    if (day === 1) return "Initialization → Day 1 (24 h)";
-    if (day === 3) return "Day 1 → Day 3 (48 h)";
-    return "Day 3 → Day 5 (48 h)";
+  function precipitationWindow(day = Number(mapDay), run = activeRun()) {
+    const previousDay = day === 1 ? 0 : day === 3 ? 1 : 3;
+    const start = previousDay === 0 ? run.initialization_utc : validTime(run, previousDay);
+    const end = validTime(run, day);
+    return `${compactValidTime(start)} → ${compactValidTime(end)} (${(day - previousDay) * 24} h)`;
   }
 
   function renderMapLegend() {
@@ -247,7 +314,7 @@
     legend.classList.toggle("is-precipitation", precipitation);
     q("#map-legend-title").textContent = precipitation ? "Interval rainfall (mm)" : "Temperature (°C) · fixed scale";
     q("#map-legend-ticks").innerHTML = (precipitation ? [0, 40, 80, 120] : [0, 15, 30, 45]).map((value) => `<span>${value}</span>`).join("");
-    q("#map-legend-note").textContent = precipitation ? precipitationWindow() : "Same 0–45 °C scale for every model, lead, and temperature layer.";
+    q("#map-legend-note").textContent = precipitation ? precipitationWindow() : "Same 0–45 °C scale for every model, valid time, and temperature layer.";
   }
 
   function decodeMapValue(encoded) {
@@ -274,11 +341,13 @@
     const source = `assets/map_animations/${init}/${mapModel}/${mapVariable}.gif`;
     const image = q("#map-animation");
     if (image.getAttribute("src") !== source) image.src = source;
-    image.alt = `Animated ${label.toLowerCase()} forecast for ${model} from Day 1 through Day 5`;
+    const run = activeRun();
+    const endpoints = run.grid_metadata.lead_days.map((day) => compactValidTime(validTime(run, day)));
+    image.alt = `Animated ${label.toLowerCase()} forecast for ${model} at ${endpoints.join(", ")}`;
     q("#animation-title").textContent = `${label} · ${model}`;
     q("#animation-description").textContent = mapVariable === "precipitation"
-      ? "Each frame is rainfall accumulated only since the previous published endpoint: initialization→Day 1, Day 1→Day 3, and Day 3→Day 5."
-      : "Animated Day 1, Day 3, and Day 5 forecast endpoints on a fixed 0–45 °C scale.";
+      ? `Each frame shows interval rainfall for these exact windows: ${run.grid_metadata.lead_days.map((day) => precipitationWindow(day, run)).join(" · ")}.`
+      : `Animated forecast valid at ${endpoints.join(" · ")} on a fixed 0–45 °C scale.`;
   }
 
   async function loadMap() {
@@ -365,8 +434,8 @@
     if (!point || value === null) { hideMapTooltip(); return; }
     const tooltip = q("#map-tooltip");
     const units = mapVariable === "precipitation" ? "mm" : "°C";
-    const lead = mapVariable === "precipitation" ? `${precipitationWindow()} accumulation` : `Day ${mapDay}`;
-    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · ${lead}</small>`;
+    const valid = mapVariable === "precipitation" ? `${precipitationWindow()} accumulation` : `valid ${compactValidTime(validTime(run))}`;
+    tooltip.innerHTML = `<strong>${value.toFixed(1)} ${units}</strong><span>${point.latitude.toFixed(2)}° N · ${point.longitude.toFixed(2)}° E</span><small>${modelLabel(mapModel)} · ${valid}</small>`;
     tooltip.style.left = `${Math.max(8, Math.min(point.rect.width - 185, point.cssX + 12))}px`;
     tooltip.style.top = `${point.cssY > 90 ? point.cssY - 12 : point.cssY + 12}px`;
     tooltip.dataset.side = point.cssY > 90 ? "above" : "below";
@@ -412,7 +481,8 @@
       ctx.fillStyle = "#173f63"; ctx.font = `${12 / view.scale}px system-ui`; ctx.fillText(name, x + 10 / view.scale, y - 8 / view.scale);
     });
     ctx.restore();
-    q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · Day ${mapDay}`;
+    const selectedValidTime = validTime(run);
+    q("#map-title").textContent = `${mapVariableLabels[mapVariable]} · ${compactValidTime(selectedValidTime)}`;
     const learnerVariable = mapVariable === "precipitation" ? "precipitation" : "temperature";
     const blend = spatialCombination.runs?.[run.id];
     const candidate = blend?.selected_candidates?.[learnerVariable]?.[mapDay];
@@ -421,7 +491,7 @@
       ? ` · ${candidate || "uniform"} from ${training || 0} prior matched samples`
       : mapModel === "simple_average" ? ` · equal weight for each available model at this grid cell` : "";
     q("#map-description").textContent = `${modelLabel(mapModel)} · initialized ${formatInit(run.initialization_utc)}${mapVariable === "precipitation" ? ` · ${precipitationWindow()} accumulation` : ""}${blendNote}`;
-    q("#map-readout").textContent = `T+${Number(mapDay) * 24} h · drag to pan · scroll to zoom`;
+    q("#map-readout").textContent = `Valid ${compactValidTime(selectedValidTime)} · drag to pan · scroll to zoom`;
     renderMapLegend();
   }
 
@@ -448,7 +518,7 @@
     const summary = item.summary[validationVariable];
     const points = summary.matched_points;
     const leadErrors = Object.values(summary.models?.combined?.mae_by_lead || {});
-    const combinedText = leadErrors.length ? ` · combined mean lead MAE ${(leadErrors.reduce((sum, value) => sum + value, 0) / leadErrors.length).toFixed(2)} ${validationVariable === "temperature" ? "°C" : "mm"}` : "";
+    const combinedText = leadErrors.length ? ` · combined mean endpoint MAE ${(leadErrors.reduce((sum, value) => sum + value, 0) / leadErrors.length).toFixed(2)} ${validationVariable === "temperature" ? "°C" : "mm"}` : "";
     q("#validation-summary").textContent = `${city} · ${points} matched points per available model · Open-Meteo observations${combinedText}`;
     setUrl();
   }

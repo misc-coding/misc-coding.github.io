@@ -26,9 +26,11 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('id="map-legend"') == 1
     assert html.count('id="city-grid-map"') == 1
     assert html.count('id="city-grid-time"') == 1
+    assert html.count('id="city-grid-models"') == 1
+    assert "Forecast valid date and time" in html
     assert "OpenStreetMap contributors" in html or "OpenStreetMap contributors" in (ROOT / "assets/app.js").read_text()
     assert "fixed 0–45 °C scale" in html
-    assert "Map rainfall is accumulated only since the previous published endpoint" in html
+    assert "Map rainfall is accumulated only since the previous displayed valid timestamp" in html
     assert "assets/scdlds-logo.jpeg" in html
     assert "coastline overlay" in html
     assert "Natural Earth" in html
@@ -89,6 +91,12 @@ def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
                     assert all(value.endswith("Z") for value in expert["sample_times_utc"])
                     assert expert["high_time_utc"] in expert["sample_times_utc"]
                     assert expert["low_time_utc"] in expert["sample_times_utc"]
+                    grid = expert["local_grid"]
+                    assert 1 <= len(grid["latitudes"]) <= 5
+                    assert 1 <= len(grid["longitudes"]) <= 5
+                    for variable in ("mean_c", "high_c", "low_c", "precip_mm"):
+                        assert len(grid[variable]) == len(grid["latitudes"])
+                        assert all(len(row) == len(grid["longitudes"]) for row in grid[variable])
 
 
 def test_local_coastline_overlay_covers_the_forecast_domain():
@@ -187,6 +195,7 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     assert "git push origin main" in publisher
     assert 'shutil.copy2(coastlines, assets / coastlines.name)' in (ROOT / "scripts/publish_forecast_archive.py").read_text()
     assert "render_map_animations(stage, archive" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
+    assert 'label = f"Valid {valid_time:%d %b %Y %H:%M UTC}"' in (ROOT / "scripts/publish_forecast_archive.py").read_text()
     assert "refreshing observations and online weights" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
 
 

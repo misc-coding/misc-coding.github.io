@@ -205,6 +205,10 @@ def test_daily_city_series_matches_native_step_accumulation():
     ]
     assert result[1]["high_time_utc"] == "2026-07-31T00:00:00Z"
     assert result[1]["low_time_utc"] == "2026-07-30T06:00:00Z"
+    assert result[1]["local_grid"]["latitudes"] == [28.6]
+    assert result[1]["local_grid"]["longitudes"] == [77.2]
+    assert result[1]["local_grid"]["mean_c"] == [[21.5]]
+    assert result[1]["local_grid"]["precip_mm"] == [[4.0]]
     assert result[5]["precip_mm"] == 4.0
 
 
