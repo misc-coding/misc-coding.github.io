@@ -4,8 +4,15 @@ set -euo pipefail
 
 SITE_REPO="/home/saptarishi.dhanuka_asp25/weather/misc-coding.github.io"
 PYTHON="/Datastorage/saptarishi.dhanuka_asp25/conda_envs/realtime_dash/bin/python"
+NODE_BIN_DIR="/home/saptarishi.dhanuka_asp25/.nvm/versions/node/v22.20.0/bin"
+NODE="$NODE_BIN_DIR/node"
+NPM="$NODE_BIN_DIR/npm"
 LOCK="/tmp/india_forecast_pages.lock"
 LOG_DIR="/tmp/india_forecast_pages_logs"
+
+# systemd user services do not load the interactive shell's NVM setup. Keep
+# Node on PATH because npm's launcher resolves it through /usr/bin/env.
+export PATH="$NODE_BIN_DIR:$PATH"
 
 mkdir -p "$LOG_DIR"
 exec 9>"$LOCK"
@@ -27,7 +34,8 @@ LOG="$LOG_DIR/publish_$(date -u +%Y%m%d).log"
   fi
   "$PYTHON" scripts/publish_forecast_archive.py "${PUBLISH_ARGS[@]}"
   "$PYTHON" -m pytest -q
-  node --check assets/app.js
+  "$NODE" --check assets/app.js
+  "$NPM" test
   if ! git diff --quiet -- index.html README.md assets scripts systemd tests package.json package-lock.json .github; then
     git add index.html README.md assets scripts systemd tests package.json package-lock.json .github
     git commit -m "Update India forecast archive"

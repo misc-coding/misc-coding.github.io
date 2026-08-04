@@ -109,6 +109,15 @@ def test_partial_latest_is_not_rebuilt_without_newer_or_late_data():
     assert archive.candidate_initializations(availability, existing) == []
 
 
+def test_recent_partial_run_is_revisited_to_fill_high_resolution_models():
+    existing = [_run(31, ("gfs", "aifs")), _run(30, ("gfs",)), _run(29, ("gfs", "aifs"))]
+    availability = {
+        "gfs": {pd.Timestamp("2026-07-31"), pd.Timestamp("2026-07-30"), pd.Timestamp("2026-07-29")},
+        "aifs": {pd.Timestamp("2026-07-31"), pd.Timestamp("2026-07-30"), pd.Timestamp("2026-07-29")},
+    }
+    assert archive.candidate_initializations(availability, existing) == [pd.Timestamp("2026-07-30")]
+
+
 def test_backfill_targets_missing_recent_dates_not_complete_existing_runs():
     existing = [_run(30, ("gfs", "aifs")), _run(29, ("gfs", "aifs"))]
     availability = {
@@ -212,6 +221,26 @@ def test_daily_city_series_matches_native_step_accumulation():
     assert result[5]["precip_mm"] == 4.0
 
 
+def test_six_hour_weather_blend_uses_exact_tiling_and_does_not_split_twelve_hour_rain():
+    init = pd.Timestamp("2026-08-01T00:00:00")
+    timelines = {
+        "gefs": [
+            {"interval_start_utc": "2026-08-01T00:00:00Z", "valid_time_utc": "2026-08-01T03:00:00Z", "temperature_c": 28.0, "precip_mm": 1.0},
+            {"interval_start_utc": "2026-08-01T03:00:00Z", "valid_time_utc": "2026-08-01T06:00:00Z", "temperature_c": 30.0, "precip_mm": 2.0},
+        ],
+        "gencast": [
+            {"interval_start_utc": "2026-08-01T00:00:00Z", "valid_time_utc": "2026-08-01T12:00:00Z", "temperature_c": 29.0, "precip_mm": 12.0},
+        ],
+    }
+    result = archive._six_hour_city_blend(
+        timelines, init, {"gefs": .5, "gencast": .5}, {"gefs": .5, "gencast": .5},
+    )
+    first = result[0]
+    assert first["valid_time_utc"] == "2026-08-01T06:00:00Z"
+    assert first["precip_mm"] == 3.0
+    assert first["precipitation_experts"] == {"gefs": 3.0}
+
+
 def test_simple_average_map_is_computed_independently_at_each_valid_grid_cell(tmp_path):
     tag = "20260730_00"
     target = tmp_path / "assets" / "map_data" / tag
@@ -276,6 +305,12 @@ def test_build_html_has_tabs_every_run_and_unique_ids():
     assert html.count('id="forecast-canvas"') == 1
     assert 'value="20260730_00"' in html
     assert 'id="validation-image"' in html
+    assert 'id="within-day-chart"' in html
+    assert 'id="temporal-forecast-canvas"' in html
+    assert 'id="imerg-early-canvas"' in html
+    assert 'id="imerg-validation-image"' in html
+    assert "nasa-imerg-analysis-early" in html
+    assert "nasa-imerg-analysis-late" in html
     assert 'https://scdlds.ashoka.edu.in/' in html
     assert 'assets/scdlds-logo.jpeg' in html
     assert 'class="forecast-home" href="./" aria-label="India Weather Forecasts home"' in html
@@ -288,7 +323,9 @@ def test_frontend_contract_covers_all_interactive_features():
         "[data-tab]", "#init-select", "#city-select", "[data-weather-variable]",
         "[data-map-variable]", "[data-map-day]", "[data-map-model]", "#map-reset",
         "[data-validation-city]", "[data-validation-variable]", "#match-init-select",
-        "[data-match-variable]",
+        "[data-match-variable]", "[data-within-day-model]", "[data-temporal-variable]",
+        "#temporal-time-select", "[data-imerg-duration]", "#imerg-time-select",
+        "#imerg-validation-model",
     ):
         assert selector in javascript
     assert "pointerdown" in javascript

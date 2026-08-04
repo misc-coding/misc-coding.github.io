@@ -8,6 +8,6 @@ Type=oneshot
 WorkingDirectory=/home/saptarishi.dhanuka_asp25/weather/misc-coding.github.io
 Environment=MPLCONFIGDIR=/tmp/india_forecast_pages_mpl
 ExecStart=/home/saptarishi.dhanuka_asp25/weather/misc-coding.github.io/scripts/daily_forecast_publish.sh
-TimeoutStartSec=50min
+TimeoutStartSec=90min
 Restart=on-failure
 RestartSec=15min

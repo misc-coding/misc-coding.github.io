@@ -89,12 +89,13 @@ def load_renderer(realtime_root: Path):
     import publish_forecast_site as renderer  # type: ignore
     from realtime_dash.config import load_config  # type: ignore
     from realtime_dash.india import load as india_load  # type: ignore
+    from realtime_dash.sources._dynamical_catalog import open_dataset as open_dynamical  # type: ignore
     from realtime_dash.sources import openmeteo  # type: ignore
     # The shared renderer is intentionally parameterized by this module-level
     # sequence; retain its tested rendering machinery while publishing 1/3/5-day
     # products instead of its historical 1/2/3-day default.
     renderer.LEAD_DAYS = LEAD_DAYS
-    return renderer, load_config, india_load, openmeteo
+    return renderer, load_config, india_load, openmeteo, open_dynamical
 
 
 @contextmanager
@@ -145,7 +146,7 @@ def common_midnight_inits(models, cfg, india_load) -> list[pd.Timestamp]:
 def candidate_initializations(
     availability: dict[str, set[pd.Timestamp]], existing: list[dict], *, backfill: bool = False,
 ) -> list[pd.Timestamp]:
-    """Choose fresh runs only; also revisit the latest partial run as sources arrive."""
+    """Choose fresh runs and revisit partial runs among the latest three inits."""
     union = sorted(set().union(*availability.values()) if availability else set(), reverse=True)
     if not existing:
         return union
@@ -160,12 +161,20 @@ def candidate_initializations(
                 candidates.append(value)
         return candidates
     latest = pd.Timestamp(max(run["initialization_utc"] for run in existing)).tz_localize(None)
-    latest_run = next(run for run in existing if pd.Timestamp(run["initialization_utc"]).tz_localize(None) == latest)
-    have = {model["id"] for model in latest_run.get("models", [])}
-    available_latest = {model for model, values in availability.items() if latest in values}
+    by_time = {
+        pd.Timestamp(run["initialization_utc"]).tz_localize(None): run
+        for run in existing
+    }
     candidates = [value for value in union if value > latest]
-    if available_latest - have:
-        candidates.append(latest)
+    recent_floor = latest - pd.Timedelta(days=2)
+    for value in (candidate for candidate in union if recent_floor <= candidate <= latest):
+        run = by_time.get(value)
+        if run is None:
+            continue
+        have = {model["id"] for model in run.get("models", [])}
+        ready = {model for model, values in availability.items() if value in values}
+        if ready - have:
+            candidates.append(value)
     return sorted(set(candidates), reverse=True)
 
 
@@ -1225,6 +1234,87 @@ def _daily_city_series(series: xr.Dataset, city, init: pd.Timestamp) -> dict[int
     return out
 
 
+def _native_city_timeline(prepared: xr.Dataset, city, init: pd.Timestamp) -> list[dict]:
+    """Return exact native forecast values and interval rainfall for one city."""
+    point = prepared.sel(lat=city.lat, lon=city.lon, method="nearest")
+    valid = pd.to_datetime(point["valid_time"].values).tz_localize(None)
+    starts = pd.to_datetime(point["interval_start"].values).tz_localize(None)
+    records = []
+    for index, (start, end) in enumerate(zip(starts, valid)):
+        elapsed_hours = float((end - init) / pd.Timedelta(hours=1))
+        day = max(1, int(np.ceil(elapsed_hours / 24.0)))
+        records.append({
+            "day": day,
+            "interval_start_utc": utc_text(start),
+            "valid_time_utc": utc_text(end),
+            "interval_hours": float((end - start) / pd.Timedelta(hours=1)),
+            "temperature_c": round(float(point["temperature_c"].isel(valid_time=index).item()), 2),
+            "precip_mm": round(max(0.0, float(point["precip_interval_mm"].isel(valid_time=index).item())), 2),
+        })
+    return records
+
+
+def _tile_interval_rain(records: list[dict], start: pd.Timestamp, end: pd.Timestamp) -> float | None:
+    """Sum native forecast intervals only when they exactly tile ``(start, end]``."""
+    chosen = sorted(
+        (
+            row for row in records
+            if pd.Timestamp(row["interval_start_utc"]).tz_localize(None) >= start
+            and pd.Timestamp(row["valid_time_utc"]).tz_localize(None) <= end
+        ),
+        key=lambda row: row["valid_time_utc"],
+    )
+    cursor = start
+    total = 0.0
+    for row in chosen:
+        row_start = pd.Timestamp(row["interval_start_utc"]).tz_localize(None)
+        row_end = pd.Timestamp(row["valid_time_utc"]).tz_localize(None)
+        if row_start != cursor:
+            return None
+        total += float(row["precip_mm"])
+        cursor = row_end
+    return total if cursor == end else None
+
+
+def _six_hour_city_blend(
+    timelines: dict[str, list[dict]],
+    init: pd.Timestamp,
+    temperature_weights: dict[str, float],
+    precipitation_weights: dict[str, float],
+) -> list[dict]:
+    """Blend exact six-hour city periods without interpolating coarser models."""
+    points = []
+    for lead_hours in range(6, max(DAILY_LEAD_DAYS) * 24 + 1, 6):
+        end = init + pd.Timedelta(hours=lead_hours)
+        start = end - pd.Timedelta(hours=6)
+        temperatures, rain = {}, {}
+        for model, rows in timelines.items():
+            exact = next(
+                (row for row in rows if pd.Timestamp(row["valid_time_utc"]).tz_localize(None) == end),
+                None,
+            )
+            if exact is not None:
+                temperatures[model] = float(exact["temperature_c"])
+            tiled = _tile_interval_rain(rows, start, end)
+            if tiled is not None:
+                rain[model] = tiled
+        if not temperatures and not rain:
+            continue
+        temp_weights = _normalized_weights(temperature_weights, list(temperatures))
+        rain_weights = _normalized_weights(precipitation_weights, list(rain))
+        points.append({
+            "day": max(1, int(np.ceil(lead_hours / 24.0))),
+            "interval_start_utc": utc_text(start),
+            "valid_time_utc": utc_text(end),
+            "interval_hours": 6.0,
+            "temperature_c": round(sum(temp_weights[model] * temperatures[model] for model in temperatures), 2) if temperatures else None,
+            "precip_mm": round(sum(rain_weights[model] * rain[model] for model in rain), 2) if rain else None,
+            "temperature_experts": {model: round(value, 2) for model, value in temperatures.items()},
+            "precipitation_experts": {model: round(value, 2) for model, value in rain.items()},
+        })
+    return points
+
+
 def _weather_symbol(rain_mm: float) -> tuple[str, str]:
     if rain_mm >= 20:
         return "🌧️", "Heavy rain"
@@ -1237,7 +1327,10 @@ def _weather_symbol(rain_mm: float) -> tuple[str, str]:
 
 def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
     """Create a five-day city product from available source models and online weights."""
+    from imerg_pipeline import forecast_interval_fields  # local module; also used by IMERG validation
+
     runs = {}
+    temporal_run_ids = {run["id"] for run in archive["runs"][:3]}
     learned = {
         city.name: {
             "temperature": _learned_city_weights(cfg, city.name, "t2m", list(ALL_MODEL_IDS)),
@@ -1256,6 +1349,10 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
                     series_by_model[model] = opened.load()
             except Exception as exc:  # noqa: BLE001 - a weather card can use the remaining experts
                 print(f"[{run['id']}] weather series unavailable for {model}: {exc}", file=sys.stderr, flush=True)
+        prepared_by_model = {
+            model: forecast_interval_fields(series, init, horizon_days=max(DAILY_LEAD_DAYS))
+            for model, series in series_by_model.items()
+        } if run["id"] in temporal_run_ids else {}
         cities = {}
         for city in cfg.cities:
             expert_days = {
@@ -1267,6 +1364,14 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
             raw_rain_weights, rain_method = learned[city.name]["precipitation"]
             temp_weights = _normalized_weights(raw_temp_weights, available)
             rain_weights = _normalized_weights(raw_rain_weights, available)
+            native_timelines = {
+                model: _native_city_timeline(prepared, city, init)
+                for model, prepared in prepared_by_model.items()
+                if model in available
+            }
+            blended_timeline = _six_hour_city_blend(
+                native_timelines, init, temp_weights, rain_weights,
+            ) if native_timelines else []
             days = []
             for day in DAILY_LEAD_DAYS:
                 present = [model for model in available if day in expert_days[model]]
@@ -1324,6 +1429,11 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
                 "temperature_weights": temp_weights,
                 "precipitation_weights": rain_weights,
                 "available_models": available,
+                "timelines": {"combined": blended_timeline, **native_timelines},
+                "temporal_resolution_hours": {
+                    model: sorted({float(row["interval_hours"]) for row in rows})
+                    for model, rows in native_timelines.items()
+                },
                 "days": days,
             }
         runs[run["id"]] = {
@@ -1334,10 +1444,11 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
             "cities": cities,
         }
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "temperature_definition": "Online-weighted daily 2 m temperature high and low from native forecast steps.",
         "precipitation_definition": "Online-weighted precipitation accumulated within each 24-hour forecast day.",
+        "timeline_definition": "Model-native temperature snapshots and precipitation accumulated over each exact native interval; the combined trace uses exact six-hour periods and omits models that cannot tile a period without interpolation.",
         "runs": runs,
     }
 
@@ -1660,6 +1771,7 @@ ARCHIVE_JS = r"""
   const archive = site.archive;
   const validation = site.validation;
   const weather = site.weather;
+  const imerg = site.imerg || { products: {}, forecast_runs: {}, cities: {} };
   const spatialCombination = site.combination?.spatial || { runs: {} };
   const runs = archive.runs;
   const params = new URLSearchParams(location.search);
@@ -1687,18 +1799,34 @@ ARCHIVE_JS = r"""
   let validationVariable = params.get("validation") === "precipitation" ? "precipitation" : "temperature";
   let matchVariable = params.get("match_variable") === "temperature" ? "temperature" : "precipitation";
   let matchInit = runIds.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
+  let withinDayModel = params.get("within_model") || "combined";
+  let temporalVariable = params.get("temporal_variable") === "temperature" ? "temperature" : "precipitation";
+  let temporalInit = params.get("temporal_init") || Object.keys(imerg.forecast_runs || {})[0] || "";
+  let temporalModel = params.get("temporal_model") || "";
+  let temporalTimeIndex = Number(params.get("temporal_time") || 0);
+  let imergDuration = params.get("imerg_duration") === "6h" ? "6h" : "30min";
+  let imergTimeIndex = Number(params.get("imerg_time") || -1);
+  let imergValidationInit = params.get("imerg_validation_init") || "";
+  let imergValidationModel = params.get("imerg_validation_model") || "";
   let payload = null;
   let coastlines = [];
   let coastlinePromise = null;
   let mapRequest = 0;
   let view = { scale: 1, x: 0, y: 0 };
   let drag = null;
+  let temporalRequest = 0;
+  let imergRequest = 0;
+  const compressedPayloads = new Map();
 
   function setUrl() {
     const next = new URL(location.href);
     const values = { tab, init, city, weather: weatherVariable, weather_day: weatherDay, grid_model: cityGridModel,
       variable: mapVariable, day: mapDay,
-      model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable };
+      model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable,
+      within_model: withinDayModel, temporal_variable: temporalVariable, temporal_init: temporalInit,
+      temporal_model: temporalModel, temporal_time: temporalTimeIndex, imerg_duration: imergDuration,
+      imerg_time: imergTimeIndex, imerg_validation_init: imergValidationInit,
+      imerg_validation_model: imergValidationModel };
     Object.entries(values).forEach(([key, value]) => { if (value) next.searchParams.set(key, value); });
     history.replaceState(null, "", next);
   }
@@ -1715,7 +1843,8 @@ ARCHIVE_JS = r"""
       button.classList.toggle("is-active", active);
     });
     qa("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== tab; });
-    if (tab === "maps") requestAnimationFrame(() => drawMap(activeRun()));
+    if (tab === "maps") requestAnimationFrame(() => { drawMap(activeRun()); renderTemporalMaps(); });
+    if (tab === "validation") requestAnimationFrame(() => { renderImergMaps(); renderImergCityValidation(); });
     if (update) setUrl();
   }
 
@@ -1813,6 +1942,58 @@ ARCHIVE_JS = r"""
       return `<g><circle cx="${x(index)}" cy="${y(value(day))}" r="4"/><text x="${x(index)}" y="${y(value(day)) - 12}" text-anchor="middle">${value(day).toFixed(1)}${weatherVariable === "temperature" ? "°" : " mm"}</text><text class="date" x="${x(index)}" y="${height - 27}" text-anchor="middle">${date}</text><text class="date time" x="${x(index)}" y="${height - 12}" text-anchor="middle">${ist} IST · ${utc} UTC</text></g>`;
     }).join("");
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Five-day ${weatherVariable} forecast"><g class="chart-grid">${grid}</g><path class="weather-area" d="${area}"/><path class="weather-line" d="${line}"/><g class="weather-points">${dots}</g></svg>`;
+  }
+
+  function withinDayChart(rows, model) {
+    if (!rows.length) return '<p class="empty-state">Native-time detail is available for the latest three initializations.</p>';
+    const width = 980, height = 330, pad = { l: 58, r: 52, t: 24, middle: 205, b: 48 };
+    const times = rows.map((row) => new Date(row.valid_time_utc).getTime());
+    const x = (time) => pad.l + (time - times[0]) / Math.max(times[times.length - 1] - times[0], 1) * (width - pad.l - pad.r);
+    const temperatures = rows.filter((row) => Number.isFinite(row.temperature_c));
+    const rainRows = rows.filter((row) => Number.isFinite(row.precip_mm));
+    const tempValues = temperatures.map((row) => row.temperature_c);
+    const tempLow = tempValues.length ? Math.floor(Math.min(...tempValues) - 1) : 0;
+    const tempHigh = tempValues.length ? Math.ceil(Math.max(...tempValues) + 1) : 1;
+    const tempY = (value) => pad.t + (tempHigh - value) / Math.max(tempHigh - tempLow, 1) * (pad.middle - pad.t - 18);
+    const rainHigh = Math.max(1, ...rainRows.map((row) => row.precip_mm));
+    const rainTop = pad.middle + 27, rainBottom = height - pad.b;
+    const rainY = (value) => rainBottom - value / rainHigh * (rainBottom - rainTop);
+    const tempPath = temperatures.map((row, index) => `${index ? "L" : "M"}${x(new Date(row.valid_time_utc).getTime()).toFixed(1)},${tempY(row.temperature_c).toFixed(1)}`).join(" ");
+    const barWidth = Math.max(4, Math.min(30, (width - pad.l - pad.r) / Math.max(rows.length, 1) * .62));
+    const bars = rainRows.map((row) => {
+      const center = x(new Date(row.valid_time_utc).getTime());
+      return `<rect class="within-rain-bar" x="${center - barWidth / 2}" y="${rainY(row.precip_mm)}" width="${barWidth}" height="${Math.max(0, rainBottom - rainY(row.precip_mm))}"><title>${row.precip_mm.toFixed(2)} mm · ${exactTime(row.interval_start_utc)} → ${exactTime(row.valid_time_utc)}</title></rect>`;
+    }).join("");
+    const dots = temperatures.map((row) => `<circle class="within-temp-dot" cx="${x(new Date(row.valid_time_utc).getTime())}" cy="${tempY(row.temperature_c)}" r="3.5"><title>${row.temperature_c.toFixed(1)} °C · ${exactTime(row.valid_time_utc)}</title></circle>`).join("");
+    const labelEvery = Math.max(1, Math.ceil(rows.length / 8));
+    const labels = rows.map((row, index) => {
+      if (index % labelEvery && index !== rows.length - 1) return "";
+      const value = new Date(row.valid_time_utc);
+      const ist = value.toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      const utc = value.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      return `<text x="${x(value.getTime())}" y="${height - 25}" text-anchor="middle">${ist} IST</text><text x="${x(value.getTime())}" y="${height - 10}" text-anchor="middle">${utc} UTC</text>`;
+    }).join("");
+    const tempGrid = [tempLow, (tempLow + tempHigh) / 2, tempHigh].map((value) => `<g><line x1="${pad.l}" x2="${width - pad.r}" y1="${tempY(value)}" y2="${tempY(value)}"/><text x="${pad.l - 8}" y="${tempY(value) + 4}" text-anchor="end">${value.toFixed(0)}°</text></g>`).join("");
+    const rainGrid = [0, rainHigh].map((value) => `<g><line x1="${pad.l}" x2="${width - pad.r}" y1="${rainY(value)}" y2="${rainY(value)}"/><text x="${pad.l - 8}" y="${rainY(value) + 4}" text-anchor="end">${value.toFixed(1)}</text></g>`).join("");
+    return `<svg viewBox="0 0 ${width} ${height}" aria-label="${modelLabel(model)} within-day temperature and interval rainfall"><g class="within-axis">${tempGrid}${rainGrid}${labels}<text x="12" y="18">°C</text><text x="12" y="${rainTop}">mm</text></g><path class="within-temp-line" d="${tempPath}"/>${dots}${bars}</svg>`;
+  }
+
+  function renderWithinDay(item, day) {
+    const timelines = item?.timelines || {};
+    const models = Object.keys(timelines).filter((model) => (timelines[model] || []).some((row) => String(row.day) === weatherDay));
+    if (!models.includes(withinDayModel)) withinDayModel = models.includes("combined") ? "combined" : models[0];
+    q("#within-day-models").innerHTML = models.map((model) => `<button type="button" data-within-day-model="${model}" aria-pressed="${model === withinDayModel}">${model === "combined" ? "Combined · 6 h" : modelLabel(model)}</button>`).join("");
+    qa("[data-within-day-model]").forEach((button) => button.addEventListener("click", () => {
+      withinDayModel = button.dataset.withinDayModel;
+      renderWithinDay(item, day);
+      setUrl();
+    }));
+    const rows = (timelines[withinDayModel] || []).filter((row) => String(row.day) === weatherDay);
+    q("#within-day-chart").innerHTML = withinDayChart(rows, withinDayModel || "combined");
+    const cadences = [...new Set(rows.map((row) => row.interval_hours))].sort((a, b) => a - b);
+    q("#within-day-note").textContent = rows.length
+      ? `${withinDayModel === "combined" ? "Combined forecast" : modelLabel(withinDayModel)} · ${cadences.map((value) => `${Number(value).toFixed(Number(value) % 1 ? 1 : 0)} h`).join(" / ")} exact interval${cadences.length === 1 ? "" : "s"} · ${exactTime(rows[0].interval_start_utc)} → ${exactTime(rows[rows.length - 1].valid_time_utc)}. Bars are interval accumulation, not probability.`
+      : "Native-time detail is retained for the latest three initializations.";
   }
 
   function cityMapWorld(latitude, longitude, zoom) {
@@ -1940,6 +2121,7 @@ ARCHIVE_JS = r"""
     q("#blend-note").textContent = item
       ? `Temperature: ${item.temperature_method} weights · rainfall: ${item.precipitation_method} weights. Rainfall is a 24-hour accumulation, not a probability.`
       : "";
+    renderWithinDay(item, days.find((day) => String(day.day) === weatherDay));
     renderCityGridMap(item, days.find((day) => String(day.day) === weatherDay));
   }
 
@@ -2177,17 +2359,290 @@ ARCHIVE_JS = r"""
     setUrl();
   }
 
+  async function loadCompressedUint16(path) {
+    if (!compressedPayloads.has(path)) {
+      compressedPayloads.set(path, (async () => {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${path}`);
+        const compressed = await response.arrayBuffer();
+        if (typeof DecompressionStream !== "function") throw new Error("This browser does not support gzip decompression streams.");
+        const stream = new Response(compressed).body.pipeThrough(new DecompressionStream("gzip"));
+        const buffer = await new Response(stream).arrayBuffer();
+        return new Uint16Array(buffer);
+      })());
+    }
+    return compressedPayloads.get(path);
+  }
+
+  function standaloneColor(variable, value) {
+    if (variable === "precipitation") {
+      const fraction = Math.max(0, Math.min(1, value / 60));
+      return [225 - 185 * fraction, 241 - 80 * fraction, 248 - 25 * fraction];
+    }
+    const stops = [[255, 255, 204], [254, 217, 118], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
+    const scaled = Math.max(0, Math.min(1, value / 45)) * (stops.length - 1);
+    const index = Math.min(stops.length - 2, Math.floor(scaled));
+    const fraction = scaled - index;
+    return stops[index].map((channel, offset) => channel + (stops[index + 1][offset] - channel) * fraction);
+  }
+
+  function decodeStandalone(encoded, variable) {
+    if (encoded === 65535) return null;
+    return variable === "temperature" ? (encoded - 5000) / 100 : encoded / 100;
+  }
+
+  function clearStandaloneMap(canvas, message) {
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(360, Math.round(rect.width || 420));
+    canvas.height = Math.max(340, Math.round(canvas.width * 1.08));
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#edf2f4"; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#607080"; context.font = "13px system-ui"; context.fillText(message, 18, 30);
+    canvas._standaloneMap = null;
+    canvas.classList.add("is-unavailable");
+  }
+
+  function drawStandaloneMap(canvas, encoded, grid, variable, label, readoutSelector) {
+    if (!canvas || !encoded || !grid) return;
+    const [nLat, nLon] = grid.shape;
+    if (encoded.length !== nLat * nLon) throw new Error(`${label}: invalid map payload length`);
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(360, Math.round((rect.width || 420) * ratio));
+    const height = Math.max(340, Math.round(width * 1.08));
+    canvas.width = width; canvas.height = height;
+    const context = canvas.getContext("2d");
+    const image = context.createImageData(nLon, nLat);
+    for (let yIndex = 0; yIndex < nLat; yIndex += 1) for (let xIndex = 0; xIndex < nLon; xIndex += 1) {
+      const value = decodeStandalone(encoded[yIndex * nLon + xIndex], variable);
+      const offset = ((nLat - 1 - yIndex) * nLon + xIndex) * 4;
+      if (value === null) { image.data[offset + 3] = 0; continue; }
+      const rgb = standaloneColor(variable, value);
+      image.data[offset] = rgb[0]; image.data[offset + 1] = rgb[1]; image.data[offset + 2] = rgb[2]; image.data[offset + 3] = 255;
+    }
+    const raster = document.createElement("canvas");
+    raster.width = nLon; raster.height = nLat; raster.getContext("2d").putImageData(image, 0, 0);
+    context.fillStyle = "#e8f1f5"; context.fillRect(0, 0, width, height);
+    context.imageSmoothingEnabled = true; context.drawImage(raster, 0, 0, width, height);
+    context.strokeStyle = "rgba(19,44,57,.88)"; context.lineWidth = 1.25 * ratio;
+    coastlines.forEach((line) => {
+      context.beginPath();
+      line.forEach(([longitude, latitude], index) => {
+        const x = width * (longitude - grid.lon_min) / (grid.lon_max - grid.lon_min);
+        const y = height * (grid.lat_max - latitude) / (grid.lat_max - grid.lat_min);
+        if (index) context.lineTo(x, y); else context.moveTo(x, y);
+      });
+      context.stroke();
+    });
+    canvas._standaloneMap = { encoded, grid, variable, label, readoutSelector };
+    canvas.classList.remove("is-unavailable");
+    if (!canvas.dataset.hoverBound) {
+      canvas.dataset.hoverBound = "true";
+      canvas.addEventListener("pointermove", (event) => {
+        const state = canvas._standaloneMap;
+        if (!state) return;
+        const bounds = canvas.getBoundingClientRect();
+        const gx = (event.clientX - bounds.left) / Math.max(bounds.width, 1);
+        const gy = (event.clientY - bounds.top) / Math.max(bounds.height, 1);
+        if (gx < 0 || gx > 1 || gy < 0 || gy > 1) return;
+        const [rows, columns] = state.grid.shape;
+        const xIndex = Math.max(0, Math.min(columns - 1, Math.round(gx * (columns - 1))));
+        const yIndex = Math.max(0, Math.min(rows - 1, Math.round((1 - gy) * (rows - 1))));
+        const value = decodeStandalone(state.encoded[yIndex * columns + xIndex], state.variable);
+        const latitude = state.grid.lat_min + yIndex / Math.max(rows - 1, 1) * (state.grid.lat_max - state.grid.lat_min);
+        const longitude = state.grid.lon_min + xIndex / Math.max(columns - 1, 1) * (state.grid.lon_max - state.grid.lon_min);
+        const readout = q(state.readoutSelector);
+        if (readout) readout.textContent = value === null
+          ? `${state.label} · missing at ${latitude.toFixed(2)}° N, ${longitude.toFixed(2)}° E`
+          : `${state.label} · ${value.toFixed(2)} ${state.variable === "temperature" ? "°C" : "mm"} at ${latitude.toFixed(2)}° N, ${longitude.toFixed(2)}° E`;
+      });
+    }
+  }
+
+  function nativeObservationEntries(product) {
+    return (imerg.products?.[product]?.native || []).flatMap((asset) => asset.intervals.map((interval, index) => ({ asset, interval, index })));
+  }
+
+  function observationEntries(product, duration) {
+    if (duration === "6h") {
+      const asset = imerg.products?.[product]?.six_hour;
+      return asset ? asset.intervals.map((interval, index) => ({ asset, interval, index })) : [];
+    }
+    return nativeObservationEntries(product);
+  }
+
+  async function observationFrame(product, duration, start, end) {
+    const entry = observationEntries(product, duration).find((candidate) => candidate.interval.start_utc === start && candidate.interval.end_utc === end);
+    if (!entry) return null;
+    const payload = await loadCompressedUint16(entry.asset.path);
+    const [, nLat, nLon] = entry.asset.shape;
+    const count = nLat * nLon;
+    return { values: payload.subarray(entry.index * count, (entry.index + 1) * count), grid: imerg.products[product].grid };
+  }
+
+  async function summedNativeObservation(product, start, end) {
+    const startMs = new Date(start).getTime(), endMs = new Date(end).getTime();
+    const expected = (endMs - startMs) / 1_800_000;
+    const entries = nativeObservationEntries(product).filter((entry) => {
+      const value = new Date(entry.interval.start_utc).getTime();
+      return value >= startMs && value < endMs;
+    }).sort((a, b) => new Date(a.interval.start_utc) - new Date(b.interval.start_utc));
+    if (!Number.isInteger(expected) || entries.length !== expected || !entries.length) return null;
+    if (entries[0].interval.start_utc !== start || entries[entries.length - 1].interval.end_utc !== end) return null;
+    const grid = imerg.products[product].grid;
+    const count = grid.shape[0] * grid.shape[1];
+    const totals = new Float64Array(count);
+    const valid = new Uint8Array(count); valid.fill(1);
+    for (const entry of entries) {
+      const payload = await loadCompressedUint16(entry.asset.path);
+      const frame = payload.subarray(entry.index * count, (entry.index + 1) * count);
+      for (let index = 0; index < count; index += 1) {
+        if (frame[index] === 65535) valid[index] = 0;
+        else totals[index] += frame[index];
+      }
+    }
+    const encoded = new Uint16Array(count);
+    for (let index = 0; index < count; index += 1) encoded[index] = valid[index] ? Math.min(65534, Math.round(totals[index])) : 65535;
+    return { values: encoded, grid };
+  }
+
+  function populateSelect(select, entries, value, label) {
+    select.innerHTML = entries.map((entry) => `<option value="${entry.id}">${label(entry)}</option>`).join("");
+    if (entries.some((entry) => entry.id === value)) select.value = value;
+    else if (entries.length) select.value = entries[0].id;
+    return select.value;
+  }
+
+  async function renderTemporalMaps() {
+    const runEntries = Object.entries(imerg.forecast_runs || {}).map(([id, value]) => ({ id, ...value }));
+    if (!runEntries.length) {
+      clearStandaloneMap(q("#temporal-forecast-canvas"), "Native-time forecast data unavailable.");
+      clearStandaloneMap(q("#temporal-early-canvas"), "IMERG data unavailable.");
+      clearStandaloneMap(q("#temporal-late-canvas"), "IMERG data unavailable.");
+      return;
+    }
+    temporalInit = populateSelect(q("#temporal-init-select"), runEntries, temporalInit, (entry) => formatInit(entry.initialization_utc));
+    const active = imerg.forecast_runs[temporalInit];
+    const models = Object.entries(active.models || {}).map(([id, value]) => ({ id, ...value }));
+    temporalModel = populateSelect(q("#temporal-model-select"), models, temporalModel, (entry) => entry.label);
+    const model = active.models[temporalModel];
+    if (!model) return;
+    temporalTimeIndex = Math.max(0, Math.min(model.times.length - 1, temporalTimeIndex));
+    q("#temporal-time-select").innerHTML = model.times.map((time, index) => `<option value="${index}">${compactValidTime(time.valid_time_utc)} · ${time.interval_hours} h interval</option>`).join("");
+    q("#temporal-time-select").value = String(temporalTimeIndex);
+    selectButton("[data-temporal-variable]", temporalVariable, "temporalVariable");
+    const request = ++temporalRequest;
+    q("#temporal-map-note").textContent = "Loading native-time forecast and matched observations…";
+    try {
+      const [forecastPayload] = await Promise.all([loadCompressedUint16(model.path), loadCoastlines()]);
+      if (request !== temporalRequest) return;
+      const [nTime, nLat, nLon] = model.shape;
+      const count = nLat * nLon;
+      const variableIndex = model.variables.indexOf(temporalVariable);
+      const start = variableIndex * nTime * count + temporalTimeIndex * count;
+      const frame = forecastPayload.subarray(start, start + count);
+      const time = model.times[temporalTimeIndex];
+      drawStandaloneMap(q("#temporal-forecast-canvas"), frame, model.grid, temporalVariable, `${model.label} forecast`, "#temporal-map-hover");
+      q("#temporal-forecast-caption").textContent = `${model.label} · ${temporalVariable === "temperature" ? "valid" : `${time.interval_hours} h accumulation ending`} ${compactValidTime(time.valid_time_utc)}`;
+      if (temporalVariable === "precipitation") {
+        const [early, late] = await Promise.all([
+          summedNativeObservation("early", time.interval_start_utc, time.valid_time_utc),
+          summedNativeObservation("late", time.interval_start_utc, time.valid_time_utc),
+        ]);
+        if (request !== temporalRequest) return;
+        if (early) drawStandaloneMap(q("#temporal-early-canvas"), early.values, early.grid, "precipitation", "IMERG Early", "#temporal-map-hover");
+        else clearStandaloneMap(q("#temporal-early-canvas"), "IMERG Early not yet available for this exact interval.");
+        if (late) drawStandaloneMap(q("#temporal-late-canvas"), late.values, late.grid, "precipitation", "IMERG Late", "#temporal-map-hover");
+        else clearStandaloneMap(q("#temporal-late-canvas"), "IMERG Late not yet available for this exact interval.");
+        q("#temporal-early-caption").textContent = "IMERG Early · exact matched accumulation";
+        q("#temporal-late-caption").textContent = "IMERG Late · exact matched accumulation";
+        q("#temporal-map-note").textContent = `${model.label} rainfall ${exactTime(time.interval_start_utc)} → ${exactTime(time.valid_time_utc)} (${time.interval_hours} h). IMERG is summed from complete native half-hours only; unavailable panels are not interpolated.`;
+      } else {
+        clearStandaloneMap(q("#temporal-early-canvas"), "IMERG is a precipitation-only product.");
+        clearStandaloneMap(q("#temporal-late-canvas"), "IMERG is a precipitation-only product.");
+        q("#temporal-map-note").textContent = `${model.label} temperature snapshot valid ${exactTime(time.valid_time_utc)}. This is the model's highest available published cadence.`;
+      }
+      setUrl();
+    } catch (error) {
+      q("#temporal-map-note").textContent = `Native-time map unavailable: ${error.message}`;
+      console.error(error);
+    }
+  }
+
+  async function renderImergMaps() {
+    const entries = observationEntries("early", imergDuration);
+    if (!entries.length) {
+      clearStandaloneMap(q("#imerg-early-canvas"), "IMERG Early data unavailable.");
+      clearStandaloneMap(q("#imerg-late-canvas"), "IMERG Late data unavailable.");
+      return;
+    }
+    selectButton("[data-imerg-duration]", imergDuration, "imergDuration");
+    if (imergTimeIndex < 0 || imergTimeIndex >= entries.length) imergTimeIndex = entries.length - 1;
+    q("#imerg-time-select").innerHTML = entries.map((entry, index) => `<option value="${index}">${compactValidTime(entry.interval.start_utc)} → ${compactValidTime(entry.interval.end_utc)}</option>`).join("");
+    q("#imerg-time-select").value = String(imergTimeIndex);
+    const interval = entries[imergTimeIndex].interval;
+    const request = ++imergRequest;
+    q("#imerg-map-note").textContent = "Loading native IMERG maps…";
+    try {
+      const [early, late] = await Promise.all([
+        observationFrame("early", imergDuration, interval.start_utc, interval.end_utc),
+        observationFrame("late", imergDuration, interval.start_utc, interval.end_utc),
+        loadCoastlines(),
+      ]);
+      if (request !== imergRequest) return;
+      if (early) drawStandaloneMap(q("#imerg-early-canvas"), early.values, early.grid, "precipitation", "IMERG Early", "#imerg-map-hover");
+      if (late) drawStandaloneMap(q("#imerg-late-canvas"), late.values, late.grid, "precipitation", "IMERG Late", "#imerg-map-hover");
+      q("#imerg-map-note").textContent = `${imergDuration === "30min" ? "Native 30-minute" : "UTC-aligned six-hour"} rainfall · ${exactTime(interval.start_utc)} → ${exactTime(interval.end_utc)} · native 0.1° grid · Early and Late use identical valid times.`;
+      setUrl();
+    } catch (error) {
+      q("#imerg-map-note").textContent = `IMERG map unavailable: ${error.message}`;
+      console.error(error);
+    }
+  }
+
+  function renderImergCityValidation() {
+    const cityItem = imerg.cities?.[city];
+    const runEntries = Object.entries(cityItem?.runs || {}).map(([id, value]) => ({ id, ...value })).filter((entry) => Object.keys(entry.models || {}).length);
+    if (!runEntries.length) {
+      q("#imerg-validation-summary").textContent = "IMERG city validation is unavailable for this selection.";
+      q("#imerg-validation-image").removeAttribute("src");
+      return;
+    }
+    imergValidationInit = populateSelect(q("#imerg-validation-init"), runEntries, imergValidationInit, (entry) => formatInit(entry.initialization_utc));
+    const run = cityItem.runs[imergValidationInit];
+    const models = Object.entries(run.models || {}).map(([id, value]) => ({ id, ...value }));
+    imergValidationModel = populateSelect(q("#imerg-validation-model"), models, imergValidationModel, (entry) => entry.label);
+    const item = run.models[imergValidationModel];
+    if (!item) return;
+    q("#imerg-validation-image").src = item.image.path;
+    q("#imerg-validation-image").alt = item.image.alt;
+    const summary = item.summary;
+    const raw = summary.raw_rmse_mm == null ? "pending" : `${summary.raw_rmse_mm.toFixed(2)} mm`;
+    const corrected = summary.bias_corrected_rmse_mm == null ? "pending" : `${summary.bias_corrected_rmse_mm.toFixed(2)} mm`;
+    q("#imerg-validation-summary").textContent = `${city} · ${item.label} · ${summary.matched_late_intervals} exact Late-Run intervals · raw RMSE ${raw} · causal bias-corrected RMSE ${corrected} · issue-time correction ${summary.bias_mm >= 0 ? "+" : ""}${summary.bias_mm.toFixed(2)} mm learned from ${summary.training_intervals} prior intervals.`;
+    setUrl();
+  }
+
   qa("[data-tab]").forEach((button) => button.addEventListener("click", () => activateTab(button.dataset.tab)));
   q("#init-select").addEventListener("change", (event) => { init = event.target.value; view = { scale: 1, x: 0, y: 0 }; renderRun(); });
-  q("#city-select").addEventListener("change", (event) => { city = event.target.value; renderWeather(); renderValidation(); setUrl(); });
+  q("#city-select").addEventListener("change", (event) => { city = event.target.value; renderWeather(); renderValidation(); renderImergCityValidation(); setUrl(); });
   qa("[data-weather-variable]").forEach((button) => button.addEventListener("click", () => { weatherVariable = button.dataset.weatherVariable; renderWeather(); setUrl(); }));
   qa("[data-map-variable]").forEach((button) => button.addEventListener("click", () => { mapVariable = button.dataset.mapVariable; renderMapControls(); }));
   qa("[data-map-day]").forEach((button) => button.addEventListener("click", () => { mapDay = button.dataset.mapDay; renderMapControls(); }));
   qa("[data-map-model]").forEach((button) => button.addEventListener("click", () => { mapModel = button.dataset.mapModel; renderMapControls(); }));
-  qa("[data-validation-city]").forEach((button) => button.addEventListener("click", () => { city = button.dataset.validationCity; q("#city-select").value = city; renderWeather(); renderValidation(); }));
+  qa("[data-validation-city]").forEach((button) => button.addEventListener("click", () => { city = button.dataset.validationCity; q("#city-select").value = city; renderWeather(); renderValidation(); renderImergCityValidation(); }));
   qa("[data-validation-variable]").forEach((button) => button.addEventListener("click", () => { validationVariable = button.dataset.validationVariable; renderValidation(); }));
   qa("[data-match-variable]").forEach((button) => button.addEventListener("click", () => { matchVariable = button.dataset.matchVariable; renderValidation(); }));
   q("#match-init-select").addEventListener("change", (event) => { matchInit = event.target.value; renderValidation(); });
+  q("#temporal-init-select").addEventListener("change", (event) => { temporalInit = event.target.value; temporalModel = ""; temporalTimeIndex = 0; renderTemporalMaps(); });
+  q("#temporal-model-select").addEventListener("change", (event) => { temporalModel = event.target.value; temporalTimeIndex = 0; renderTemporalMaps(); });
+  q("#temporal-time-select").addEventListener("change", (event) => { temporalTimeIndex = Number(event.target.value); renderTemporalMaps(); });
+  qa("[data-temporal-variable]").forEach((button) => button.addEventListener("click", () => { temporalVariable = button.dataset.temporalVariable; renderTemporalMaps(); }));
+  qa("[data-imerg-duration]").forEach((button) => button.addEventListener("click", () => { imergDuration = button.dataset.imergDuration; imergTimeIndex = -1; renderImergMaps(); }));
+  q("#imerg-time-select").addEventListener("change", (event) => { imergTimeIndex = Number(event.target.value); renderImergMaps(); });
+  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationModel = ""; renderImergCityValidation(); });
+  q("#imerg-validation-model").addEventListener("change", (event) => { imergValidationModel = event.target.value; renderImergCityValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
   canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
@@ -2282,6 +2737,7 @@ def build_html(
     validation: dict,
     combination: dict | None = None,
     weather: dict | None = None,
+    imerg: dict | None = None,
 ) -> str:
     """Build one accessible, light-mode application with unique control IDs."""
     latest = archive["runs"][0]
@@ -2297,6 +2753,7 @@ def build_html(
     cities = list(validation["cities"])
     default_city = cities[0]
     weather = weather or {"runs": {run["id"]: {"cities": {}} for run in archive["runs"]}}
+    imerg = imerg or {"products": {}, "forecast_runs": {}, "cities": {}}
     options = "".join(
         f'<option value="{run["id"]}">{pd.Timestamp(run["initialization_utc"]):%d %b %Y · 00 UTC}</option>'
         for run in archive["runs"]
@@ -2346,6 +2803,7 @@ def build_html(
         "validation": validation,
         "combination": combination or {"cities": {}},
         "weather": weather,
+        "imerg": imerg,
         "models": models,
     }).replace("</", "<\\/")
     return f'''<!doctype html>
@@ -2379,6 +2837,7 @@ def build_html(
       <div class="panel-heading"><div><p class="eyebrow">Five-day outlook</p><h2 id="weather-location">{default_city}</h2><p id="weather-meta"></p></div><label class="select-control" for="city-select">City<select id="city-select">{city_options}</select></label></div>
       <div class="weather-summary"><div id="weather-now" class="weather-now"></div><div class="segmented compact"><button type="button" data-weather-variable="temperature" aria-pressed="true">Temperature</button><button type="button" data-weather-variable="precipitation" aria-pressed="false">Accumulated rainfall</button></div></div>
       <div id="weather-chart" class="weather-chart"></div><div id="daily-cards" class="daily-cards"></div><p id="blend-note" class="data-note"></p>
+      <section class="within-day-section" aria-labelledby="within-day-heading"><div class="subheading"><div><p class="eyebrow">Selected day in detail</p><h3 id="within-day-heading">Weather through the day</h3><p>Temperature snapshots and rainfall over each exact native model interval. The combined view uses exact six-hour periods without temporal interpolation.</p></div></div><div id="within-day-models" class="segmented within-day-models" aria-label="Within-day forecast model"></div><div id="within-day-chart" class="within-day-chart" role="img" aria-label="Within-day temperature and rainfall forecast"></div><p id="within-day-note" class="data-note"></p></section>
       <section class="city-grid-section" aria-labelledby="city-grid-heading"><div class="subheading"><div><p class="eyebrow">Inputs behind the city forecast</p><h3 id="city-grid-heading">Contributing forecast grids</h3><p>Select a forecast date above and a model below to inspect its loaded grid cells, values, weights, and exact validity times.</p></div></div>
         <div id="city-grid-models" class="segmented city-grid-models" aria-label="Contributing model grid"></div><p id="city-grid-model-note" class="data-note"></p>
         <div class="city-grid-layout"><div id="city-grid-map" class="city-grid-map"></div><aside class="city-grid-details"><p class="eyebrow">Selected daily period</p><strong id="city-grid-result"></strong><p id="city-grid-time" class="exact-time"></p><div id="grid-input-list" class="grid-input-list"></div></aside></div>
@@ -2395,6 +2854,7 @@ def build_html(
       </div>
       <div class="map-layout"><div class="map-frame"><canvas id="forecast-canvas" aria-label="Interactive India forecast field with coastline overlay" aria-describedby="map-tooltip"></canvas><div id="map-tooltip" class="map-tooltip" role="tooltip" hidden></div><div class="map-tools"><button type="button" id="map-reset">Reset view</button><span id="map-readout">Loading map…</span></div><div id="map-legend" class="map-legend"><strong id="map-legend-title">Temperature (°C) · fixed scale</strong><div class="map-legend-bar"></div><div id="map-legend-ticks" class="map-legend-ticks"><span>0</span><span>15</span><span>30</span><span>45</span></div><small id="map-legend-note">Same 0–45 °C scale for every model, valid time, and temperature layer.</small></div></div><aside><p class="eyebrow">Selected field</p><h3 id="map-title">Temperature · {default_valid_label}</h3><p id="map-description"></p><small>Hover anywhere for the nearest grid value. Rainfall maps show accumulation since the previous published timestamp. Click a city marker to open validation. Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>.</small></aside></div>
       <figure class="map-animation"><figcaption><p class="eyebrow">Forecast evolution</p><h3 id="animation-title">Temperature · {default_model_label}</h3><p id="animation-description">Animated forecasts valid at {animation_valid_labels} on a fixed 0–45 °C scale.</p></figcaption><img id="map-animation" src="{default_animation}" alt="Animated temperature forecast for {default_model_label} at {animation_valid_labels}"></figure>
+      <section class="temporal-map-section" aria-labelledby="temporal-map-heading"><div class="subheading"><div><p class="eyebrow">Highest available cadence</p><h3 id="temporal-map-heading">Native-time forecast maps</h3><p>Inspect every available model step for the latest three initializations. For rainfall, IMERG Early and Late are accumulated over the identical forecast interval whenever observations exist.</p></div></div><div class="control-grid temporal-controls"><label class="select-control" for="temporal-init-select">Initialization<select id="temporal-init-select"></select></label><label class="select-control" for="temporal-model-select">Model<select id="temporal-model-select"></select></label><label class="select-control temporal-time-control" for="temporal-time-select">Forecast valid date and time<select id="temporal-time-select"></select></label><fieldset><legend>Variable</legend><div class="segmented"><button type="button" data-temporal-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-temporal-variable="precipitation" aria-pressed="true">Interval rainfall</button></div></fieldset></div><p id="temporal-map-note" class="data-note"></p><div class="temporal-map-grid"><figure><canvas id="temporal-forecast-canvas" class="temporal-canvas" aria-label="Native-time forecast map"></canvas><figcaption id="temporal-forecast-caption">Forecast</figcaption></figure><figure><canvas id="temporal-early-canvas" class="temporal-canvas" aria-label="Matched IMERG Early map"></canvas><figcaption id="temporal-early-caption">IMERG Early</figcaption></figure><figure><canvas id="temporal-late-canvas" class="temporal-canvas" aria-label="Matched IMERG Late map"></canvas><figcaption id="temporal-late-caption">IMERG Late</figcaption></figure></div><p id="temporal-map-hover" class="map-value-readout" aria-live="polite">Hover a map for its nearest native-grid value.</p></section>
     </section>
 
     <section class="panel" data-panel="validation" hidden aria-label="Forecast validation">
@@ -2404,13 +2864,15 @@ def build_html(
       <div class="subheading"><div><h3>One initialization at matched valid times</h3><p>Compare each forecast directly with its observation at the displayed dates and times.</p></div><label class="select-control" for="match-init-select">Initialization<select id="match-init-select">{options}</select></label></div>
       <div class="segmented compact"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Accumulated rainfall</button></div>
       <figure class="chart-image"><img id="match-image" src="{default_match['path']}" alt="{default_match['alt']}"><figcaption>Source-model and causal combined traces with matched Open-Meteo observations.</figcaption></figure>
+      <section class="imerg-section" aria-labelledby="imerg-map-heading"><div class="subheading"><div><p class="eyebrow">NASA GPM IMERG V07</p><h3 id="imerg-map-heading">Observed rainfall maps</h3><p>Early and Late Run precipitation at the native 0.1° grid. Choose every native 30-minute interval or exact UTC-aligned six-hour accumulation from the rolling three-day window.</p></div></div><div class="control-grid imerg-controls"><fieldset><legend>Accumulation</legend><div class="segmented"><button type="button" data-imerg-duration="30min" aria-pressed="true">30 minutes</button><button type="button" data-imerg-duration="6h" aria-pressed="false">6 hours</button></div></fieldset><label class="select-control temporal-time-control" for="imerg-time-select">Observed valid interval<select id="imerg-time-select"></select></label></div><p id="imerg-map-note" class="data-note"></p><div class="temporal-map-grid two-up"><figure><canvas id="imerg-early-canvas" class="temporal-canvas" aria-label="IMERG Early observed rainfall map"></canvas><figcaption>IMERG Early Run</figcaption></figure><figure><canvas id="imerg-late-canvas" class="temporal-canvas" aria-label="IMERG Late observed rainfall map"></canvas><figcaption>IMERG Late Run</figcaption></figure></div><p id="imerg-map-hover" class="map-value-readout" aria-live="polite">Hover a map for its nearest native-grid rainfall value.</p></section>
+      <section class="imerg-city-section" aria-labelledby="imerg-city-heading"><div class="subheading"><div><p class="eyebrow">Native-interval city validation</p><h3 id="imerg-city-heading">Forecast precipitation against IMERG</h3><p>Each selectable model is compared at its own native interval. The bias-corrected trace uses only IMERG Late errors available by that forecast initialization.</p></div></div><div class="control-grid imerg-city-controls"><label class="select-control" for="imerg-validation-init">Initialization<select id="imerg-validation-init"></select></label><label class="select-control" for="imerg-validation-model">Model<select id="imerg-validation-model"></select></label></div><p id="imerg-validation-summary" class="data-note"></p><figure class="chart-image"><img id="imerg-validation-image" alt="Native-interval precipitation validation against IMERG"><figcaption>Raw and causal bias-corrected model rainfall compared with exact matching IMERG Early and Late accumulations.</figcaption></figure></section>
     </section>
 
     <section class="panel" data-panel="method" hidden aria-label="Methods and sources">
       <div class="panel-heading"><div><p class="eyebrow">About the data</p><h2>Method and sources</h2><p>The site updates from the newest available 00 UTC initialization. Late models are added when they become available.</p></div></div>
-      <div class="method-grid"><article><strong>1. Load</strong><p>Model fields are reduced to a common India grid and consistent units.</p></article><article><strong>2. Combine</strong><p>A causal search chooses equal weighting or recent-window exponential weighting separately for each variable and valid timestamp.</p></article><article><strong>3. Verify</strong><p>Open-Meteo temperature and rainfall are matched to the same forecast valid periods; historical blend predictions never use later observations.</p></article></div>
+      <div class="method-grid"><article><strong>1. Load</strong><p>Model fields retain their highest available native time step; endpoint products are also reduced to a common India grid.</p></article><article><strong>2. Combine</strong><p>A causal search chooses equal weighting or recent-window exponential weighting separately for each variable and valid timestamp.</p></article><article><strong>3. Verify</strong><p>Open-Meteo provides temperature validation. IMERG Early and Late rainfall are summed from exact half-hours matching each forecast interval.</p></article></div>
       <div class="table-wrap"><table><thead><tr><th>Model</th><th>Source</th><th>Members used</th><th>Reference</th></tr></thead><tbody>{source_rows}</tbody></table></div>
-      <p class="method-note">The simple-average map takes the arithmetic mean of all available source-model values independently at each grid cell. The recent-error blend instead pools recent errors across the four validation cities and applies timestamp- and variable-specific weights across the India grid. The online search follows <a href="https://doi.org/10.1006/inco.1996.2612">exponentiated-gradient learning</a> and <a href="https://doi.org/10.1111/rssc.12455">sequential weather-forecast aggregation</a>; exact candidates, selected weights, and prequential scores are in the <a href="assets/combination_manifest.json">combination metadata</a>. Daily city rainfall is accumulated within each exact 24-hour period. Map rainfall is accumulated only since the previous displayed valid timestamp. This is a research product, not an official forecast or warning.</p>
+      <p class="method-note">The simple-average map takes the arithmetic mean of all available source-model values independently at each grid cell. The recent-error blend instead pools recent errors across the four validation cities and applies timestamp- and variable-specific weights across the India grid. The online search follows <a href="https://doi.org/10.1006/inco.1996.2612">exponentiated-gradient learning</a> and <a href="https://doi.org/10.1111/rssc.12455">sequential weather-forecast aggregation</a>; exact candidates, selected weights, and prequential scores are in the <a href="assets/combination_manifest.json">combination metadata</a>. IMERG Early and <a href="https://dynamical.org/catalog/nasa-imerg-analysis-late/">Late</a> data are read from <a href="https://dynamical.org/catalog/nasa-imerg-analysis-early/">dynamical.org</a> at native 30-minute, 0.1° resolution. Forecast rainfall is compared only to complete IMERG half-hours that exactly tile its interval. This is a research product, not an official forecast or warning.</p>
     </section>
   </main>
   <footer><div class="shell footer-row"><span>India Weather Forecasts · SCDLDS research</span><a href="https://scdlds.ashoka.edu.in/">Safexpress Centre for Data, Learning and Decision Sciences</a></div></footer>
@@ -2583,6 +3045,16 @@ select { width: 100%; padding: 9px 34px 9px 10px; color: var(--ink); background:
 .day-card p span, .day-card small { color: #7c8992; }
 .day-card small { font-size: .74rem; }
 .data-note { margin: 20px 0 0; color: var(--muted); font-size: .76rem; }
+.within-day-section { margin-top: 28px; padding-top: 2px; }
+.within-day-section .subheading { margin-top: 24px; }
+.within-day-models { margin-bottom: 12px; }
+.within-day-chart { min-height: 330px; overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: #fbfcfd; }
+.within-day-chart svg { display: block; width: 100%; min-width: 760px; height: 330px; }
+.within-temp-line { fill: none; stroke: #d4573b; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.within-temp-dot { fill: white; stroke: #d4573b; stroke-width: 2.2; }
+.within-rain-bar { fill: #4f9fc5; opacity: .78; }
+.within-axis line { stroke: #dfe5e9; }
+.within-axis text { fill: #607080; font: 10px system-ui, sans-serif; }
 .city-grid-section { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--line); }
 .city-grid-section .subheading { margin-bottom: 17px; }
 .city-grid-section .subheading h3 { margin-bottom: 5px; font-size: 1.35rem; }
@@ -2652,6 +3124,18 @@ legend { margin-bottom: 8px; }
 .map-animation h3 { margin-bottom: 8px; font-size: 1.25rem; }
 .map-animation figcaption p:last-child { margin: 0; color: var(--muted); font-size: .8rem; }
 .map-animation img { display: block; width: 100%; height: auto; border-left: 1px solid var(--line); }
+.temporal-map-section, .imerg-section, .imerg-city-section { margin-top: 36px; }
+.temporal-map-section .subheading, .imerg-section .subheading, .imerg-city-section .subheading { margin-top: 0; }
+.temporal-controls, .imerg-controls, .imerg-city-controls { align-items: end; }
+.temporal-time-control { flex: 1 1 290px; }
+.temporal-map-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.temporal-map-grid.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.temporal-map-grid figure { min-width: 0; margin: 0; overflow: hidden; border: 1px solid #cbd7df; border-radius: 7px; background: #e8f1f5; }
+.temporal-map-grid figcaption { padding: 8px 10px; color: #526574; background: white; border-top: 1px solid #cbd7df; font-size: .7rem; font-weight: 700; }
+.temporal-canvas { display: block; width: 100%; aspect-ratio: 1 / 1.08; min-height: 310px; }
+.temporal-canvas.is-unavailable { opacity: .48; }
+.map-value-readout { min-height: 1.6em; margin: 10px 0 0; color: #45606f; font-size: .72rem; }
+.imerg-section, .imerg-city-section { padding-top: 32px; border-top: 1px solid var(--line); }
 .chart-image { margin: 18px 0 0; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; }
 .chart-image img { display: block; width: 100%; height: auto; background: #f5f8f7; }
 .chart-image figcaption { padding: 11px 15px; color: var(--muted); border-top: 1px solid var(--line); font-size: .75rem; }
@@ -2688,6 +3172,9 @@ footer a { color: var(--blue); }
   .city-grid-details { overflow-y: visible; border-top: 1px solid var(--line); border-left: 0; }
   .map-animation { grid-template-columns: 1fr; }
   .map-animation img { border-top: 1px solid var(--line); border-left: 0; }
+  .temporal-map-grid { grid-template-columns: 1fr; }
+  .temporal-map-grid.two-up { grid-template-columns: 1fr; }
+  .temporal-canvas { min-height: 440px; }
   .method-grid { grid-template-columns: 1fr; }
   .method-grid article { min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .method-grid article:last-child { border-bottom: 0; }
@@ -2710,7 +3197,7 @@ footer a { color: var(--blue); }
 
 def write_stage(
     stage: Path, archive: dict, validation: dict, combination: dict,
-    spatial_combination: dict, weather: dict, renderer,
+    spatial_combination: dict, weather: dict, imerg: dict, renderer,
 ) -> None:
     assets = stage / "assets"
     assets.mkdir(parents=True, exist_ok=True)
@@ -2728,21 +3215,22 @@ def write_stage(
     (assets / "online_combination.json").write_text(json.dumps(combination, indent=2) + "\n")
     (assets / "combination_manifest.json").write_text(json.dumps(spatial_combination, indent=2) + "\n")
     (assets / "weather_forecast.json").write_text(json.dumps(weather, indent=2) + "\n")
+    (assets / "imerg_manifest.json").write_text(json.dumps(imerg, indent=2) + "\n")
     site_combination = {**combination, "spatial": spatial_combination}
-    (stage / "index.html").write_text(build_html(archive, renderer, validation, site_combination, weather))
+    (stage / "index.html").write_text(build_html(archive, renderer, validation, site_combination, weather, imerg))
     latest = archive["runs"][0]
     available = ", ".join(model["label"] for model in latest["models"])
     missing = ", ".join(latest.get("missing_models", [])) or "None"
     (stage / "README.md").write_text(
         "# India Weather Forecasts\n\n"
         "A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, "
-        "hoverable India maps, recent-error and simple-average mixtures, animated forecasts, and Open-Meteo validation.\n\n"
+        "native-time India maps, recent-error and simple-average mixtures, and matched Open-Meteo and IMERG validation.\n\n"
         f"- Last successful build: `{archive['generated_at_utc']}`\n"
         f"- Latest initialization: `{latest['initialization_utc']}`\n"
         f"- Available models: {available}\n"
         f"- Models still pending: {missing}\n"
         "- Daily publisher: `india-forecast-pages.timer` at 14:00 Asia/Kolkata\n\n"
-        "The daily publisher refreshes observations, validation, and online-combination weights even when no newer model initialization is available.\n\n"
+        "The daily publisher refreshes Open-Meteo and IMERG observations, native-time forecasts for the latest three initializations, validation, and online-combination weights even when no newer model initialization is available.\n\n"
         "## Tests\n\n"
         "```bash\n"
         "/Datastorage/saptarishi.dhanuka_asp25/conda_envs/realtime_dash/bin/python -m pytest -q\n"
@@ -2762,13 +3250,19 @@ def write_stage(
         "[`assets/combination_manifest.json`](assets/combination_manifest.json).\n\n"
         "The simple-average map is a separate baseline: it takes the arithmetic mean of all available "
         "source-model values independently at every grid cell and endpoint.\n\n"
+        "NASA GPM IMERG V07 [Early](https://dynamical.org/catalog/nasa-imerg-analysis-early/) and "
+        "[Late](https://dynamical.org/catalog/nasa-imerg-analysis-late/) Run precipitation is published for a rolling "
+        "three-day window at its native 0.1° and 30-minute resolution, plus exact UTC-aligned six-hour accumulations. "
+        "IMERG timestamps are interval starts; forecasts are matched only when complete half-hours exactly tile the native forecast interval. "
+        "City bias correction is additive, causal, and fit only from IMERG Late errors realized by the forecast initialization.\n\n"
         "See [`assets/forecast_archive.json`](assets/forecast_archive.json), "
         "[`assets/weather_forecast.json`](assets/weather_forecast.json), and "
-        "[`assets/validation_manifest.json`](assets/validation_manifest.json) for provenance.\n"
+        "[`assets/validation_manifest.json`](assets/validation_manifest.json), and "
+        "[`assets/imerg_manifest.json`](assets/imerg_manifest.json) for provenance.\n"
     )
 
 
-def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> None:
+def validate_stage(stage: Path, archive: dict, validation: dict, imerg: dict, renderer) -> None:
     if len(archive["runs"]) != 7:
         raise RuntimeError(f"expected seven retained runs, found {len(archive['runs'])}")
     html = (stage / "index.html").read_text()
@@ -2809,7 +3303,7 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
             animation = stage / "assets" / "map_animations" / run["id"] / SIMPLE_AVERAGE_MODEL_ID / f"{variable}.gif"
             if not animation.is_file() or animation.stat().st_size < 5_000:
                 raise RuntimeError(f"missing simple-average map animation: {animation}")
-    for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/combination_manifest.json", "assets/weather_forecast.json"):
+    for relative in ("assets/style.css", "assets/app.js", "assets/scdlds-logo.jpeg", "assets/coastlines.json", "assets/forecast_archive.json", "assets/forecast_manifest.json", "assets/online_combination.json", "assets/combination_manifest.json", "assets/weather_forecast.json", "assets/imerg_manifest.json"):
         if not (stage / relative).is_file():
             raise RuntimeError(f"missing staged asset: {relative}")
     for city in validation["cities"].values():
@@ -2828,6 +3322,23 @@ def validate_stage(stage: Path, archive: dict, validation: dict, renderer) -> No
             days = weather["runs"].get(run["id"], {}).get("cities", {}).get(city_name, {}).get("days", [])
             if len(days) != len(DAILY_LEAD_DAYS):
                 raise RuntimeError(f"incomplete five-day weather product: {run['id']} / {city_name}")
+    for product in ("early", "late"):
+        item = imerg.get("products", {}).get(product)
+        if not item or not item.get("native") or not item.get("six_hour"):
+            raise RuntimeError(f"missing IMERG {product} observation products")
+        for asset in [*item["native"], item["six_hour"]]:
+            path = stage / asset["path"]
+            if not path.is_file() or path.stat().st_size < 1_000:
+                raise RuntimeError(f"invalid IMERG map payload: {path}")
+    for run in imerg.get("forecast_runs", {}).values():
+        for model in run.get("models", {}).values():
+            path = stage / model["path"]
+            if not path.is_file() or path.stat().st_size < 1_000:
+                raise RuntimeError(f"invalid native forecast payload: {path}")
+    for city in imerg.get("cities", {}).values():
+        for run in city.get("runs", {}).values():
+            for model in run.get("models", {}).values():
+                renderer.validate_png(stage / model["image"]["path"])
 
 
 def publish_stage(stage: Path, output_site: Path) -> None:
@@ -2869,7 +3380,8 @@ def main():
     args = parse_args()
     if args.history_runs != 7:
         raise SystemExit("this public archive is intentionally fixed at seven retained runs")
-    renderer, load_config, india_load, openmeteo = load_renderer(args.realtime_root.resolve())
+    renderer, load_config, india_load, openmeteo, open_dynamical = load_renderer(args.realtime_root.resolve())
+    from imerg_pipeline import build_imerg_products
     cfg = load_config()
     models = tuple(renderer.DEFAULT_MODELS)
     prior_archive = read_archive(args.output_site)
@@ -2938,8 +3450,6 @@ def main():
                     continue
             retained = [entry for entry in retained if entry["id"] != run["id"]] + [run]
             retained = sorted(retained, key=lambda entry: entry["initialization_utc"], reverse=True)[:7]
-            if not args.backfill:
-                break
         if len(retained) != 7:
             raise RuntimeError(f"could not build a complete seven-run archive (have {len(retained)})")
         archive = archive_manifest(retained)
@@ -2960,10 +3470,21 @@ def main():
         )
         combination = render_online_combination(cfg)
         weather = render_weather_forecasts(archive, cfg, india_load)
+        with source_timeout(30 * 60):
+            imerg = build_imerg_products(
+                archive, cfg, india_load, open_dynamical, stage,
+                model_labels={model: renderer.MODEL_META[model]["label"] for model in models},
+                model_colors=MODEL_COLORS,
+            )
+        print(
+            f"rendered IMERG Early/Late native and six-hour products for "
+            f"{imerg['window']['start_utc']}..{imerg['window']['end_exclusive_utc']}",
+            flush=True,
+        )
         animation_count = render_map_animations(stage, archive, SITE_ROOT / "assets" / "coastlines.json")
         print(f"rendered {animation_count} model-variable forecast animations", flush=True)
-        write_stage(stage, archive, validation, combination, spatial_combination, weather, renderer)
-        validate_stage(stage, archive, validation, renderer)
+        write_stage(stage, archive, validation, combination, spatial_combination, weather, imerg, renderer)
+        validate_stage(stage, archive, validation, imerg, renderer)
         if args.dry_run:
             print("validated archive build; dry-run leaves the site unchanged")
         else:

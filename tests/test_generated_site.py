@@ -2,6 +2,7 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 
@@ -27,10 +28,15 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('id="city-grid-map"') == 1
     assert html.count('id="city-grid-time"') == 1
     assert html.count('id="city-grid-models"') == 1
+    assert html.count('id="within-day-chart"') == 1
+    assert html.count('id="temporal-forecast-canvas"') == 1
+    assert html.count('id="imerg-early-canvas"') == 1
+    assert html.count('id="imerg-late-canvas"') == 1
+    assert html.count('id="imerg-validation-image"') == 1
     assert "Forecast valid date and time" in html
     assert "OpenStreetMap contributors" in html or "OpenStreetMap contributors" in (ROOT / "assets/app.js").read_text()
     assert "fixed 0–45 °C scale" in html
-    assert "Map rainfall is accumulated only since the previous displayed valid timestamp" in html
+    assert "Forecast rainfall is compared only to complete IMERG half-hours" in html
     assert "assets/scdlds-logo.jpeg" in html
     assert 'class="forecast-home" href="./" aria-label="India Weather Forecasts home"' in html
     assert 'class="brand" href="https://scdlds.ashoka.edu.in/" aria-label="Visit SCDLDS at Ashoka University"' in html
@@ -41,6 +47,8 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert "https://doi.org/10.1111/rssc.12455" in html
     assert "https://scdlds.ashoka.edu.in/" in html
     assert "precipitation probability" not in html.lower()
+    assert "nasa-imerg-analysis-early" in html
+    assert "nasa-imerg-analysis-late" in html
 
 
 def test_archive_is_sorted_retained_and_every_grid_exists():
@@ -70,7 +78,7 @@ def test_archive_is_sorted_retained_and_every_grid_exists():
 def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
     archive = load_json("assets/forecast_archive.json")
     weather = load_json("assets/weather_forecast.json")
-    assert weather["schema_version"] == 2
+    assert weather["schema_version"] == 3
     validation = load_json("assets/validation_manifest.json")
     for run in archive["runs"]:
         product = weather["runs"][run["id"]]
@@ -79,6 +87,11 @@ def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
             assert [day["day"] for day in city_product["days"]] == [1, 2, 3, 4, 5]
             assert abs(sum(city_product["temperature_weights"].values()) - 1) < 1e-8
             assert abs(sum(city_product["precipitation_weights"].values()) - 1) < 1e-8
+            if run["id"] in {item["id"] for item in archive["runs"][:3]}:
+                assert city_product["timelines"]["combined"]
+                for model, resolution in city_product["temporal_resolution_hours"].items():
+                    assert resolution
+                    assert all(value > 0 for value in resolution)
             for day in city_product["days"]:
                 assert day["high_c"] >= day["low_c"]
                 assert day["precip_mm"] >= 0
@@ -190,10 +203,13 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     publisher = (ROOT / "scripts/daily_forecast_publish.sh").read_text()
     assert "14:00:00 Asia/Kolkata" in timer
     assert "Persistent=true" in timer
-    assert "TimeoutStartSec=50min" in service
+    assert "TimeoutStartSec=90min" in service
     assert "Restart=on-failure" in service
     assert '"$PYTHON" -m pytest -q' in publisher
-    assert "node --check assets/app.js" in publisher
+    assert 'NODE_BIN_DIR="/home/saptarishi.dhanuka_asp25/.nvm/versions/node/' in publisher
+    assert 'export PATH="$NODE_BIN_DIR:$PATH"' in publisher
+    assert '"$NODE" --check assets/app.js' in publisher
+    assert '"$NPM" test' in publisher
     assert "git push origin main" in publisher
     assert 'shutil.copy2(coastlines, assets / coastlines.name)' in (ROOT / "scripts/publish_forecast_archive.py").read_text()
     assert "render_map_animations(stage, archive" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
@@ -201,9 +217,31 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     assert "refreshing observations and online weights" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
 
 
+def test_imerg_products_are_native_matched_and_cover_latest_three_forecast_runs():
+    imerg = load_json("assets/imerg_manifest.json")
+    archive = load_json("assets/forecast_archive.json")
+    assert imerg["schema_version"] == 1
+    assert imerg["window"]["half_hour_intervals"] == 144
+    assert set(imerg["products"]) == {"early", "late"}
+    assert list(imerg["forecast_runs"]) == [run["id"] for run in archive["runs"][:3]]
+    for product in imerg["products"].values():
+        assert product["grid"]["shape"] == [320, 320]
+        assert product["grid"]["latitude_spacing_degrees"] == pytest.approx(.1)
+        assert sum(asset["shape"][0] for asset in product["native"]) == 144
+        for asset in [*product["native"], product["six_hour"]]:
+            path = ROOT / asset["path"]
+            assert path.is_file()
+            assert path.stat().st_size > 1_000
+    for city in imerg["cities"].values():
+        for run in city["runs"].values():
+            for model in run["models"].values():
+                assert (ROOT / model["image"]["path"]).is_file()
+                assert model["summary"]["training_intervals"] >= 0
+
+
 def test_readme_records_build_status_and_counter_decision():
     readme = (ROOT / "README.md").read_text()
     assert "Latest initialization" in readme
     assert "Available models" in readme
     assert "Live visit counting is intentionally disabled" in readme
-    assert "refreshes observations, validation, and online-combination weights" in readme
+    assert "refreshes Open-Meteo and IMERG observations" in readme

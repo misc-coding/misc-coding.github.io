@@ -37,6 +37,8 @@ async function loadSite() {
   });
   const { window } = dom;
   const stats = { strokes: 0, fetches: [] };
+  window.Response = globalThis.Response;
+  window.DecompressionStream = globalThis.DecompressionStream;
   Object.defineProperty(window, "devicePixelRatio", { value: 1 });
   window.HTMLCanvasElement.prototype.getContext = () => canvasContext(stats);
   window.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({
@@ -82,6 +84,9 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.ok(document.querySelectorAll("#city-grid-map .forecast-grid-cell").length >= 9);
   assert.match(document.querySelector("#city-grid-model-note").textContent, /loaded grid.*cells shown.*valid.*IST.*UTC/);
   assert.match(document.querySelector("#weather-chart .date.time").textContent, /IST.*UTC/);
+  assert.ok(document.querySelectorAll("#within-day-models button").length > 0);
+  assert.ok(document.querySelector("#within-day-chart svg"));
+  assert.match(document.querySelector("#within-day-note").textContent, /exact interval/);
   const gfsCityGrid = document.querySelector('[data-city-grid-model="gfs"]');
   if (gfsCityGrid) {
     gfsCityGrid.click();
@@ -92,6 +97,7 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector('[data-weather-day="3"]').click();
   assert.equal(document.querySelector('[data-weather-day="3"]').getAttribute("aria-pressed"), "true");
   assert.match(window.location.search, /weather_day=3/);
+  assert.ok(document.querySelector("#within-day-chart svg"));
 
   document.querySelector('[data-weather-variable="precipitation"]').click();
   assert.equal(document.querySelector('[data-weather-variable="precipitation"]').getAttribute("aria-pressed"), "true");
@@ -104,12 +110,17 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.equal(document.querySelector("#weather-location").textContent, "Mumbai");
 
   document.querySelector('[data-tab="maps"]').click();
-  await new Promise((resolve) => setTimeout(resolve, 30));
+  await new Promise((resolve) => setTimeout(resolve, 300));
   assert.equal(document.querySelector('[data-panel="maps"]').hidden, false);
   assert.ok(stats.fetches.includes("assets/coastlines.json"));
   assert.ok(stats.strokes > 20, "coastline segments should be drawn over the field");
   const canvas = document.querySelector("#forecast-canvas");
   assert.ok(canvas.height >= 774, "the India map should use the taller aspect ratio");
+  assert.ok(document.querySelector("#temporal-init-select").options.length === 3);
+  assert.ok(document.querySelector("#temporal-model-select").options.length > 0);
+  assert.ok(document.querySelector("#temporal-time-select").options.length > 0);
+  assert.ok(document.querySelector("#temporal-forecast-canvas")._standaloneMap);
+  assert.match(document.querySelector("#temporal-map-note").textContent, /complete native half-hours|highest available/);
   assert.match(document.querySelector("#map-legend-title").textContent, /fixed scale/);
   const simpleAverage = document.querySelector('[data-map-model="simple_average"]');
   assert.equal(simpleAverage.disabled, false);
@@ -157,11 +168,22 @@ test("all dashboard controls update their panels without runtime errors", async 
   document.querySelector("#map-reset").click();
 
   document.querySelector('[data-tab="validation"]').click();
+  await new Promise((resolve) => setTimeout(resolve, 300));
   document.querySelector('[data-validation-variable="precipitation"]').click();
   assert.match(document.querySelector("#validation-image").getAttribute("src"), /precipitation\.png/);
   assert.match(document.querySelector("#validation-summary").textContent, /combined mean endpoint MAE/);
   document.querySelector('[data-match-variable="temperature"]').click();
   assert.match(document.querySelector("#match-image").getAttribute("src"), /temperature\.png/);
+  assert.equal(document.querySelector("#imerg-time-select").options.length, 144);
+  assert.ok(document.querySelector("#imerg-early-canvas")._standaloneMap);
+  assert.ok(document.querySelector("#imerg-late-canvas")._standaloneMap);
+  assert.match(document.querySelector("#imerg-map-note").textContent, /native 0\.1° grid/i);
+  assert.match(document.querySelector("#imerg-validation-image").getAttribute("src"), /imerg\/city_validation/);
+  assert.match(document.querySelector("#imerg-validation-summary").textContent, /bias-corrected RMSE/);
+  document.querySelector('[data-imerg-duration="6h"]').click();
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  assert.ok(document.querySelector("#imerg-time-select").options.length >= 10);
+  assert.match(document.querySelector("#imerg-map-note").textContent, /six-hour/);
 
   const init = document.querySelector("#init-select");
   if (init.options.length > 1) {

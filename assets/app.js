@@ -6,6 +6,7 @@
   const archive = site.archive;
   const validation = site.validation;
   const weather = site.weather;
+  const imerg = site.imerg || { products: {}, forecast_runs: {}, cities: {} };
   const spatialCombination = site.combination?.spatial || { runs: {} };
   const runs = archive.runs;
   const params = new URLSearchParams(location.search);
@@ -33,18 +34,34 @@
   let validationVariable = params.get("validation") === "precipitation" ? "precipitation" : "temperature";
   let matchVariable = params.get("match_variable") === "temperature" ? "temperature" : "precipitation";
   let matchInit = runIds.has(params.get("match_init")) ? params.get("match_init") : runs[0].id;
+  let withinDayModel = params.get("within_model") || "combined";
+  let temporalVariable = params.get("temporal_variable") === "temperature" ? "temperature" : "precipitation";
+  let temporalInit = params.get("temporal_init") || Object.keys(imerg.forecast_runs || {})[0] || "";
+  let temporalModel = params.get("temporal_model") || "";
+  let temporalTimeIndex = Number(params.get("temporal_time") || 0);
+  let imergDuration = params.get("imerg_duration") === "6h" ? "6h" : "30min";
+  let imergTimeIndex = Number(params.get("imerg_time") || -1);
+  let imergValidationInit = params.get("imerg_validation_init") || "";
+  let imergValidationModel = params.get("imerg_validation_model") || "";
   let payload = null;
   let coastlines = [];
   let coastlinePromise = null;
   let mapRequest = 0;
   let view = { scale: 1, x: 0, y: 0 };
   let drag = null;
+  let temporalRequest = 0;
+  let imergRequest = 0;
+  const compressedPayloads = new Map();
 
   function setUrl() {
     const next = new URL(location.href);
     const values = { tab, init, city, weather: weatherVariable, weather_day: weatherDay, grid_model: cityGridModel,
       variable: mapVariable, day: mapDay,
-      model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable };
+      model: mapModel, validation: validationVariable, match_init: matchInit, match_variable: matchVariable,
+      within_model: withinDayModel, temporal_variable: temporalVariable, temporal_init: temporalInit,
+      temporal_model: temporalModel, temporal_time: temporalTimeIndex, imerg_duration: imergDuration,
+      imerg_time: imergTimeIndex, imerg_validation_init: imergValidationInit,
+      imerg_validation_model: imergValidationModel };
     Object.entries(values).forEach(([key, value]) => { if (value) next.searchParams.set(key, value); });
     history.replaceState(null, "", next);
   }
@@ -61,7 +78,8 @@
       button.classList.toggle("is-active", active);
     });
     qa("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== tab; });
-    if (tab === "maps") requestAnimationFrame(() => drawMap(activeRun()));
+    if (tab === "maps") requestAnimationFrame(() => { drawMap(activeRun()); renderTemporalMaps(); });
+    if (tab === "validation") requestAnimationFrame(() => { renderImergMaps(); renderImergCityValidation(); });
     if (update) setUrl();
   }
 
@@ -159,6 +177,58 @@
       return `<g><circle cx="${x(index)}" cy="${y(value(day))}" r="4"/><text x="${x(index)}" y="${y(value(day)) - 12}" text-anchor="middle">${value(day).toFixed(1)}${weatherVariable === "temperature" ? "°" : " mm"}</text><text class="date" x="${x(index)}" y="${height - 27}" text-anchor="middle">${date}</text><text class="date time" x="${x(index)}" y="${height - 12}" text-anchor="middle">${ist} IST · ${utc} UTC</text></g>`;
     }).join("");
     return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Five-day ${weatherVariable} forecast"><g class="chart-grid">${grid}</g><path class="weather-area" d="${area}"/><path class="weather-line" d="${line}"/><g class="weather-points">${dots}</g></svg>`;
+  }
+
+  function withinDayChart(rows, model) {
+    if (!rows.length) return '<p class="empty-state">Native-time detail is available for the latest three initializations.</p>';
+    const width = 980, height = 330, pad = { l: 58, r: 52, t: 24, middle: 205, b: 48 };
+    const times = rows.map((row) => new Date(row.valid_time_utc).getTime());
+    const x = (time) => pad.l + (time - times[0]) / Math.max(times[times.length - 1] - times[0], 1) * (width - pad.l - pad.r);
+    const temperatures = rows.filter((row) => Number.isFinite(row.temperature_c));
+    const rainRows = rows.filter((row) => Number.isFinite(row.precip_mm));
+    const tempValues = temperatures.map((row) => row.temperature_c);
+    const tempLow = tempValues.length ? Math.floor(Math.min(...tempValues) - 1) : 0;
+    const tempHigh = tempValues.length ? Math.ceil(Math.max(...tempValues) + 1) : 1;
+    const tempY = (value) => pad.t + (tempHigh - value) / Math.max(tempHigh - tempLow, 1) * (pad.middle - pad.t - 18);
+    const rainHigh = Math.max(1, ...rainRows.map((row) => row.precip_mm));
+    const rainTop = pad.middle + 27, rainBottom = height - pad.b;
+    const rainY = (value) => rainBottom - value / rainHigh * (rainBottom - rainTop);
+    const tempPath = temperatures.map((row, index) => `${index ? "L" : "M"}${x(new Date(row.valid_time_utc).getTime()).toFixed(1)},${tempY(row.temperature_c).toFixed(1)}`).join(" ");
+    const barWidth = Math.max(4, Math.min(30, (width - pad.l - pad.r) / Math.max(rows.length, 1) * .62));
+    const bars = rainRows.map((row) => {
+      const center = x(new Date(row.valid_time_utc).getTime());
+      return `<rect class="within-rain-bar" x="${center - barWidth / 2}" y="${rainY(row.precip_mm)}" width="${barWidth}" height="${Math.max(0, rainBottom - rainY(row.precip_mm))}"><title>${row.precip_mm.toFixed(2)} mm · ${exactTime(row.interval_start_utc)} → ${exactTime(row.valid_time_utc)}</title></rect>`;
+    }).join("");
+    const dots = temperatures.map((row) => `<circle class="within-temp-dot" cx="${x(new Date(row.valid_time_utc).getTime())}" cy="${tempY(row.temperature_c)}" r="3.5"><title>${row.temperature_c.toFixed(1)} °C · ${exactTime(row.valid_time_utc)}</title></circle>`).join("");
+    const labelEvery = Math.max(1, Math.ceil(rows.length / 8));
+    const labels = rows.map((row, index) => {
+      if (index % labelEvery && index !== rows.length - 1) return "";
+      const value = new Date(row.valid_time_utc);
+      const ist = value.toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      const utc = value.toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+      return `<text x="${x(value.getTime())}" y="${height - 25}" text-anchor="middle">${ist} IST</text><text x="${x(value.getTime())}" y="${height - 10}" text-anchor="middle">${utc} UTC</text>`;
+    }).join("");
+    const tempGrid = [tempLow, (tempLow + tempHigh) / 2, tempHigh].map((value) => `<g><line x1="${pad.l}" x2="${width - pad.r}" y1="${tempY(value)}" y2="${tempY(value)}"/><text x="${pad.l - 8}" y="${tempY(value) + 4}" text-anchor="end">${value.toFixed(0)}°</text></g>`).join("");
+    const rainGrid = [0, rainHigh].map((value) => `<g><line x1="${pad.l}" x2="${width - pad.r}" y1="${rainY(value)}" y2="${rainY(value)}"/><text x="${pad.l - 8}" y="${rainY(value) + 4}" text-anchor="end">${value.toFixed(1)}</text></g>`).join("");
+    return `<svg viewBox="0 0 ${width} ${height}" aria-label="${modelLabel(model)} within-day temperature and interval rainfall"><g class="within-axis">${tempGrid}${rainGrid}${labels}<text x="12" y="18">°C</text><text x="12" y="${rainTop}">mm</text></g><path class="within-temp-line" d="${tempPath}"/>${dots}${bars}</svg>`;
+  }
+
+  function renderWithinDay(item, day) {
+    const timelines = item?.timelines || {};
+    const models = Object.keys(timelines).filter((model) => (timelines[model] || []).some((row) => String(row.day) === weatherDay));
+    if (!models.includes(withinDayModel)) withinDayModel = models.includes("combined") ? "combined" : models[0];
+    q("#within-day-models").innerHTML = models.map((model) => `<button type="button" data-within-day-model="${model}" aria-pressed="${model === withinDayModel}">${model === "combined" ? "Combined · 6 h" : modelLabel(model)}</button>`).join("");
+    qa("[data-within-day-model]").forEach((button) => button.addEventListener("click", () => {
+      withinDayModel = button.dataset.withinDayModel;
+      renderWithinDay(item, day);
+      setUrl();
+    }));
+    const rows = (timelines[withinDayModel] || []).filter((row) => String(row.day) === weatherDay);
+    q("#within-day-chart").innerHTML = withinDayChart(rows, withinDayModel || "combined");
+    const cadences = [...new Set(rows.map((row) => row.interval_hours))].sort((a, b) => a - b);
+    q("#within-day-note").textContent = rows.length
+      ? `${withinDayModel === "combined" ? "Combined forecast" : modelLabel(withinDayModel)} · ${cadences.map((value) => `${Number(value).toFixed(Number(value) % 1 ? 1 : 0)} h`).join(" / ")} exact interval${cadences.length === 1 ? "" : "s"} · ${exactTime(rows[0].interval_start_utc)} → ${exactTime(rows[rows.length - 1].valid_time_utc)}. Bars are interval accumulation, not probability.`
+      : "Native-time detail is retained for the latest three initializations.";
   }
 
   function cityMapWorld(latitude, longitude, zoom) {
@@ -286,6 +356,7 @@
     q("#blend-note").textContent = item
       ? `Temperature: ${item.temperature_method} weights · rainfall: ${item.precipitation_method} weights. Rainfall is a 24-hour accumulation, not a probability.`
       : "";
+    renderWithinDay(item, days.find((day) => String(day.day) === weatherDay));
     renderCityGridMap(item, days.find((day) => String(day.day) === weatherDay));
   }
 
@@ -523,17 +594,290 @@
     setUrl();
   }
 
+  async function loadCompressedUint16(path) {
+    if (!compressedPayloads.has(path)) {
+      compressedPayloads.set(path, (async () => {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${path}`);
+        const compressed = await response.arrayBuffer();
+        if (typeof DecompressionStream !== "function") throw new Error("This browser does not support gzip decompression streams.");
+        const stream = new Response(compressed).body.pipeThrough(new DecompressionStream("gzip"));
+        const buffer = await new Response(stream).arrayBuffer();
+        return new Uint16Array(buffer);
+      })());
+    }
+    return compressedPayloads.get(path);
+  }
+
+  function standaloneColor(variable, value) {
+    if (variable === "precipitation") {
+      const fraction = Math.max(0, Math.min(1, value / 60));
+      return [225 - 185 * fraction, 241 - 80 * fraction, 248 - 25 * fraction];
+    }
+    const stops = [[255, 255, 204], [254, 217, 118], [253, 141, 60], [240, 59, 32], [189, 0, 38]];
+    const scaled = Math.max(0, Math.min(1, value / 45)) * (stops.length - 1);
+    const index = Math.min(stops.length - 2, Math.floor(scaled));
+    const fraction = scaled - index;
+    return stops[index].map((channel, offset) => channel + (stops[index + 1][offset] - channel) * fraction);
+  }
+
+  function decodeStandalone(encoded, variable) {
+    if (encoded === 65535) return null;
+    return variable === "temperature" ? (encoded - 5000) / 100 : encoded / 100;
+  }
+
+  function clearStandaloneMap(canvas, message) {
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(360, Math.round(rect.width || 420));
+    canvas.height = Math.max(340, Math.round(canvas.width * 1.08));
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#edf2f4"; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#607080"; context.font = "13px system-ui"; context.fillText(message, 18, 30);
+    canvas._standaloneMap = null;
+    canvas.classList.add("is-unavailable");
+  }
+
+  function drawStandaloneMap(canvas, encoded, grid, variable, label, readoutSelector) {
+    if (!canvas || !encoded || !grid) return;
+    const [nLat, nLon] = grid.shape;
+    if (encoded.length !== nLat * nLon) throw new Error(`${label}: invalid map payload length`);
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(360, Math.round((rect.width || 420) * ratio));
+    const height = Math.max(340, Math.round(width * 1.08));
+    canvas.width = width; canvas.height = height;
+    const context = canvas.getContext("2d");
+    const image = context.createImageData(nLon, nLat);
+    for (let yIndex = 0; yIndex < nLat; yIndex += 1) for (let xIndex = 0; xIndex < nLon; xIndex += 1) {
+      const value = decodeStandalone(encoded[yIndex * nLon + xIndex], variable);
+      const offset = ((nLat - 1 - yIndex) * nLon + xIndex) * 4;
+      if (value === null) { image.data[offset + 3] = 0; continue; }
+      const rgb = standaloneColor(variable, value);
+      image.data[offset] = rgb[0]; image.data[offset + 1] = rgb[1]; image.data[offset + 2] = rgb[2]; image.data[offset + 3] = 255;
+    }
+    const raster = document.createElement("canvas");
+    raster.width = nLon; raster.height = nLat; raster.getContext("2d").putImageData(image, 0, 0);
+    context.fillStyle = "#e8f1f5"; context.fillRect(0, 0, width, height);
+    context.imageSmoothingEnabled = true; context.drawImage(raster, 0, 0, width, height);
+    context.strokeStyle = "rgba(19,44,57,.88)"; context.lineWidth = 1.25 * ratio;
+    coastlines.forEach((line) => {
+      context.beginPath();
+      line.forEach(([longitude, latitude], index) => {
+        const x = width * (longitude - grid.lon_min) / (grid.lon_max - grid.lon_min);
+        const y = height * (grid.lat_max - latitude) / (grid.lat_max - grid.lat_min);
+        if (index) context.lineTo(x, y); else context.moveTo(x, y);
+      });
+      context.stroke();
+    });
+    canvas._standaloneMap = { encoded, grid, variable, label, readoutSelector };
+    canvas.classList.remove("is-unavailable");
+    if (!canvas.dataset.hoverBound) {
+      canvas.dataset.hoverBound = "true";
+      canvas.addEventListener("pointermove", (event) => {
+        const state = canvas._standaloneMap;
+        if (!state) return;
+        const bounds = canvas.getBoundingClientRect();
+        const gx = (event.clientX - bounds.left) / Math.max(bounds.width, 1);
+        const gy = (event.clientY - bounds.top) / Math.max(bounds.height, 1);
+        if (gx < 0 || gx > 1 || gy < 0 || gy > 1) return;
+        const [rows, columns] = state.grid.shape;
+        const xIndex = Math.max(0, Math.min(columns - 1, Math.round(gx * (columns - 1))));
+        const yIndex = Math.max(0, Math.min(rows - 1, Math.round((1 - gy) * (rows - 1))));
+        const value = decodeStandalone(state.encoded[yIndex * columns + xIndex], state.variable);
+        const latitude = state.grid.lat_min + yIndex / Math.max(rows - 1, 1) * (state.grid.lat_max - state.grid.lat_min);
+        const longitude = state.grid.lon_min + xIndex / Math.max(columns - 1, 1) * (state.grid.lon_max - state.grid.lon_min);
+        const readout = q(state.readoutSelector);
+        if (readout) readout.textContent = value === null
+          ? `${state.label} · missing at ${latitude.toFixed(2)}° N, ${longitude.toFixed(2)}° E`
+          : `${state.label} · ${value.toFixed(2)} ${state.variable === "temperature" ? "°C" : "mm"} at ${latitude.toFixed(2)}° N, ${longitude.toFixed(2)}° E`;
+      });
+    }
+  }
+
+  function nativeObservationEntries(product) {
+    return (imerg.products?.[product]?.native || []).flatMap((asset) => asset.intervals.map((interval, index) => ({ asset, interval, index })));
+  }
+
+  function observationEntries(product, duration) {
+    if (duration === "6h") {
+      const asset = imerg.products?.[product]?.six_hour;
+      return asset ? asset.intervals.map((interval, index) => ({ asset, interval, index })) : [];
+    }
+    return nativeObservationEntries(product);
+  }
+
+  async function observationFrame(product, duration, start, end) {
+    const entry = observationEntries(product, duration).find((candidate) => candidate.interval.start_utc === start && candidate.interval.end_utc === end);
+    if (!entry) return null;
+    const payload = await loadCompressedUint16(entry.asset.path);
+    const [, nLat, nLon] = entry.asset.shape;
+    const count = nLat * nLon;
+    return { values: payload.subarray(entry.index * count, (entry.index + 1) * count), grid: imerg.products[product].grid };
+  }
+
+  async function summedNativeObservation(product, start, end) {
+    const startMs = new Date(start).getTime(), endMs = new Date(end).getTime();
+    const expected = (endMs - startMs) / 1_800_000;
+    const entries = nativeObservationEntries(product).filter((entry) => {
+      const value = new Date(entry.interval.start_utc).getTime();
+      return value >= startMs && value < endMs;
+    }).sort((a, b) => new Date(a.interval.start_utc) - new Date(b.interval.start_utc));
+    if (!Number.isInteger(expected) || entries.length !== expected || !entries.length) return null;
+    if (entries[0].interval.start_utc !== start || entries[entries.length - 1].interval.end_utc !== end) return null;
+    const grid = imerg.products[product].grid;
+    const count = grid.shape[0] * grid.shape[1];
+    const totals = new Float64Array(count);
+    const valid = new Uint8Array(count); valid.fill(1);
+    for (const entry of entries) {
+      const payload = await loadCompressedUint16(entry.asset.path);
+      const frame = payload.subarray(entry.index * count, (entry.index + 1) * count);
+      for (let index = 0; index < count; index += 1) {
+        if (frame[index] === 65535) valid[index] = 0;
+        else totals[index] += frame[index];
+      }
+    }
+    const encoded = new Uint16Array(count);
+    for (let index = 0; index < count; index += 1) encoded[index] = valid[index] ? Math.min(65534, Math.round(totals[index])) : 65535;
+    return { values: encoded, grid };
+  }
+
+  function populateSelect(select, entries, value, label) {
+    select.innerHTML = entries.map((entry) => `<option value="${entry.id}">${label(entry)}</option>`).join("");
+    if (entries.some((entry) => entry.id === value)) select.value = value;
+    else if (entries.length) select.value = entries[0].id;
+    return select.value;
+  }
+
+  async function renderTemporalMaps() {
+    const runEntries = Object.entries(imerg.forecast_runs || {}).map(([id, value]) => ({ id, ...value }));
+    if (!runEntries.length) {
+      clearStandaloneMap(q("#temporal-forecast-canvas"), "Native-time forecast data unavailable.");
+      clearStandaloneMap(q("#temporal-early-canvas"), "IMERG data unavailable.");
+      clearStandaloneMap(q("#temporal-late-canvas"), "IMERG data unavailable.");
+      return;
+    }
+    temporalInit = populateSelect(q("#temporal-init-select"), runEntries, temporalInit, (entry) => formatInit(entry.initialization_utc));
+    const active = imerg.forecast_runs[temporalInit];
+    const models = Object.entries(active.models || {}).map(([id, value]) => ({ id, ...value }));
+    temporalModel = populateSelect(q("#temporal-model-select"), models, temporalModel, (entry) => entry.label);
+    const model = active.models[temporalModel];
+    if (!model) return;
+    temporalTimeIndex = Math.max(0, Math.min(model.times.length - 1, temporalTimeIndex));
+    q("#temporal-time-select").innerHTML = model.times.map((time, index) => `<option value="${index}">${compactValidTime(time.valid_time_utc)} · ${time.interval_hours} h interval</option>`).join("");
+    q("#temporal-time-select").value = String(temporalTimeIndex);
+    selectButton("[data-temporal-variable]", temporalVariable, "temporalVariable");
+    const request = ++temporalRequest;
+    q("#temporal-map-note").textContent = "Loading native-time forecast and matched observations…";
+    try {
+      const [forecastPayload] = await Promise.all([loadCompressedUint16(model.path), loadCoastlines()]);
+      if (request !== temporalRequest) return;
+      const [nTime, nLat, nLon] = model.shape;
+      const count = nLat * nLon;
+      const variableIndex = model.variables.indexOf(temporalVariable);
+      const start = variableIndex * nTime * count + temporalTimeIndex * count;
+      const frame = forecastPayload.subarray(start, start + count);
+      const time = model.times[temporalTimeIndex];
+      drawStandaloneMap(q("#temporal-forecast-canvas"), frame, model.grid, temporalVariable, `${model.label} forecast`, "#temporal-map-hover");
+      q("#temporal-forecast-caption").textContent = `${model.label} · ${temporalVariable === "temperature" ? "valid" : `${time.interval_hours} h accumulation ending`} ${compactValidTime(time.valid_time_utc)}`;
+      if (temporalVariable === "precipitation") {
+        const [early, late] = await Promise.all([
+          summedNativeObservation("early", time.interval_start_utc, time.valid_time_utc),
+          summedNativeObservation("late", time.interval_start_utc, time.valid_time_utc),
+        ]);
+        if (request !== temporalRequest) return;
+        if (early) drawStandaloneMap(q("#temporal-early-canvas"), early.values, early.grid, "precipitation", "IMERG Early", "#temporal-map-hover");
+        else clearStandaloneMap(q("#temporal-early-canvas"), "IMERG Early not yet available for this exact interval.");
+        if (late) drawStandaloneMap(q("#temporal-late-canvas"), late.values, late.grid, "precipitation", "IMERG Late", "#temporal-map-hover");
+        else clearStandaloneMap(q("#temporal-late-canvas"), "IMERG Late not yet available for this exact interval.");
+        q("#temporal-early-caption").textContent = "IMERG Early · exact matched accumulation";
+        q("#temporal-late-caption").textContent = "IMERG Late · exact matched accumulation";
+        q("#temporal-map-note").textContent = `${model.label} rainfall ${exactTime(time.interval_start_utc)} → ${exactTime(time.valid_time_utc)} (${time.interval_hours} h). IMERG is summed from complete native half-hours only; unavailable panels are not interpolated.`;
+      } else {
+        clearStandaloneMap(q("#temporal-early-canvas"), "IMERG is a precipitation-only product.");
+        clearStandaloneMap(q("#temporal-late-canvas"), "IMERG is a precipitation-only product.");
+        q("#temporal-map-note").textContent = `${model.label} temperature snapshot valid ${exactTime(time.valid_time_utc)}. This is the model's highest available published cadence.`;
+      }
+      setUrl();
+    } catch (error) {
+      q("#temporal-map-note").textContent = `Native-time map unavailable: ${error.message}`;
+      console.error(error);
+    }
+  }
+
+  async function renderImergMaps() {
+    const entries = observationEntries("early", imergDuration);
+    if (!entries.length) {
+      clearStandaloneMap(q("#imerg-early-canvas"), "IMERG Early data unavailable.");
+      clearStandaloneMap(q("#imerg-late-canvas"), "IMERG Late data unavailable.");
+      return;
+    }
+    selectButton("[data-imerg-duration]", imergDuration, "imergDuration");
+    if (imergTimeIndex < 0 || imergTimeIndex >= entries.length) imergTimeIndex = entries.length - 1;
+    q("#imerg-time-select").innerHTML = entries.map((entry, index) => `<option value="${index}">${compactValidTime(entry.interval.start_utc)} → ${compactValidTime(entry.interval.end_utc)}</option>`).join("");
+    q("#imerg-time-select").value = String(imergTimeIndex);
+    const interval = entries[imergTimeIndex].interval;
+    const request = ++imergRequest;
+    q("#imerg-map-note").textContent = "Loading native IMERG maps…";
+    try {
+      const [early, late] = await Promise.all([
+        observationFrame("early", imergDuration, interval.start_utc, interval.end_utc),
+        observationFrame("late", imergDuration, interval.start_utc, interval.end_utc),
+        loadCoastlines(),
+      ]);
+      if (request !== imergRequest) return;
+      if (early) drawStandaloneMap(q("#imerg-early-canvas"), early.values, early.grid, "precipitation", "IMERG Early", "#imerg-map-hover");
+      if (late) drawStandaloneMap(q("#imerg-late-canvas"), late.values, late.grid, "precipitation", "IMERG Late", "#imerg-map-hover");
+      q("#imerg-map-note").textContent = `${imergDuration === "30min" ? "Native 30-minute" : "UTC-aligned six-hour"} rainfall · ${exactTime(interval.start_utc)} → ${exactTime(interval.end_utc)} · native 0.1° grid · Early and Late use identical valid times.`;
+      setUrl();
+    } catch (error) {
+      q("#imerg-map-note").textContent = `IMERG map unavailable: ${error.message}`;
+      console.error(error);
+    }
+  }
+
+  function renderImergCityValidation() {
+    const cityItem = imerg.cities?.[city];
+    const runEntries = Object.entries(cityItem?.runs || {}).map(([id, value]) => ({ id, ...value })).filter((entry) => Object.keys(entry.models || {}).length);
+    if (!runEntries.length) {
+      q("#imerg-validation-summary").textContent = "IMERG city validation is unavailable for this selection.";
+      q("#imerg-validation-image").removeAttribute("src");
+      return;
+    }
+    imergValidationInit = populateSelect(q("#imerg-validation-init"), runEntries, imergValidationInit, (entry) => formatInit(entry.initialization_utc));
+    const run = cityItem.runs[imergValidationInit];
+    const models = Object.entries(run.models || {}).map(([id, value]) => ({ id, ...value }));
+    imergValidationModel = populateSelect(q("#imerg-validation-model"), models, imergValidationModel, (entry) => entry.label);
+    const item = run.models[imergValidationModel];
+    if (!item) return;
+    q("#imerg-validation-image").src = item.image.path;
+    q("#imerg-validation-image").alt = item.image.alt;
+    const summary = item.summary;
+    const raw = summary.raw_rmse_mm == null ? "pending" : `${summary.raw_rmse_mm.toFixed(2)} mm`;
+    const corrected = summary.bias_corrected_rmse_mm == null ? "pending" : `${summary.bias_corrected_rmse_mm.toFixed(2)} mm`;
+    q("#imerg-validation-summary").textContent = `${city} · ${item.label} · ${summary.matched_late_intervals} exact Late-Run intervals · raw RMSE ${raw} · causal bias-corrected RMSE ${corrected} · issue-time correction ${summary.bias_mm >= 0 ? "+" : ""}${summary.bias_mm.toFixed(2)} mm learned from ${summary.training_intervals} prior intervals.`;
+    setUrl();
+  }
+
   qa("[data-tab]").forEach((button) => button.addEventListener("click", () => activateTab(button.dataset.tab)));
   q("#init-select").addEventListener("change", (event) => { init = event.target.value; view = { scale: 1, x: 0, y: 0 }; renderRun(); });
-  q("#city-select").addEventListener("change", (event) => { city = event.target.value; renderWeather(); renderValidation(); setUrl(); });
+  q("#city-select").addEventListener("change", (event) => { city = event.target.value; renderWeather(); renderValidation(); renderImergCityValidation(); setUrl(); });
   qa("[data-weather-variable]").forEach((button) => button.addEventListener("click", () => { weatherVariable = button.dataset.weatherVariable; renderWeather(); setUrl(); }));
   qa("[data-map-variable]").forEach((button) => button.addEventListener("click", () => { mapVariable = button.dataset.mapVariable; renderMapControls(); }));
   qa("[data-map-day]").forEach((button) => button.addEventListener("click", () => { mapDay = button.dataset.mapDay; renderMapControls(); }));
   qa("[data-map-model]").forEach((button) => button.addEventListener("click", () => { mapModel = button.dataset.mapModel; renderMapControls(); }));
-  qa("[data-validation-city]").forEach((button) => button.addEventListener("click", () => { city = button.dataset.validationCity; q("#city-select").value = city; renderWeather(); renderValidation(); }));
+  qa("[data-validation-city]").forEach((button) => button.addEventListener("click", () => { city = button.dataset.validationCity; q("#city-select").value = city; renderWeather(); renderValidation(); renderImergCityValidation(); }));
   qa("[data-validation-variable]").forEach((button) => button.addEventListener("click", () => { validationVariable = button.dataset.validationVariable; renderValidation(); }));
   qa("[data-match-variable]").forEach((button) => button.addEventListener("click", () => { matchVariable = button.dataset.matchVariable; renderValidation(); }));
   q("#match-init-select").addEventListener("change", (event) => { matchInit = event.target.value; renderValidation(); });
+  q("#temporal-init-select").addEventListener("change", (event) => { temporalInit = event.target.value; temporalModel = ""; temporalTimeIndex = 0; renderTemporalMaps(); });
+  q("#temporal-model-select").addEventListener("change", (event) => { temporalModel = event.target.value; temporalTimeIndex = 0; renderTemporalMaps(); });
+  q("#temporal-time-select").addEventListener("change", (event) => { temporalTimeIndex = Number(event.target.value); renderTemporalMaps(); });
+  qa("[data-temporal-variable]").forEach((button) => button.addEventListener("click", () => { temporalVariable = button.dataset.temporalVariable; renderTemporalMaps(); }));
+  qa("[data-imerg-duration]").forEach((button) => button.addEventListener("click", () => { imergDuration = button.dataset.imergDuration; imergTimeIndex = -1; renderImergMaps(); }));
+  q("#imerg-time-select").addEventListener("change", (event) => { imergTimeIndex = Number(event.target.value); renderImergMaps(); });
+  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationModel = ""; renderImergCityValidation(); });
+  q("#imerg-validation-model").addEventListener("change", (event) => { imergValidationModel = event.target.value; renderImergCityValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
   canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
