@@ -32,7 +32,8 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('id="temporal-forecast-canvas"') == 1
     assert html.count('id="imerg-early-canvas"') == 1
     assert html.count('id="imerg-late-canvas"') == 1
-    assert html.count('id="imerg-validation-image"') == 1
+    assert html.count('id="imerg-validation-chart"') == 1
+    assert html.count('id="imerg-validation-models"') == 1
     assert "Forecast valid date and time" in html
     assert "OpenStreetMap contributors" in html or "OpenStreetMap contributors" in (ROOT / "assets/app.js").read_text()
     assert "fixed 0–45 °C scale" in html
@@ -49,6 +50,13 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert "precipitation probability" not in html.lower()
     assert "nasa-imerg-analysis-early" in html
     assert "nasa-imerg-analysis-late" in html
+    assert "retrospective guardrail" in html
+    assert "does not guarantee future performance" in html
+    javascript = (ROOT / "assets/app.js").read_text()
+    stylesheet = (ROOT / "assets/style.css").read_text()
+    assert "compressedPayloads" in javascript
+    assert "pending.catch(() => compressedPayloads.delete(path))" in javascript
+    assert ".data-note.is-loading::before" in stylesheet
 
 
 def test_archive_is_sorted_retained_and_every_grid_exists():
@@ -220,10 +228,18 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
 def test_imerg_products_are_native_matched_and_cover_latest_three_forecast_runs():
     imerg = load_json("assets/imerg_manifest.json")
     archive = load_json("assets/forecast_archive.json")
-    assert imerg["schema_version"] == 1
+    assert imerg["schema_version"] == 2
     assert imerg["window"]["half_hour_intervals"] == 144
     assert set(imerg["products"]) == {"early", "late"}
     assert list(imerg["forecast_runs"]) == [run["id"] for run in archive["runs"][:3]]
+    assert list(imerg["grid_ensemble"]["runs"]) == [run["id"] for run in archive["runs"][:3]]
+    assert imerg["grid_ensemble"]["temporal_resolution_hours"] == 6
+    assert "out-of-sample guarantee" in imerg["grid_ensemble"]["guardrail"]
+    for run_id, learned in imerg["grid_ensemble"]["runs"].items():
+        assert learned["history_case_count"] > 0
+        assert learned["city_rows"]
+        assert all(time["historical_guardrail_satisfied"] in {True, None} for time in learned["times"])
+        assert "imerg_combined" in imerg["forecast_runs"][run_id]["models"]
     for product in imerg["products"].values():
         assert product["grid"]["shape"] == [320, 320]
         assert product["grid"]["latitude_spacing_degrees"] == pytest.approx(.1)

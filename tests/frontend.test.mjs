@@ -121,6 +121,14 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.ok(document.querySelector("#temporal-time-select").options.length > 0);
   assert.ok(document.querySelector("#temporal-forecast-canvas")._standaloneMap);
   assert.match(document.querySelector("#temporal-map-note").textContent, /complete native half-hours|highest available/);
+  const temporalAsset = stats.fetches.find((item) => item.startsWith("assets/temporal_forecasts/"));
+  const temporalTime = document.querySelector("#temporal-time-select");
+  if (temporalAsset && temporalTime.options.length > 1) {
+    temporalTime.value = "1";
+    temporalTime.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    assert.equal(stats.fetches.filter((item) => item === temporalAsset).length, 1, "decoded temporal payload should be cached for the session");
+  }
   assert.match(document.querySelector("#map-legend-title").textContent, /fixed scale/);
   const simpleAverage = document.querySelector('[data-map-model="simple_average"]');
   assert.equal(simpleAverage.disabled, false);
@@ -178,8 +186,14 @@ test("all dashboard controls update their panels without runtime errors", async 
   assert.ok(document.querySelector("#imerg-early-canvas")._standaloneMap);
   assert.ok(document.querySelector("#imerg-late-canvas")._standaloneMap);
   assert.match(document.querySelector("#imerg-map-note").textContent, /native 0\.1° grid/i);
-  assert.match(document.querySelector("#imerg-validation-image").getAttribute("src"), /imerg\/city_validation/);
-  assert.match(document.querySelector("#imerg-validation-summary").textContent, /bias-corrected RMSE/);
+  assert.ok(document.querySelector("#imerg-validation-chart svg"));
+  assert.ok(document.querySelectorAll("[data-imerg-validation-model]").length >= 2);
+  assert.match(document.querySelector("#imerg-validation-summary").textContent, /six-hour intervals/);
+  const validationToggle = document.querySelector("[data-imerg-validation-model]");
+  const toggledModel = validationToggle.dataset.imergValidationModel;
+  validationToggle.click();
+  assert.equal(document.querySelector(`[data-imerg-validation-model="${toggledModel}"]`).getAttribute("aria-pressed"), "false");
+  assert.ok(document.querySelector("#imerg-validation-chart svg"));
   document.querySelector('[data-imerg-duration="6h"]').click();
   await new Promise((resolve) => setTimeout(resolve, 150));
   assert.ok(document.querySelector("#imerg-time-select").options.length >= 10);

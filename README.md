@@ -2,7 +2,7 @@
 
 A rolling seven-initialization SCDLDS research dashboard with five-day city forecasts, native-time India maps, recent-error and simple-average mixtures, and matched Open-Meteo and IMERG validation.
 
-- Last successful build: `2026-08-04T09:38:49.949046Z`
+- Last successful build: `2026-08-04T10:07:00.689822Z`
 - Latest initialization: `2026-08-04T00:00:00Z`
 - Available models: WeatherNext 2 / FGN, GFS, GEFS, AIFS, IFS-ENS
 - Models still pending: gencast
@@ -29,6 +29,6 @@ The combined field uses a causally selected recent-error exponential weighting s
 
 The simple-average map is a separate baseline: it takes the arithmetic mean of all available source-model values independently at every grid cell and endpoint.
 
-NASA GPM IMERG V07 [Early](https://dynamical.org/catalog/nasa-imerg-analysis-early/) and [Late](https://dynamical.org/catalog/nasa-imerg-analysis-late/) Run precipitation is published for a rolling three-day window at its native 0.1° and 30-minute resolution, plus exact UTC-aligned six-hour accumulations. IMERG timestamps are interval starts; forecasts are matched only when complete half-hours exactly tile the native forecast interval. City bias correction is additive, causal, and fit only from IMERG Late errors realized by the forecast initialization.
+NASA GPM IMERG V07 [Early](https://dynamical.org/catalog/nasa-imerg-analysis-early/) and [Late](https://dynamical.org/catalog/nasa-imerg-analysis-late/) Run precipitation is published for a rolling three-day window at its native 0.1° and 30-minute resolution, plus exact UTC-aligned six-hour accumulations. IMERG timestamps are interval starts; forecasts are matched only when complete half-hours exactly tile the forecast interval. For the six-hour calibrated combination, IMERG is conservatively area-averaged onto the common 0.25° grid. Each source receives a shrunken cell-and-lead additive correction fit only from IMERG Late errors realized by initialization. A convex inverse-error blend is retained only where its matched historical MSE is no worse than the best corrected source; otherwise the historical leader is used. This retrospective safeguard cannot guarantee future performance. Source NetCDF files are cached on the workstation and decompressed map payloads are cached in memory by the browser.
 
 See [`assets/forecast_archive.json`](assets/forecast_archive.json), [`assets/weather_forecast.json`](assets/weather_forecast.json), and [`assets/validation_manifest.json`](assets/validation_manifest.json), and [`assets/imerg_manifest.json`](assets/imerg_manifest.json) for provenance.

@@ -308,7 +308,8 @@ def test_build_html_has_tabs_every_run_and_unique_ids():
     assert 'id="within-day-chart"' in html
     assert 'id="temporal-forecast-canvas"' in html
     assert 'id="imerg-early-canvas"' in html
-    assert 'id="imerg-validation-image"' in html
+    assert 'id="imerg-validation-chart"' in html
+    assert 'id="imerg-validation-models"' in html
     assert "nasa-imerg-analysis-early" in html
     assert "nasa-imerg-analysis-late" in html
     assert 'https://scdlds.ashoka.edu.in/' in html
@@ -325,7 +326,7 @@ def test_frontend_contract_covers_all_interactive_features():
         "[data-validation-city]", "[data-validation-variable]", "#match-init-select",
         "[data-match-variable]", "[data-within-day-model]", "[data-temporal-variable]",
         "#temporal-time-select", "[data-imerg-duration]", "#imerg-time-select",
-        "#imerg-validation-model",
+        "[data-imerg-validation-model]", "#imerg-validation-chart",
     ):
         assert selector in javascript
     assert "pointerdown" in javascript

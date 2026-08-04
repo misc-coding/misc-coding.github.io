@@ -31,6 +31,8 @@ NATIVE_INTERVAL = pd.Timedelta(minutes=30)
 NATIVE_INTERVAL_SECONDS = 1_800.0
 OBSERVATION_DAYS = 3
 RECENT_FORECAST_RUNS = 3
+IMERG_COMBINED_MODEL_ID = "imerg_combined"
+IMERG_COMBINED_MODEL_LABEL = "IMERG-calibrated combination · 6 h"
 PAYLOAD_SCALE_MM = 100.0
 MISSING_UINT16 = np.uint16(65_535)
 
@@ -438,7 +440,10 @@ def apply_causal_bias(matches: dict) -> dict:
                 item = matches[city][run_id].get(model)
                 if not item:
                     continue
-                bias, training_count = causal_run_bias(history, item["initialization_utc"])
+                bias, training_count = (
+                    (0.0, 0) if item.get("skip_bias")
+                    else causal_run_bias(history, item["initialization_utc"])
+                )
                 for row in item["rows"]:
                     row["bias_correction_mm"] = bias
                     row["bias_corrected_mm"] = max(0.0, float(row["forecast_mm"]) + bias)
@@ -452,7 +457,8 @@ def apply_causal_bias(matches: dict) -> dict:
                     "raw_rmse_mm": _rmse(raw_pairs),
                     "bias_corrected_rmse_mm": _rmse(corrected_pairs),
                 }
-                history.extend(item["rows"])
+                if not item.get("skip_bias"):
+                    history.extend(item["rows"])
     return summaries
 
 
@@ -514,6 +520,75 @@ def render_city_validation_plot(
     plt.close(fig)
 
 
+def common_grid_city_rows(
+    prepared_models: dict[str, xr.Dataset],
+    ensemble: dict,
+    products: dict[str, xr.Dataset],
+    cities,
+) -> dict[str, list[dict]]:
+    """Return like-for-like six-hour city records for interactive validation."""
+    from imerg_grid_ensemble import conservative_regrid_precipitation, exact_forecast_windows
+
+    combined = ensemble["dataset"]
+    target_lat = np.asarray(combined["lat"].values, dtype=float)
+    target_lon = np.asarray(combined["lon"].values, dtype=float)
+    observations = {
+        "early": conservative_regrid_precipitation(
+            aligned_accumulations(products["early"], hours=6), target_lat, target_lon,
+        ),
+        "late": ensemble["truth_six_hour"],
+    }
+    observed_times = {
+        product: set(pd.to_datetime(values["valid_time"].values).tz_localize(None))
+        for product, values in observations.items()
+    }
+    source_windows = {
+        model: exact_forecast_windows(prepared_models[model])
+        for model in ensemble["models"] if model in prepared_models
+    }
+    rows_by_city = {}
+    for city in cities:
+        combined_point = combined.sel(lat=float(city.lat), lon=float(city.lon), method="nearest")
+        source_points = {
+            model: values.sel(lat=float(city.lat), lon=float(city.lon), method="nearest")
+            for model, values in source_windows.items()
+        }
+        observation_points = {
+            product: values.sel(lat=float(city.lat), lon=float(city.lon), method="nearest")
+            for product, values in observations.items()
+        }
+        rows = []
+        for index, valid_value in enumerate(pd.to_datetime(combined["valid_time"].values).tz_localize(None)):
+            valid_time = pd.Timestamp(valid_value)
+            model_values = {}
+            for model, point in source_points.items():
+                raw = float(point["precip_interval_mm"].sel(valid_time=np.datetime64(valid_time)).item())
+                bias = float(combined_point["bias_mm"].sel(valid_time=np.datetime64(valid_time), model=model).item())
+                weight = float(combined_point["model_weight"].sel(valid_time=np.datetime64(valid_time), model=model).item())
+                model_values[model] = {
+                    "raw_mm": raw,
+                    "bias_mm": bias,
+                    "bias_corrected_mm": max(0.0, raw + bias),
+                    "weight": weight,
+                }
+            row = {
+                "interval_start_utc": utc_text(combined["interval_start"].isel(valid_time=index).values),
+                "valid_time_utc": utc_text(valid_time),
+                "lead_hours": float(combined["lead_hours"].isel(valid_time=index).item()),
+                "interval_hours": 6.0,
+                "combined_mm": float(combined_point["precip_interval_mm"].isel(valid_time=index).item()),
+                "models": model_values,
+            }
+            for product, point in observation_points.items():
+                row[f"imerg_{product}_mm"] = (
+                    float(point.sel(valid_time=np.datetime64(valid_time)).item())
+                    if valid_time in observed_times[product] else None
+                )
+            rows.append(row)
+        rows_by_city[city.name] = rows
+    return rows_by_city
+
+
 def build_imerg_products(
     archive: dict,
     cfg,
@@ -567,6 +642,38 @@ def build_imerg_products(
             "initialization_utc": utc_text(init),
             "models": model_manifest,
         }
+    from imerg_grid_ensemble import build_grid_ensembles
+
+    ensembles = build_grid_ensembles(
+        cfg.cache_root,
+        prepared_runs,
+        {run["id"]: run["initialization_utc"] for run in recent_runs},
+        aligned_accumulations(products["late"], hours=6),
+        forecast_interval_fields,
+    )
+    ensemble_manifest = {"model_id": IMERG_COMBINED_MODEL_ID, "runs": {}}
+    for run in recent_runs:
+        learned = ensembles.get(run["id"])
+        if not learned:
+            continue
+        prepared = learned["dataset"][["temperature_c", "precip_interval_mm"]]
+        prepared.attrs = dict(learned["dataset"].attrs)
+        prepared_runs[run["id"]][IMERG_COMBINED_MODEL_ID] = prepared
+        forecast_runs[run["id"]]["models"][IMERG_COMBINED_MODEL_ID] = {
+            "label": IMERG_COMBINED_MODEL_LABEL,
+            **write_forecast_temporal_payload(prepared, stage, run["id"], IMERG_COMBINED_MODEL_ID),
+        }
+        ensemble_manifest["runs"][run["id"]] = {
+            "initialization_utc": run["initialization_utc"],
+            "source_models": learned["models"],
+            "history_case_count": learned["history_case_count"],
+            "cache_key": learned["cache_key"],
+            "times": learned["times"],
+            "city_rows": common_grid_city_rows(
+                {model: prepared_runs[run["id"]][model] for model in learned["models"]},
+                learned, products, cfg.cities,
+            ),
+        }
     bias_summaries = apply_causal_bias(matches)
     city_manifest = {}
     for city in cfg.cities:
@@ -594,13 +701,21 @@ def build_imerg_products(
             "latitude": float(city.lat), "longitude": float(city.lon), "runs": run_manifest,
         }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "window": window,
         "native_time_semantics": "IMERG time is interval start: [time, time + 30 minutes). Values are rate × 1,800 seconds.",
         "forecast_time_semantics": "Forecast valid_time is interval end: (previous valid time, valid_time]. No temporal interpolation is used.",
         "matching": "IMERG native half-hours are summed only when they exactly tile the forecast interval; partial intervals are omitted.",
-        "bias_correction": "City/model additive residual correction fit at initialization from IMERG Late errors whose intervals ended by that initialization; seven-day exponential half-life with shrinkage toward zero.",
+        "bias_correction": "Source grids use cell- and lead-specific additive IMERG-Late corrections fit only from realized prior intervals, with lead/recency weighting and shrinkage. City native-cadence plots retain the scalar diagnostic correction.",
+        "grid_ensemble": {
+            "label": IMERG_COMBINED_MODEL_LABEL,
+            "temporal_resolution_hours": 6,
+            "spatial_matching": "IMERG 0.1° cells are conservatively area-averaged onto the common 0.25° forecast grid.",
+            "temporal_matching": "Every model and IMERG are summed over identical complete six-hour intervals.",
+            "guardrail": "At each cell and lead, a convex inverse-error blend is retained only when its matched historical MSE is no greater than the best corrected source model; otherwise the historical leader is selected. This is a retrospective safeguard, not an out-of-sample guarantee.",
+            **ensemble_manifest,
+        },
         "encoding": {
             "precipitation": "gzip-compressed little-endian uint16; value / 100 = mm; 65535 = missing",
             "temperature": "gzip-compressed little-endian uint16; (value - 5000) / 100 = °C; 65535 = missing",
