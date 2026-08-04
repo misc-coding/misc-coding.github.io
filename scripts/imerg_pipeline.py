@@ -29,8 +29,8 @@ IMERG_DATASETS = {
 }
 NATIVE_INTERVAL = pd.Timedelta(minutes=30)
 NATIVE_INTERVAL_SECONDS = 1_800.0
-OBSERVATION_DAYS = 3
-RECENT_FORECAST_RUNS = 3
+OBSERVATION_DAYS = 6
+RECENT_FORECAST_RUNS = 6
 IMERG_COMBINED_MODEL_ID = "imerg_combined"
 IMERG_COMBINED_MODEL_LABEL = "IMERG-calibrated combination · 6 h"
 PAYLOAD_SCALE_MM = 100.0
@@ -599,7 +599,7 @@ def build_imerg_products(
     model_labels: dict[str, str],
     model_colors: dict[str, str] | None = None,
 ) -> dict:
-    """Build the complete three-day IMERG and recent native-forecast product."""
+    """Build the complete six-day IMERG and recent native-forecast product."""
     products, window = fetch_recent_imerg(open_dataset, cfg.india_bbox, cfg.cache_root)
     observation_manifest = write_imerg_observation_payloads(products, stage)
     recent_runs = archive["runs"][:RECENT_FORECAST_RUNS]

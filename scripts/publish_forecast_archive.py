@@ -1330,7 +1330,7 @@ def render_weather_forecasts(archive: dict, cfg, india_load) -> dict:
     from imerg_pipeline import forecast_interval_fields  # local module; also used by IMERG validation
 
     runs = {}
-    temporal_run_ids = {run["id"] for run in archive["runs"][:3]}
+    temporal_run_ids = {run["id"] for run in archive["runs"][:6]}
     learned = {
         city.name: {
             "temperature": _learned_city_weights(cfg, city.name, "t2m", list(ALL_MODEL_IDS)),
@@ -1811,6 +1811,8 @@ ARCHIVE_JS = r"""
   let imergValidationInitTouched = Boolean(params.get("imerg_validation_init"));
   let imergValidationMetric = params.get("imerg_metric") === "error" ? "error" : "rainfall";
   let imergValidationForecast = params.get("imerg_forecast") === "raw" ? "raw" : "corrected";
+  let imergZoomStart = params.get("imerg_zoom_start") || "";
+  let imergZoomEnd = params.get("imerg_zoom_end") || "";
   const validationVisibleModels = new Set();
   const imergVisibleModels = new Set();
   let payload = null;
@@ -1831,7 +1833,8 @@ ARCHIVE_JS = r"""
       within_model: withinDayModel, temporal_variable: temporalVariable, temporal_init: temporalInit,
       temporal_model: temporalModel, temporal_time: temporalTimeIndex, imerg_duration: imergDuration,
       imerg_time: imergTimeIndex, imerg_validation_init: imergValidationInit,
-      imerg_metric: imergValidationMetric, imerg_forecast: imergValidationForecast };
+      imerg_metric: imergValidationMetric, imerg_forecast: imergValidationForecast,
+      imerg_zoom_start: imergZoomStart, imerg_zoom_end: imergZoomEnd };
     Object.entries(values).forEach(([key, value]) => { if (value) next.searchParams.set(key, value); });
     history.replaceState(null, "", next);
   }
@@ -2747,14 +2750,80 @@ ARCHIVE_JS = r"""
       return `<path class="validation-series" d="${line}" fill="none" stroke="${item.color}" stroke-width="${item.width}" ${item.dash ? `stroke-dasharray="${item.dash}"` : ""}/>${dots}`;
     }).join("");
     const axisTitle = imergValidationMetric === "error" ? "Absolute error against IMERG Late (mm)" : "Six-hour rainfall (mm)";
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Interactive six-hour model rainfall validation against IMERG"><g class="interactive-chart-grid">${grid}${labels}<text class="axis-title" x="12" y="18">${axisTitle}</text></g>${traces}</svg>`;
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Interactive six-hour model rainfall validation against IMERG"><g class="interactive-chart-grid">${grid}${labels}<text class="axis-title" x="12" y="18">${axisTitle}</text></g><rect class="chart-zoom-surface" data-imerg-zoom-surface x="${pad.l}" y="${pad.t}" width="${width - pad.l - pad.r}" height="${height - pad.t - pad.b}" fill="transparent"></rect><rect class="chart-brush-selection" x="${pad.l}" y="${pad.t}" width="0" height="${height - pad.t - pad.b}" aria-hidden="true"></rect>${traces}</svg>`;
+  }
+
+  function renderImergZoomControls(rows) {
+    const startSelect = q("#imerg-zoom-start");
+    const endSelect = q("#imerg-zoom-end");
+    if (!rows.length) {
+      startSelect.innerHTML = ""; endSelect.innerHTML = "";
+      startSelect.disabled = true; endSelect.disabled = true; q("#imerg-zoom-reset").disabled = true;
+      return [];
+    }
+    const times = rows.map((row) => row.valid_time_utc);
+    if (!times.includes(imergZoomStart)) imergZoomStart = times[0];
+    if (!times.includes(imergZoomEnd)) imergZoomEnd = times[times.length - 1];
+    if (new Date(imergZoomStart) > new Date(imergZoomEnd)) {
+      imergZoomStart = times[0]; imergZoomEnd = times[times.length - 1];
+    }
+    const options = times.map((time) => `<option value="${time}">${compactValidTime(time)}</option>`).join("");
+    startSelect.innerHTML = options; endSelect.innerHTML = options;
+    startSelect.value = imergZoomStart; endSelect.value = imergZoomEnd;
+    startSelect.disabled = times.length < 2; endSelect.disabled = times.length < 2;
+    q("#imerg-zoom-reset").disabled = times.length < 2;
+    return rows.filter((row) => row.valid_time_utc >= imergZoomStart && row.valid_time_utc <= imergZoomEnd);
+  }
+
+  function attachImergChartZoom(rows) {
+    const plot = q("#imerg-validation-plot");
+    const svg = plot.querySelector("svg");
+    const surface = svg?.querySelector("[data-imerg-zoom-surface]");
+    const selection = svg?.querySelector(".chart-brush-selection");
+    if (!surface || !selection || rows.length < 2) return;
+    const plotLeft = 58, plotRight = 976;
+    let startX = null;
+    const chartX = (event) => {
+      const bounds = svg.getBoundingClientRect();
+      return Math.max(plotLeft, Math.min(plotRight, (event.clientX - bounds.left) / Math.max(bounds.width, 1) * 1000));
+    };
+    const draw = (currentX) => {
+      const left = Math.min(startX, currentX);
+      selection.setAttribute("x", String(left));
+      selection.setAttribute("width", String(Math.abs(currentX - startX)));
+      selection.classList.add("is-active");
+    };
+    surface.addEventListener("pointerdown", (event) => {
+      startX = chartX(event);
+      surface.setPointerCapture?.(event.pointerId);
+      draw(startX);
+    });
+    surface.addEventListener("pointermove", (event) => { if (startX != null) draw(chartX(event)); });
+    const finish = (event) => {
+      if (startX == null) return;
+      const endX = chartX(event);
+      const low = Math.min(startX, endX), high = Math.max(startX, endX);
+      startX = null;
+      selection.classList.remove("is-active");
+      if (high - low < 8) return;
+      const first = Math.max(0, Math.floor((low - plotLeft) / (plotRight - plotLeft) * (rows.length - 1)));
+      const last = Math.min(rows.length - 1, Math.ceil((high - plotLeft) / (plotRight - plotLeft) * (rows.length - 1)));
+      if (last <= first) return;
+      imergZoomStart = rows[first].valid_time_utc;
+      imergZoomEnd = rows[last].valid_time_utc;
+      renderImergCityValidation();
+    };
+    surface.addEventListener("pointerup", finish);
+    surface.addEventListener("pointercancel", () => { startX = null; selection.classList.remove("is-active"); });
+    surface.addEventListener("dblclick", () => { imergZoomStart = ""; imergZoomEnd = ""; renderImergCityValidation(); });
   }
 
   function renderImergCityValidation() {
     const runEntries = Object.entries(imerg.grid_ensemble?.runs || {}).map(([id, value]) => ({ id, ...value }));
     if (!runEntries.length) {
       q("#imerg-validation-summary").textContent = "Common-grid IMERG validation is unavailable for this selection.";
-      q("#imerg-validation-chart").innerHTML = "";
+      q("#imerg-validation-plot").innerHTML = "";
+      renderImergZoomControls([]);
       return;
     }
     const scored = runEntries.map((entry) => ({
@@ -2778,18 +2847,20 @@ ARCHIVE_JS = r"""
       if (imergVisibleModels.has(model)) imergVisibleModels.delete(model); else imergVisibleModels.add(model);
       renderImergCityValidation();
     }));
-    const rows = (run.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm));
+    const allRows = (run.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm));
+    const rows = renderImergZoomControls(allRows);
     const selected = modelIds.filter((model) => imergVisibleModels.has(model));
     q("#imerg-validation-plot").innerHTML = imergValidationChart(rows, selected);
     attachInteractiveChartTooltip("#imerg-validation-plot", "#imerg-validation-tooltip");
-    const realized = rows.length;
+    attachImergChartZoom(rows);
+    const realized = allRows.length;
     const metrics = selected.map((model) => {
       const value = imergValidationRmse(rows, model);
       return `${modelLabel(model)} ${value == null ? "pending" : `${value.toFixed(2)} mm RMSE`}`;
     });
     q("#imerg-validation-scores").innerHTML = metrics.length ? metrics.map((metric) => `<span>${metric}</span>`).join("") : "";
     q("#imerg-validation-summary").textContent = realized
-      ? `${city} · ${realized} realized common-grid six-hour intervals · ${imergValidationForecast === "raw" ? "raw" : "bias-corrected"} forecasts${metrics.length ? "" : " · all model traces hidden"}. Biases and weights use only observations valid by initialization.`
+      ? `${city} · showing ${rows.length} of ${realized} realized common-grid six-hour intervals · ${imergValidationForecast === "raw" ? "raw" : "bias-corrected"} forecasts${metrics.length ? "" : " · all model traces hidden"}. Biases and weights use only observations valid by initialization.`
       : `${city} · no completed IMERG Late intervals for this initialization yet. Choose an earlier initialization to validate realized forecasts.`;
     setUrl();
   }
@@ -2813,7 +2884,10 @@ ARCHIVE_JS = r"""
   qa("[data-imerg-metric]").forEach((button) => button.addEventListener("click", () => { imergValidationMetric = button.dataset.imergMetric; renderImergCityValidation(); }));
   qa("[data-imerg-forecast]").forEach((button) => button.addEventListener("click", () => { imergValidationForecast = button.dataset.imergForecast; renderImergCityValidation(); }));
   q("#imerg-time-select").addEventListener("change", (event) => { imergTimeIndex = Number(event.target.value); renderImergMaps(); });
-  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationInitTouched = true; imergVisibleModels.clear(); renderImergCityValidation(); });
+  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationInitTouched = true; imergZoomStart = ""; imergZoomEnd = ""; imergVisibleModels.clear(); renderImergCityValidation(); });
+  q("#imerg-zoom-start").addEventListener("change", (event) => { imergZoomStart = event.target.value; if (imergZoomStart > imergZoomEnd) imergZoomEnd = imergZoomStart; renderImergCityValidation(); });
+  q("#imerg-zoom-end").addEventListener("change", (event) => { imergZoomEnd = event.target.value; if (imergZoomEnd < imergZoomStart) imergZoomStart = imergZoomEnd; renderImergCityValidation(); });
+  q("#imerg-zoom-reset").addEventListener("click", () => { imergZoomStart = ""; imergZoomEnd = ""; renderImergCityValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
   canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
@@ -3035,8 +3109,8 @@ def build_html(
       <div class="subheading"><div><h3>One initialization at matched valid times</h3><p>Compare each forecast directly with its observation at the displayed dates and times.</p></div><label class="select-control" for="match-init-select">Initialization<select id="match-init-select">{options}</select></label></div>
       <div class="segmented compact"><button type="button" data-match-variable="temperature" aria-pressed="false">Temperature</button><button type="button" data-match-variable="precipitation" aria-pressed="true">Accumulated rainfall</button></div>
       <figure class="chart-image"><img id="match-image" src="{default_match['path']}" alt="{default_match['alt']}"><figcaption>Source-model and causal combined traces with matched Open-Meteo observations.</figcaption></figure>
-      <section class="imerg-section" aria-labelledby="imerg-map-heading"><div class="subheading"><div><p class="eyebrow">NASA GPM IMERG V07</p><h3 id="imerg-map-heading">Observed rainfall maps</h3><p>Early and Late Run precipitation at the native 0.1° grid. Choose every native 30-minute interval or exact UTC-aligned six-hour accumulation from the rolling three-day window.</p></div></div><div class="control-grid imerg-controls"><fieldset><legend>Accumulation</legend><div class="segmented"><button type="button" data-imerg-duration="30min" aria-pressed="true">30 minutes</button><button type="button" data-imerg-duration="6h" aria-pressed="false">6 hours</button></div></fieldset><label class="select-control temporal-time-control" for="imerg-time-select">Observed valid interval<select id="imerg-time-select"></select></label></div><p id="imerg-map-note" class="data-note"></p><div class="temporal-map-grid two-up"><figure><canvas id="imerg-early-canvas" class="temporal-canvas" aria-label="IMERG Early observed rainfall map"></canvas><figcaption>IMERG Early Run</figcaption></figure><figure><canvas id="imerg-late-canvas" class="temporal-canvas" aria-label="IMERG Late observed rainfall map"></canvas><figcaption>IMERG Late Run</figcaption></figure></div><p id="imerg-map-hover" class="map-value-readout" aria-live="polite">Hover a map for its nearest native-grid rainfall value.</p></section>
-      <section class="imerg-city-section" aria-labelledby="imerg-city-heading"><div class="subheading"><div><p class="eyebrow">Common-grid six-hour validation</p><h3 id="imerg-city-heading">Forecast precipitation against IMERG</h3><p>All traces use identical six-hour accumulations and the same 0.25° cell. Select any combination of models; deselected controls are greyed out.</p></div><label class="select-control" for="imerg-validation-init">Initialization<select id="imerg-validation-init"></select></label></div><div class="imerg-validation-toolbar"><fieldset><legend>Chart</legend><div class="segmented compact"><button type="button" data-imerg-metric="rainfall" aria-pressed="true">Rainfall</button><button type="button" data-imerg-metric="error" aria-pressed="false">Absolute error</button></div></fieldset><fieldset><legend>Forecast values</legend><div class="segmented compact"><button type="button" data-imerg-forecast="corrected" aria-pressed="true">Bias-corrected</button><button type="button" data-imerg-forecast="raw" aria-pressed="false">Raw</button></div></fieldset></div><div id="imerg-validation-models" class="validation-model-toggles" aria-label="Models shown in IMERG validation"></div><p id="imerg-validation-summary" class="data-note"></p><div id="imerg-validation-scores" class="validation-score-strip" aria-label="Selected model scores"></div><div id="imerg-validation-chart" class="interactive-validation-chart" aria-live="polite"><div id="imerg-validation-plot" class="interactive-validation-plot"></div><div id="imerg-validation-tooltip" class="validation-chart-tooltip" role="tooltip" hidden></div></div><p class="chart-caption">Forecasts versus conservatively matched IMERG Early and Late rainfall. Click model names to add or remove traces; hover or focus a point for its exact UTC and IST interval.</p></section>
+      <section class="imerg-section" aria-labelledby="imerg-map-heading"><div class="subheading"><div><p class="eyebrow">NASA GPM IMERG V07</p><h3 id="imerg-map-heading">Observed rainfall maps</h3><p>Early and Late Run precipitation at the native 0.1° grid. Choose every native 30-minute interval or exact UTC-aligned six-hour accumulation from the rolling six-day window.</p></div></div><div class="control-grid imerg-controls"><fieldset><legend>Accumulation</legend><div class="segmented"><button type="button" data-imerg-duration="30min" aria-pressed="true">30 minutes</button><button type="button" data-imerg-duration="6h" aria-pressed="false">6 hours</button></div></fieldset><label class="select-control temporal-time-control" for="imerg-time-select">Observed valid interval<select id="imerg-time-select"></select></label></div><p id="imerg-map-note" class="data-note"></p><div class="temporal-map-grid two-up"><figure><canvas id="imerg-early-canvas" class="temporal-canvas" aria-label="IMERG Early observed rainfall map"></canvas><figcaption>IMERG Early Run</figcaption></figure><figure><canvas id="imerg-late-canvas" class="temporal-canvas" aria-label="IMERG Late observed rainfall map"></canvas><figcaption>IMERG Late Run</figcaption></figure></div><p id="imerg-map-hover" class="map-value-readout" aria-live="polite">Hover a map for its nearest native-grid rainfall value.</p></section>
+      <section class="imerg-city-section" aria-labelledby="imerg-city-heading"><div class="subheading"><div><p class="eyebrow">Common-grid six-hour validation</p><h3 id="imerg-city-heading">Forecast precipitation against IMERG</h3><p>All traces use identical six-hour accumulations and the same 0.25° cell. Select any combination of models; deselected controls are greyed out.</p></div><label class="select-control" for="imerg-validation-init">Initialization<select id="imerg-validation-init"></select></label></div><div class="imerg-validation-toolbar"><fieldset><legend>Chart</legend><div class="segmented compact"><button type="button" data-imerg-metric="rainfall" aria-pressed="true">Rainfall</button><button type="button" data-imerg-metric="error" aria-pressed="false">Absolute error</button></div></fieldset><fieldset><legend>Forecast values</legend><div class="segmented compact"><button type="button" data-imerg-forecast="corrected" aria-pressed="true">Bias-corrected</button><button type="button" data-imerg-forecast="raw" aria-pressed="false">Raw</button></div></fieldset></div><div id="imerg-validation-models" class="validation-model-toggles" aria-label="Models shown in IMERG validation"></div><p id="imerg-validation-summary" class="data-note"></p><div id="imerg-validation-scores" class="validation-score-strip" aria-label="Selected model scores"></div><div class="imerg-zoom-controls" aria-label="Validation chart time range"><span>Drag across the plot to zoom</span><label for="imerg-zoom-start">From<select id="imerg-zoom-start"></select></label><label for="imerg-zoom-end">To<select id="imerg-zoom-end"></select></label><button type="button" id="imerg-zoom-reset">Reset view</button></div><div id="imerg-validation-chart" class="interactive-validation-chart" aria-live="polite"><div id="imerg-validation-plot" class="interactive-validation-plot"></div><div id="imerg-validation-tooltip" class="validation-chart-tooltip" role="tooltip" hidden></div></div><p class="chart-caption">Forecasts versus conservatively matched IMERG Early and Late rainfall. Click model names to add or remove traces; hover or focus a point for its exact UTC and IST interval. Drag across an empty part of the plot to zoom; double-click or use Reset view to restore the full range.</p></section>
     </section>
 
     <section class="panel" data-panel="method" hidden aria-label="Methods and sources">
@@ -3317,6 +3391,12 @@ legend { margin-bottom: 8px; }
 .validation-model-toggle[aria-pressed="false"] { color: #a0a8ae; opacity: .65; }
 .validation-model-toggle[aria-pressed="false"]::before { background: #bfc5c9; }
 .validation-score-strip { display: flex; flex-wrap: wrap; gap: 5px 15px; min-height: 1.5em; color: #607080; font-size: .68rem; }
+.imerg-zoom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin: 12px 0 4px; padding: 10px 12px; background: #f7f9fa; border: 1px solid #e1e7eb; border-radius: 5px; }
+.imerg-zoom-controls > span { align-self: center; margin-right: auto; color: #536773; font-size: .72rem; font-weight: 650; }
+.imerg-zoom-controls label { display: grid; gap: 3px; color: #647580; font-size: .61rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.imerg-zoom-controls select, .imerg-zoom-controls button { min-height: 32px; padding: 5px 8px; color: #304a59; background: white; border: 1px solid #bcc9d1; border-radius: 4px; font-size: .68rem; }
+.imerg-zoom-controls button { color: var(--blue-dark); font-weight: 700; cursor: pointer; }
+.imerg-zoom-controls button:disabled, .imerg-zoom-controls select:disabled { cursor: not-allowed; opacity: .5; }
 .interactive-validation-chart { position: relative; min-height: 310px; margin-top: 14px; border: 1px solid var(--line); border-radius: 7px; background: white; }
 .interactive-validation-plot { overflow-x: auto; }
 .interactive-validation-chart svg { display: block; width: 100%; min-width: 720px; height: auto; }
@@ -3326,6 +3406,9 @@ legend { margin-bottom: 8px; }
 .validation-series { vector-effect: non-scaling-stroke; }
 .validation-chart-point { cursor: crosshair; stroke: white; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .validation-chart-point:hover, .validation-chart-point:focus { r: 6px; outline: none; stroke: #172b3a; stroke-width: 2; }
+.chart-zoom-surface { cursor: crosshair; }
+.chart-brush-selection { display: none; fill: rgba(21,95,160,.14); stroke: #155fa0; stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+.chart-brush-selection.is-active { display: block; }
 .validation-chart-tooltip { position: fixed; z-index: 100; max-width: 290px; padding: 8px 10px; color: white; background: rgba(23,43,58,.96); border-radius: 4px; box-shadow: 0 4px 14px rgba(23,43,58,.18); font-size: .7rem; line-height: 1.45; pointer-events: none; }
 .validation-static { margin-top: 14px; color: var(--muted); font-size: .75rem; }
 .validation-static summary { width: fit-content; color: var(--blue-dark); cursor: pointer; font-weight: 650; }
@@ -3450,7 +3533,7 @@ def write_stage(
         "source-model values independently at every grid cell and endpoint.\n\n"
         "NASA GPM IMERG V07 [Early](https://dynamical.org/catalog/nasa-imerg-analysis-early/) and "
         "[Late](https://dynamical.org/catalog/nasa-imerg-analysis-late/) Run precipitation is published for a rolling "
-        "three-day window at its native 0.1° and 30-minute resolution, plus exact UTC-aligned six-hour accumulations. "
+        "six-day window at its native 0.1° and 30-minute resolution, plus exact UTC-aligned six-hour accumulations. "
         "IMERG timestamps are interval starts; forecasts are matched only when complete half-hours exactly tile the forecast interval. "
         "For the six-hour calibrated combination, IMERG is conservatively area-averaged onto the common 0.25° grid. "
         "Each source receives a shrunken cell-and-lead additive correction fit only from IMERG Late errors realized by initialization. "
@@ -3538,9 +3621,9 @@ def validate_stage(stage: Path, archive: dict, validation: dict, imerg: dict, re
             if not path.is_file() or path.stat().st_size < 1_000:
                 raise RuntimeError(f"invalid native forecast payload: {path}")
     grid_ensemble = imerg.get("grid_ensemble", {})
-    expected_recent = [run["id"] for run in archive["runs"][:3]]
+    expected_recent = [run["id"] for run in archive["runs"][:6]]
     if list(grid_ensemble.get("runs", {})) != expected_recent:
-        raise RuntimeError("IMERG grid ensemble does not cover the latest three initializations")
+        raise RuntimeError("IMERG grid ensemble does not cover the latest six initializations")
     for run_id, learned in grid_ensemble["runs"].items():
         if grid_ensemble.get("model_id") not in imerg["forecast_runs"][run_id]["models"]:
             raise RuntimeError(f"missing calibrated temporal payload for {run_id}")

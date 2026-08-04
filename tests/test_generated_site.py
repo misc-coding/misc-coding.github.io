@@ -36,6 +36,9 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert html.count('id="imerg-validation-models"') == 1
     assert html.count('id="validation-skill-chart"') == 1
     assert html.count('id="validation-models"') == 1
+    assert html.count('id="imerg-zoom-start"') == 1
+    assert html.count('id="imerg-zoom-end"') == 1
+    assert html.count('id="imerg-zoom-reset"') == 1
     assert 'data-imerg-metric="error"' in html
     assert 'data-imerg-forecast="raw"' in html
     assert "Forecast valid date and time" in html
@@ -99,7 +102,7 @@ def test_weather_manifest_has_five_daily_values_for_every_city_and_run():
             assert [day["day"] for day in city_product["days"]] == [1, 2, 3, 4, 5]
             assert abs(sum(city_product["temperature_weights"].values()) - 1) < 1e-8
             assert abs(sum(city_product["precipitation_weights"].values()) - 1) < 1e-8
-            if run["id"] in {item["id"] for item in archive["runs"][:3]}:
+            if run["id"] in {item["id"] for item in archive["runs"][:6]}:
                 assert city_product["timelines"]["combined"]
                 for model, resolution in city_product["temporal_resolution_hours"].items():
                     assert resolution
@@ -229,17 +232,21 @@ def test_daily_automation_is_scheduled_tested_and_bounded():
     assert "refreshing observations and online weights" in (ROOT / "scripts/publish_forecast_archive.py").read_text()
 
 
-def test_imerg_products_are_native_matched_and_cover_latest_three_forecast_runs():
+def test_imerg_products_are_native_matched_and_cover_latest_six_forecast_runs():
     imerg = load_json("assets/imerg_manifest.json")
     archive = load_json("assets/forecast_archive.json")
     assert imerg["schema_version"] == 2
-    assert imerg["window"]["half_hour_intervals"] == 144
+    assert imerg["window"]["half_hour_intervals"] == 288
     assert set(imerg["products"]) == {"early", "late"}
-    assert list(imerg["forecast_runs"]) == [run["id"] for run in archive["runs"][:3]]
-    assert list(imerg["grid_ensemble"]["runs"]) == [run["id"] for run in archive["runs"][:3]]
+    assert list(imerg["forecast_runs"]) == [run["id"] for run in archive["runs"][:6]]
+    assert list(imerg["grid_ensemble"]["runs"]) == [run["id"] for run in archive["runs"][:6]]
     assert imerg["grid_ensemble"]["temporal_resolution_hours"] == 6
     assert "out-of-sample guarantee" in imerg["grid_ensemble"]["guardrail"]
     for run_id, learned in imerg["grid_ensemble"]["runs"].items():
+        archive_run = next(run for run in archive["runs"] if run["id"] == run_id)
+        archive_models = {model["id"] for model in archive_run["models"]}
+        imerg_models = set(imerg["forecast_runs"][run_id]["models"])
+        assert imerg_models == archive_models | {"imerg_combined"}
         assert learned["history_case_count"] > 0
         assert learned["city_rows"]
         assert all(time["historical_guardrail_satisfied"] in {True, None} for time in learned["times"])
@@ -247,7 +254,7 @@ def test_imerg_products_are_native_matched_and_cover_latest_three_forecast_runs(
     for product in imerg["products"].values():
         assert product["grid"]["shape"] == [320, 320]
         assert product["grid"]["latitude_spacing_degrees"] == pytest.approx(.1)
-        assert sum(asset["shape"][0] for asset in product["native"]) == 144
+        assert sum(asset["shape"][0] for asset in product["native"]) == 288
         for asset in [*product["native"], product["six_hour"]]:
             path = ROOT / asset["path"]
             assert path.is_file()

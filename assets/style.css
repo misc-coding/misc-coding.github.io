@@ -183,6 +183,12 @@ legend { margin-bottom: 8px; }
 .validation-model-toggle[aria-pressed="false"] { color: #a0a8ae; opacity: .65; }
 .validation-model-toggle[aria-pressed="false"]::before { background: #bfc5c9; }
 .validation-score-strip { display: flex; flex-wrap: wrap; gap: 5px 15px; min-height: 1.5em; color: #607080; font-size: .68rem; }
+.imerg-zoom-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin: 12px 0 4px; padding: 10px 12px; background: #f7f9fa; border: 1px solid #e1e7eb; border-radius: 5px; }
+.imerg-zoom-controls > span { align-self: center; margin-right: auto; color: #536773; font-size: .72rem; font-weight: 650; }
+.imerg-zoom-controls label { display: grid; gap: 3px; color: #647580; font-size: .61rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.imerg-zoom-controls select, .imerg-zoom-controls button { min-height: 32px; padding: 5px 8px; color: #304a59; background: white; border: 1px solid #bcc9d1; border-radius: 4px; font-size: .68rem; }
+.imerg-zoom-controls button { color: var(--blue-dark); font-weight: 700; cursor: pointer; }
+.imerg-zoom-controls button:disabled, .imerg-zoom-controls select:disabled { cursor: not-allowed; opacity: .5; }
 .interactive-validation-chart { position: relative; min-height: 310px; margin-top: 14px; border: 1px solid var(--line); border-radius: 7px; background: white; }
 .interactive-validation-plot { overflow-x: auto; }
 .interactive-validation-chart svg { display: block; width: 100%; min-width: 720px; height: auto; }
@@ -192,6 +198,9 @@ legend { margin-bottom: 8px; }
 .validation-series { vector-effect: non-scaling-stroke; }
 .validation-chart-point { cursor: crosshair; stroke: white; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .validation-chart-point:hover, .validation-chart-point:focus { r: 6px; outline: none; stroke: #172b3a; stroke-width: 2; }
+.chart-zoom-surface { cursor: crosshair; }
+.chart-brush-selection { display: none; fill: rgba(21,95,160,.14); stroke: #155fa0; stroke-width: 1.5; stroke-dasharray: 4 3; pointer-events: none; }
+.chart-brush-selection.is-active { display: block; }
 .validation-chart-tooltip { position: fixed; z-index: 100; max-width: 290px; padding: 8px 10px; color: white; background: rgba(23,43,58,.96); border-radius: 4px; box-shadow: 0 4px 14px rgba(23,43,58,.18); font-size: .7rem; line-height: 1.45; pointer-events: none; }
 .validation-static { margin-top: 14px; color: var(--muted); font-size: .75rem; }
 .validation-static summary { width: fit-content; color: var(--blue-dark); cursor: pointer; font-weight: 650; }

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "title": "India Multi-Model Forecast Archive",
-  "generated_at_utc": "2026-08-04T10:46:14.747457Z",
+  "generated_at_utc": "2026-08-04T11:51:24.418988Z",
   "retention_runs": 7,
   "latest_initialization_utc": "2026-08-04T00:00:00Z",
   "runs": [
@@ -590,7 +590,7 @@
     {
       "id": "20260801_00",
       "initialization_utc": "2026-08-01T00:00:00Z",
-      "generated_at_utc": "2026-08-03T09:11:36.303590Z",
+      "generated_at_utc": "2026-08-04T11:33:12.637870Z",
       "lead_days": [
         {
           "day": 1,
@@ -618,6 +618,46 @@
           "members_used": 8,
           "members_total": 64,
           "aggregation": "evenly spaced member-subset mean"
+        },
+        {
+          "id": "gfs",
+          "label": "GFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gfs-forecast",
+          "source_url": "https://dynamical.org/catalog/noaa-gfs-forecast/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "gefs",
+          "label": "GEFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gefs-forecast-35-day",
+          "source_url": "https://dynamical.org/catalog/noaa-gefs/",
+          "members_used": 31,
+          "members_total": 31,
+          "aggregation": "all-member ensemble mean"
+        },
+        {
+          "id": "aifs",
+          "label": "AIFS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-aifs-single-forecast",
+          "source_url": "https://dynamical.org/catalog/ecmwf-aifs/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "ifs_ens",
+          "label": "IFS-ENS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
+          "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
+          "members_used": 51,
+          "members_total": 51,
+          "aggregation": "all-member ensemble mean"
         }
       ],
       "variables": {
@@ -703,24 +743,48 @@
           "model": "weathernext2",
           "path": "assets/map_data/20260801_00/weathernext2.bin",
           "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gfs",
+          "path": "assets/map_data/20260801_00/gfs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gefs",
+          "path": "assets/map_data/20260801_00/gefs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "aifs",
+          "path": "assets/map_data/20260801_00/aifs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "ifs_ens",
+          "path": "assets/map_data/20260801_00/ifs_ens.bin",
+          "bytes": 399384
         }
       ],
       "available_models": [
-        "weathernext2"
-      ],
-      "missing_models": [
-        "gencast",
+        "weathernext2",
         "gfs",
         "gefs",
         "aifs",
         "ifs_ens"
+      ],
+      "missing_models": [
+        "gencast"
       ],
       "status": "partial"
     },
     {
       "id": "20260731_00",
       "initialization_utc": "2026-07-31T00:00:00Z",
-      "generated_at_utc": "2026-08-03T09:12:45.518918Z",
+      "generated_at_utc": "2026-08-04T11:42:33.528681Z",
       "lead_days": [
         {
           "day": 1,
@@ -748,6 +812,46 @@
           "members_used": 8,
           "members_total": 64,
           "aggregation": "evenly spaced member-subset mean"
+        },
+        {
+          "id": "gfs",
+          "label": "GFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gfs-forecast",
+          "source_url": "https://dynamical.org/catalog/noaa-gfs-forecast/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "gefs",
+          "label": "GEFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gefs-forecast-35-day",
+          "source_url": "https://dynamical.org/catalog/noaa-gefs/",
+          "members_used": 31,
+          "members_total": 31,
+          "aggregation": "all-member ensemble mean"
+        },
+        {
+          "id": "aifs",
+          "label": "AIFS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-aifs-single-forecast",
+          "source_url": "https://dynamical.org/catalog/ecmwf-aifs/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "ifs_ens",
+          "label": "IFS-ENS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
+          "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
+          "members_used": 51,
+          "members_total": 51,
+          "aggregation": "all-member ensemble mean"
         }
       ],
       "variables": {
@@ -833,24 +937,48 @@
           "model": "weathernext2",
           "path": "assets/map_data/20260731_00/weathernext2.bin",
           "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gfs",
+          "path": "assets/map_data/20260731_00/gfs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gefs",
+          "path": "assets/map_data/20260731_00/gefs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "aifs",
+          "path": "assets/map_data/20260731_00/aifs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "ifs_ens",
+          "path": "assets/map_data/20260731_00/ifs_ens.bin",
+          "bytes": 399384
         }
       ],
       "available_models": [
-        "weathernext2"
-      ],
-      "missing_models": [
-        "gencast",
+        "weathernext2",
         "gfs",
         "gefs",
         "aifs",
         "ifs_ens"
+      ],
+      "missing_models": [
+        "gencast"
       ],
       "status": "partial"
     },
     {
       "id": "20260730_00",
       "initialization_utc": "2026-07-30T00:00:00Z",
-      "generated_at_utc": "2026-08-03T09:13:54.522775Z",
+      "generated_at_utc": "2026-08-04T11:51:24.418548Z",
       "lead_days": [
         {
           "day": 1,
@@ -878,6 +1006,46 @@
           "members_used": 8,
           "members_total": 64,
           "aggregation": "evenly spaced member-subset mean"
+        },
+        {
+          "id": "gfs",
+          "label": "GFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gfs-forecast",
+          "source_url": "https://dynamical.org/catalog/noaa-gfs-forecast/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "gefs",
+          "label": "GEFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gefs-forecast-35-day",
+          "source_url": "https://dynamical.org/catalog/noaa-gefs/",
+          "members_used": 31,
+          "members_total": 31,
+          "aggregation": "all-member ensemble mean"
+        },
+        {
+          "id": "aifs",
+          "label": "AIFS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-aifs-single-forecast",
+          "source_url": "https://dynamical.org/catalog/ecmwf-aifs/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "ifs_ens",
+          "label": "IFS-ENS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
+          "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
+          "members_used": 51,
+          "members_total": 51,
+          "aggregation": "all-member ensemble mean"
         }
       ],
       "variables": {
@@ -963,17 +1131,41 @@
           "model": "weathernext2",
           "path": "assets/map_data/20260730_00/weathernext2.bin",
           "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gfs",
+          "path": "assets/map_data/20260730_00/gfs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gefs",
+          "path": "assets/map_data/20260730_00/gefs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "aifs",
+          "path": "assets/map_data/20260730_00/aifs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "ifs_ens",
+          "path": "assets/map_data/20260730_00/ifs_ens.bin",
+          "bytes": 399384
         }
       ],
       "available_models": [
-        "weathernext2"
-      ],
-      "missing_models": [
-        "gencast",
+        "weathernext2",
         "gfs",
         "gefs",
         "aifs",
         "ifs_ens"
+      ],
+      "missing_models": [
+        "gencast"
       ],
       "status": "partial"
     },

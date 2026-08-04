@@ -46,6 +46,8 @@
   let imergValidationInitTouched = Boolean(params.get("imerg_validation_init"));
   let imergValidationMetric = params.get("imerg_metric") === "error" ? "error" : "rainfall";
   let imergValidationForecast = params.get("imerg_forecast") === "raw" ? "raw" : "corrected";
+  let imergZoomStart = params.get("imerg_zoom_start") || "";
+  let imergZoomEnd = params.get("imerg_zoom_end") || "";
   const validationVisibleModels = new Set();
   const imergVisibleModels = new Set();
   let payload = null;
@@ -66,7 +68,8 @@
       within_model: withinDayModel, temporal_variable: temporalVariable, temporal_init: temporalInit,
       temporal_model: temporalModel, temporal_time: temporalTimeIndex, imerg_duration: imergDuration,
       imerg_time: imergTimeIndex, imerg_validation_init: imergValidationInit,
-      imerg_metric: imergValidationMetric, imerg_forecast: imergValidationForecast };
+      imerg_metric: imergValidationMetric, imerg_forecast: imergValidationForecast,
+      imerg_zoom_start: imergZoomStart, imerg_zoom_end: imergZoomEnd };
     Object.entries(values).forEach(([key, value]) => { if (value) next.searchParams.set(key, value); });
     history.replaceState(null, "", next);
   }
@@ -982,14 +985,80 @@
       return `<path class="validation-series" d="${line}" fill="none" stroke="${item.color}" stroke-width="${item.width}" ${item.dash ? `stroke-dasharray="${item.dash}"` : ""}/>${dots}`;
     }).join("");
     const axisTitle = imergValidationMetric === "error" ? "Absolute error against IMERG Late (mm)" : "Six-hour rainfall (mm)";
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Interactive six-hour model rainfall validation against IMERG"><g class="interactive-chart-grid">${grid}${labels}<text class="axis-title" x="12" y="18">${axisTitle}</text></g>${traces}</svg>`;
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Interactive six-hour model rainfall validation against IMERG"><g class="interactive-chart-grid">${grid}${labels}<text class="axis-title" x="12" y="18">${axisTitle}</text></g><rect class="chart-zoom-surface" data-imerg-zoom-surface x="${pad.l}" y="${pad.t}" width="${width - pad.l - pad.r}" height="${height - pad.t - pad.b}" fill="transparent"></rect><rect class="chart-brush-selection" x="${pad.l}" y="${pad.t}" width="0" height="${height - pad.t - pad.b}" aria-hidden="true"></rect>${traces}</svg>`;
+  }
+
+  function renderImergZoomControls(rows) {
+    const startSelect = q("#imerg-zoom-start");
+    const endSelect = q("#imerg-zoom-end");
+    if (!rows.length) {
+      startSelect.innerHTML = ""; endSelect.innerHTML = "";
+      startSelect.disabled = true; endSelect.disabled = true; q("#imerg-zoom-reset").disabled = true;
+      return [];
+    }
+    const times = rows.map((row) => row.valid_time_utc);
+    if (!times.includes(imergZoomStart)) imergZoomStart = times[0];
+    if (!times.includes(imergZoomEnd)) imergZoomEnd = times[times.length - 1];
+    if (new Date(imergZoomStart) > new Date(imergZoomEnd)) {
+      imergZoomStart = times[0]; imergZoomEnd = times[times.length - 1];
+    }
+    const options = times.map((time) => `<option value="${time}">${compactValidTime(time)}</option>`).join("");
+    startSelect.innerHTML = options; endSelect.innerHTML = options;
+    startSelect.value = imergZoomStart; endSelect.value = imergZoomEnd;
+    startSelect.disabled = times.length < 2; endSelect.disabled = times.length < 2;
+    q("#imerg-zoom-reset").disabled = times.length < 2;
+    return rows.filter((row) => row.valid_time_utc >= imergZoomStart && row.valid_time_utc <= imergZoomEnd);
+  }
+
+  function attachImergChartZoom(rows) {
+    const plot = q("#imerg-validation-plot");
+    const svg = plot.querySelector("svg");
+    const surface = svg?.querySelector("[data-imerg-zoom-surface]");
+    const selection = svg?.querySelector(".chart-brush-selection");
+    if (!surface || !selection || rows.length < 2) return;
+    const plotLeft = 58, plotRight = 976;
+    let startX = null;
+    const chartX = (event) => {
+      const bounds = svg.getBoundingClientRect();
+      return Math.max(plotLeft, Math.min(plotRight, (event.clientX - bounds.left) / Math.max(bounds.width, 1) * 1000));
+    };
+    const draw = (currentX) => {
+      const left = Math.min(startX, currentX);
+      selection.setAttribute("x", String(left));
+      selection.setAttribute("width", String(Math.abs(currentX - startX)));
+      selection.classList.add("is-active");
+    };
+    surface.addEventListener("pointerdown", (event) => {
+      startX = chartX(event);
+      surface.setPointerCapture?.(event.pointerId);
+      draw(startX);
+    });
+    surface.addEventListener("pointermove", (event) => { if (startX != null) draw(chartX(event)); });
+    const finish = (event) => {
+      if (startX == null) return;
+      const endX = chartX(event);
+      const low = Math.min(startX, endX), high = Math.max(startX, endX);
+      startX = null;
+      selection.classList.remove("is-active");
+      if (high - low < 8) return;
+      const first = Math.max(0, Math.floor((low - plotLeft) / (plotRight - plotLeft) * (rows.length - 1)));
+      const last = Math.min(rows.length - 1, Math.ceil((high - plotLeft) / (plotRight - plotLeft) * (rows.length - 1)));
+      if (last <= first) return;
+      imergZoomStart = rows[first].valid_time_utc;
+      imergZoomEnd = rows[last].valid_time_utc;
+      renderImergCityValidation();
+    };
+    surface.addEventListener("pointerup", finish);
+    surface.addEventListener("pointercancel", () => { startX = null; selection.classList.remove("is-active"); });
+    surface.addEventListener("dblclick", () => { imergZoomStart = ""; imergZoomEnd = ""; renderImergCityValidation(); });
   }
 
   function renderImergCityValidation() {
     const runEntries = Object.entries(imerg.grid_ensemble?.runs || {}).map(([id, value]) => ({ id, ...value }));
     if (!runEntries.length) {
       q("#imerg-validation-summary").textContent = "Common-grid IMERG validation is unavailable for this selection.";
-      q("#imerg-validation-chart").innerHTML = "";
+      q("#imerg-validation-plot").innerHTML = "";
+      renderImergZoomControls([]);
       return;
     }
     const scored = runEntries.map((entry) => ({
@@ -1013,18 +1082,20 @@
       if (imergVisibleModels.has(model)) imergVisibleModels.delete(model); else imergVisibleModels.add(model);
       renderImergCityValidation();
     }));
-    const rows = (run.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm));
+    const allRows = (run.city_rows?.[city] || []).filter((row) => Number.isFinite(row.imerg_late_mm));
+    const rows = renderImergZoomControls(allRows);
     const selected = modelIds.filter((model) => imergVisibleModels.has(model));
     q("#imerg-validation-plot").innerHTML = imergValidationChart(rows, selected);
     attachInteractiveChartTooltip("#imerg-validation-plot", "#imerg-validation-tooltip");
-    const realized = rows.length;
+    attachImergChartZoom(rows);
+    const realized = allRows.length;
     const metrics = selected.map((model) => {
       const value = imergValidationRmse(rows, model);
       return `${modelLabel(model)} ${value == null ? "pending" : `${value.toFixed(2)} mm RMSE`}`;
     });
     q("#imerg-validation-scores").innerHTML = metrics.length ? metrics.map((metric) => `<span>${metric}</span>`).join("") : "";
     q("#imerg-validation-summary").textContent = realized
-      ? `${city} · ${realized} realized common-grid six-hour intervals · ${imergValidationForecast === "raw" ? "raw" : "bias-corrected"} forecasts${metrics.length ? "" : " · all model traces hidden"}. Biases and weights use only observations valid by initialization.`
+      ? `${city} · showing ${rows.length} of ${realized} realized common-grid six-hour intervals · ${imergValidationForecast === "raw" ? "raw" : "bias-corrected"} forecasts${metrics.length ? "" : " · all model traces hidden"}. Biases and weights use only observations valid by initialization.`
       : `${city} · no completed IMERG Late intervals for this initialization yet. Choose an earlier initialization to validate realized forecasts.`;
     setUrl();
   }
@@ -1048,7 +1119,10 @@
   qa("[data-imerg-metric]").forEach((button) => button.addEventListener("click", () => { imergValidationMetric = button.dataset.imergMetric; renderImergCityValidation(); }));
   qa("[data-imerg-forecast]").forEach((button) => button.addEventListener("click", () => { imergValidationForecast = button.dataset.imergForecast; renderImergCityValidation(); }));
   q("#imerg-time-select").addEventListener("change", (event) => { imergTimeIndex = Number(event.target.value); renderImergMaps(); });
-  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationInitTouched = true; imergVisibleModels.clear(); renderImergCityValidation(); });
+  q("#imerg-validation-init").addEventListener("change", (event) => { imergValidationInit = event.target.value; imergValidationInitTouched = true; imergZoomStart = ""; imergZoomEnd = ""; imergVisibleModels.clear(); renderImergCityValidation(); });
+  q("#imerg-zoom-start").addEventListener("change", (event) => { imergZoomStart = event.target.value; if (imergZoomStart > imergZoomEnd) imergZoomEnd = imergZoomStart; renderImergCityValidation(); });
+  q("#imerg-zoom-end").addEventListener("change", (event) => { imergZoomEnd = event.target.value; if (imergZoomEnd < imergZoomStart) imergZoomStart = imergZoomEnd; renderImergCityValidation(); });
+  q("#imerg-zoom-reset").addEventListener("click", () => { imergZoomStart = ""; imergZoomEnd = ""; renderImergCityValidation(); });
   q("#map-reset").addEventListener("click", () => { view = { scale: 1, x: 0, y: 0 }; drawMap(); });
   const canvas = q("#forecast-canvas");
   canvas.addEventListener("pointerdown", (event) => { hideMapTooltip(); drag = { x: event.clientX, y: event.clientY, moved: false }; canvas.setPointerCapture(event.pointerId); });
