@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at_utc": "2026-08-04T09:26:26.146048Z",
+  "generated_at_utc": "2026-08-04T09:39:02.174982Z",
   "temperature_definition": "Online-weighted daily 2 m temperature high and low from native forecast steps.",
   "precipitation_definition": "Online-weighted precipitation accumulated within each 24-hour forecast day.",
   "timeline_definition": "Model-native temperature snapshots and precipitation accumulated over each exact native interval; the combined trace uses exact six-hour periods and omits models that cannot tile a period without interpolation.",
