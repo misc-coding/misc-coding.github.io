@@ -2358,7 +2358,10 @@ def build_html(
 </head><body>
   <a class="skip-link" href="#content">Skip to content</a>
   <header class="site-header"><div class="shell header-row">
-    <a class="brand" href="https://scdlds.ashoka.edu.in/" aria-label="SCDLDS at Ashoka University"><img src="assets/scdlds-logo.jpeg" alt="Safexpress Centre for Data, Learning and Decision Sciences, Ashoka University"></a>
+    <div class="brand-links">
+      <a class="forecast-home" href="./" aria-label="India Weather Forecasts home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5Z"/></svg></a>
+      <a class="brand" href="https://scdlds.ashoka.edu.in/" aria-label="Visit SCDLDS at Ashoka University"><img src="assets/scdlds-logo.jpeg" alt="Safexpress Centre for Data, Learning and Decision Sciences, Ashoka University"></a>
+    </div>
     <nav class="tabs" role="tablist" aria-label="Forecast sections">
       <button type="button" role="tab" data-tab="weather" aria-selected="true">Weather</button>
       <button type="button" role="tab" data-tab="maps" aria-selected="false">Maps</button>
@@ -2519,7 +2522,12 @@ a { color: inherit; }
 .skip-link:focus { transform: translateY(0); }
 .site-header { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.97); border-bottom: 1px solid var(--line); backdrop-filter: blur(12px); }
 .header-row { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
-.brand { display: block; flex: 0 1 360px; }
+.brand-links { display: flex; flex: 0 1 420px; align-items: center; gap: 14px; min-width: 0; }
+.forecast-home { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; color: var(--blue-dark); background: #eef6fb; border: 1px solid #bfd4e2; border-radius: 7px; transition: background-color .15s ease, border-color .15s ease; }
+.forecast-home:hover { background: #e1eff8; border-color: var(--blue); }
+.forecast-home:focus-visible { outline: 3px solid rgba(30, 128, 184, .25); outline-offset: 2px; }
+.forecast-home svg { width: 22px; height: 22px; fill: currentColor; }
+.brand { display: block; flex: 1 1 auto; min-width: 0; }
 .brand img { display: block; width: min(360px, 100%); height: 54px; object-fit: contain; object-position: left center; }
 .tabs { align-self: stretch; display: flex; gap: 4px; }
 .tabs button { position: relative; min-width: 82px; padding: 0 14px; border: 0; color: var(--muted); background: transparent; font-size: .88rem; font-weight: 650; cursor: pointer; }
@@ -2666,6 +2674,7 @@ footer { padding: 26px 0; color: #5e6f7b; background: white; border-top: 1px sol
 footer a { color: var(--blue); }
 @media (max-width: 850px) {
   .header-row { align-items: flex-start; flex-direction: column; gap: 4px; padding-top: 10px; }
+  .brand-links { width: 100%; }
   .brand img { height: 44px; }
   .tabs { width: 100%; min-height: 48px; overflow-x: auto; }
   .tabs button { flex: 1; min-width: 76px; }

@@ -32,6 +32,8 @@ def test_generated_html_has_one_of_every_interactive_surface():
     assert "fixed 0–45 °C scale" in html
     assert "Map rainfall is accumulated only since the previous displayed valid timestamp" in html
     assert "assets/scdlds-logo.jpeg" in html
+    assert 'class="forecast-home" href="./" aria-label="India Weather Forecasts home"' in html
+    assert 'class="brand" href="https://scdlds.ashoka.edu.in/" aria-label="Visit SCDLDS at Ashoka University"' in html
     assert "coastline overlay" in html
     assert "Natural Earth" in html
     assert 'data-map-model="combined"' in html

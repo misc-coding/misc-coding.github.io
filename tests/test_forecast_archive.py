@@ -278,6 +278,8 @@ def test_build_html_has_tabs_every_run_and_unique_ids():
     assert 'id="validation-image"' in html
     assert 'https://scdlds.ashoka.edu.in/' in html
     assert 'assets/scdlds-logo.jpeg' in html
+    assert 'class="forecast-home" href="./" aria-label="India Weather Forecasts home"' in html
+    assert 'class="brand" href="https://scdlds.ashoka.edu.in/" aria-label="Visit SCDLDS at Ashoka University"' in html
 
 
 def test_frontend_contract_covers_all_interactive_features():
