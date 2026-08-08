@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-08-07T08:45:23.085089Z",
+  "generated_at_utc": "2026-08-08T08:41:58.809765Z",
   "truth_source": "Open-Meteo hourly temperature_2m and precipitation",
   "temperature_definition": "Forecast 2 m temperature at the exact valid time, matched to Open-Meteo hourly temperature.",
   "precipitation_definition": "Forecast precipitation accumulated from initialization through each valid endpoint, matched to the sum of Open-Meteo hourly precipitation over the same interval.",
@@ -10,44 +10,54 @@
       "leads": {
         "1": {
           "matched_points": 24,
-          "combined_prequential_rmse": 0.6650583989195895,
-          "uniform_prequential_rmse": 0.6747020416316172,
+          "combined_prequential_rmse": 0.5746196411906832,
+          "uniform_prequential_rmse": 0.5774818712667784,
           "source_rmse": {
-            "weathernext2": 0.8175390262241647,
-            "gfs": 1.3517157307165832,
-            "gefs": 1.5007905120765697,
-            "aifs": 1.114032184603898,
-            "ifs_ens": 0.8516320458443993
+            "weathernext2": 0.8179508455488824,
+            "gfs": 1.1215688416974976,
+            "gefs": 1.4177170987652141,
+            "aifs": 1.0441927703574025,
+            "ifs_ens": 0.8426253714465558
           },
           "candidate_use_counts": {
             "uniform": 8,
-            "ewa-w3-e20": 12,
-            "ewa-w7-e20": 4
+            "ewa-w3-e20": 16
           },
           "deployment": {
-            "20260807_00": {
+            "20260808_00": {
               "candidate": "ewa-w7-e20",
               "weights": {
-                "weathernext2": 0.2099960215426623,
-                "gfs": 0.19277394262040115,
-                "gefs": 0.1868144956466282,
-                "aifs": 0.20130014778783667,
-                "ifs_ens": 0.20911539240247173
+                "gfs": 0.25001731973016267,
+                "gefs": 0.2365116601489416,
+                "aifs": 0.25313050717964586,
+                "ifs_ens": 0.2603405129412498
               },
               "training_samples": 24,
-              "selection_rmse": 0.6529486078413331
+              "selection_rmse": 0.5658276546427375
+            },
+            "20260807_00": {
+              "candidate": "ewa-w3-e20",
+              "weights": {
+                "weathernext2": 0.19996410889592553,
+                "gfs": 0.20426474821705815,
+                "gefs": 0.19449211594976717,
+                "aifs": 0.20129192619906844,
+                "ifs_ens": 0.1999871007381807
+              },
+              "training_samples": 12,
+              "selection_rmse": 0.5797200984898935
             },
             "20260806_00": {
-              "candidate": "ewa-w7-e20",
+              "candidate": "ewa-w3-e20",
               "weights": {
-                "weathernext2": 0.21241639749908023,
-                "gfs": 0.19036195408033058,
-                "gefs": 0.18446909464462083,
-                "aifs": 0.20209882831423484,
-                "ifs_ens": 0.21065372546173347
+                "weathernext2": 0.20497835382832139,
+                "gfs": 0.2021850181123411,
+                "gefs": 0.18721596454278464,
+                "aifs": 0.20142105039507485,
+                "ifs_ens": 0.20419961312147808
               },
-              "training_samples": 20,
-              "selection_rmse": 0.6983073346688665
+              "training_samples": 12,
+              "selection_rmse": 0.625314930342928
             },
             "20260805_00": {
               "candidate": "ewa-w3-e20",
@@ -59,33 +69,21 @@
                 "ifs_ens": 0.20722805953424459
               },
               "training_samples": 12,
-              "selection_rmse": 0.7366516215907488
+              "selection_rmse": 0.655992523484523
             },
             "20260804_00": {
               "candidate": "ewa-w3-e20",
               "weights": {
-                "weathernext2": 0.21867641467649634,
-                "gfs": 0.1826182016859481,
-                "gefs": 0.1809290150488982,
-                "aifs": 0.2008248947807526,
-                "ifs_ens": 0.2169514738079048
-              },
-              "training_samples": 12,
-              "selection_rmse": 0.7911245088681296
-            },
-            "20260803_00": {
-              "candidate": "ewa-w3-e20",
-              "weights": {
-                "weathernext2": 0.22031728355838606,
-                "gfs": 0.1764630832349936,
-                "gefs": 0.1833909954339424,
-                "aifs": 0.20235765363542085,
-                "ifs_ens": 0.21747098413725705
+                "weathernext2": 0.214224140610468,
+                "gfs": 0.1897186103767653,
+                "gefs": 0.18141261715943385,
+                "aifs": 0.20268275561024718,
+                "ifs_ens": 0.21196187624308577
               },
               "training_samples": 8,
-              "selection_rmse": 0.8435360385992026
+              "selection_rmse": 0.7079367551104438
             },
-            "20260802_00": {
+            "20260803_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -95,9 +93,9 @@
                 "ifs_ens": 0.2
               },
               "training_samples": 4,
-              "selection_rmse": 0.994232478461031
+              "selection_rmse": 0.724444172183088
             },
-            "20260801_00": {
+            "20260802_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -113,19 +111,30 @@
         },
         "3": {
           "matched_points": 16,
-          "combined_prequential_rmse": 0.6064912402567961,
-          "uniform_prequential_rmse": 0.6064912402567961,
+          "combined_prequential_rmse": 0.5936560516458422,
+          "uniform_prequential_rmse": 0.5936560516458422,
           "source_rmse": {
-            "weathernext2": 1.046482694862969,
-            "gfs": 1.4651951661809421,
-            "gefs": 1.3997717608396325,
-            "aifs": 0.8863769302616131,
-            "ifs_ens": 0.9216845016750823
+            "weathernext2": 0.9670702137652637,
+            "gfs": 1.3990510176544666,
+            "gefs": 1.2867493511384576,
+            "aifs": 0.9194725050266598,
+            "ifs_ens": 0.8766910320327721
           },
           "candidate_use_counts": {
             "uniform": 16
           },
           "deployment": {
+            "20260808_00": {
+              "candidate": "ewa-w3-e20",
+              "weights": {
+                "gfs": 0.23691659187699282,
+                "gefs": 0.24594212813984903,
+                "aifs": 0.2543083308696571,
+                "ifs_ens": 0.26283294911350114
+              },
+              "training_samples": 12,
+              "selection_rmse": 0.5931789988068025
+            },
             "20260807_00": {
               "candidate": "uniform",
               "weights": {
@@ -135,8 +144,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 16,
-              "selection_rmse": 0.6064912402567961
+              "training_samples": 12,
+              "selection_rmse": 0.5408368696705573
             },
             "20260806_00": {
               "candidate": "uniform",
@@ -147,8 +156,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 12,
-              "selection_rmse": 0.6666499020938775
+              "training_samples": 8,
+              "selection_rmse": 0.6080515342623372
             },
             "20260805_00": {
               "candidate": "uniform",
@@ -159,8 +168,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 8,
-              "selection_rmse": 0.7498473519058926
+              "training_samples": 4,
+              "selection_rmse": 0.7285116080563124
             },
             "20260804_00": {
               "candidate": "uniform",
@@ -171,8 +180,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 0.7705925896657486
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260803_00": {
               "candidate": "uniform",
@@ -187,18 +196,6 @@
               "selection_rmse": null
             },
             "20260802_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260801_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -214,19 +211,30 @@
         },
         "5": {
           "matched_points": 8,
-          "combined_prequential_rmse": 0.324340515856342,
-          "uniform_prequential_rmse": 0.324340515856342,
+          "combined_prequential_rmse": 0.5737934222589448,
+          "uniform_prequential_rmse": 0.5737934222589448,
           "source_rmse": {
-            "weathernext2": 1.0282802525666421,
-            "gfs": 0.3349440251743566,
-            "gefs": 1.0890409570525708,
-            "aifs": 0.9721111047611796,
-            "ifs_ens": 0.6333644603207272
+            "weathernext2": 0.748967040691635,
+            "gfs": 0.8302860952707808,
+            "gefs": 1.345939802704165,
+            "aifs": 1.1547794702885918,
+            "ifs_ens": 0.34966217468736427
           },
           "candidate_use_counts": {
             "uniform": 8
           },
           "deployment": {
+            "20260808_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.25,
+                "gefs": 0.25,
+                "aifs": 0.25,
+                "ifs_ens": 0.25
+              },
+              "training_samples": 8,
+              "selection_rmse": 0.5737934222589448
+            },
             "20260807_00": {
               "candidate": "uniform",
               "weights": {
@@ -236,8 +244,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 8,
-              "selection_rmse": 0.324340515856342
+              "training_samples": 4,
+              "selection_rmse": 0.27007350073013764
             },
             "20260806_00": {
               "candidate": "uniform",
@@ -248,8 +256,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 0.37074768327702934
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260805_00": {
               "candidate": "uniform",
@@ -288,18 +296,6 @@
               "selection_rmse": null
             },
             "20260802_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260801_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -319,31 +315,43 @@
       "leads": {
         "1": {
           "matched_points": 24,
-          "combined_prequential_rmse": 7.6136024966965445,
-          "uniform_prequential_rmse": 7.707848566065875,
+          "combined_prequential_rmse": 10.374344558915913,
+          "uniform_prequential_rmse": 10.451448537941134,
           "source_rmse": {
-            "weathernext2": 7.789188122197276,
-            "gfs": 13.218334698189919,
-            "gefs": 8.316566249352988,
-            "aifs": 7.614965435863983,
-            "ifs_ens": 6.148120228697833
+            "weathernext2": 11.803476751690601,
+            "gfs": 15.20964371799703,
+            "gefs": 11.650552818982767,
+            "aifs": 9.501943751786644,
+            "ifs_ens": 9.020203695290341
           },
           "candidate_use_counts": {
             "uniform": 8,
-            "ewa-w3-e20": 16
+            "ewa-w3-e20": 12,
+            "ewa-w7-e20": 4
           },
           "deployment": {
+            "20260808_00": {
+              "candidate": "ewa-w7-e20",
+              "weights": {
+                "gfs": 0.18516890443550169,
+                "gefs": 0.2455866501493193,
+                "aifs": 0.2808715804847544,
+                "ifs_ens": 0.2883728649304246
+              },
+              "training_samples": 24,
+              "selection_rmse": 10.350728252673317
+            },
             "20260807_00": {
               "candidate": "ewa-w7-e20",
               "weights": {
-                "weathernext2": 0.20977287329341704,
-                "gfs": 0.14977446693337862,
-                "gefs": 0.20457526351418648,
-                "aifs": 0.21144243429933646,
-                "ifs_ens": 0.22443496195968135
+                "weathernext2": 0.21148380644271603,
+                "gfs": 0.14581185976844596,
+                "gefs": 0.20781715184315205,
+                "aifs": 0.21017291809251276,
+                "ifs_ens": 0.22471426385317317
               },
-              "training_samples": 24,
-              "selection_rmse": 7.583891435294262
+              "training_samples": 20,
+              "selection_rmse": 7.562471929663376
             },
             "20260806_00": {
               "candidate": "ewa-w3-e20",
@@ -355,7 +363,7 @@
                 "ifs_ens": 0.22499926027865225
               },
               "training_samples": 12,
-              "selection_rmse": 7.753331675821194
+              "selection_rmse": 7.76754164721151
             },
             "20260805_00": {
               "candidate": "ewa-w3-e20",
@@ -367,33 +375,21 @@
                 "ifs_ens": 0.2162198897723412
               },
               "training_samples": 12,
-              "selection_rmse": 7.466455853616051
+              "selection_rmse": 7.388276854679746
             },
             "20260804_00": {
               "candidate": "ewa-w3-e20",
               "weights": {
-                "weathernext2": 0.2040536800999416,
-                "gfs": 0.17002148740292033,
-                "gefs": 0.18706936203681035,
-                "aifs": 0.21859498311091694,
-                "ifs_ens": 0.22026048734941084
-              },
-              "training_samples": 12,
-              "selection_rmse": 8.238519377578266
-            },
-            "20260803_00": {
-              "candidate": "ewa-w3-e20",
-              "weights": {
-                "weathernext2": 0.19681118556239302,
-                "gfs": 0.17438981104389045,
-                "gefs": 0.19329681136555657,
-                "aifs": 0.21412376153042917,
-                "ifs_ens": 0.2213784304977309
+                "weathernext2": 0.20570896419711585,
+                "gfs": 0.16883441268544566,
+                "gefs": 0.18708297946952482,
+                "aifs": 0.21888456486452587,
+                "ifs_ens": 0.21948907878338786
               },
               "training_samples": 8,
-              "selection_rmse": 9.204932519700217
+              "selection_rmse": 8.49628083103619
             },
-            "20260802_00": {
+            "20260803_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -403,9 +399,9 @@
                 "ifs_ens": 0.2
               },
               "training_samples": 4,
-              "selection_rmse": 7.860497851318946
+              "selection_rmse": 10.477833863871234
             },
-            "20260801_00": {
+            "20260802_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -421,19 +417,30 @@
         },
         "3": {
           "matched_points": 16,
-          "combined_prequential_rmse": 16.637509286319013,
-          "uniform_prequential_rmse": 16.637509286319013,
+          "combined_prequential_rmse": 21.344233872351467,
+          "uniform_prequential_rmse": 21.344233872351467,
           "source_rmse": {
-            "weathernext2": 17.928581398992854,
-            "gfs": 27.106659241156187,
-            "gefs": 18.70254831874275,
-            "aifs": 16.777064180869754,
-            "ifs_ens": 13.709834411776287
+            "weathernext2": 21.213978852443386,
+            "gfs": 34.961243923408425,
+            "gefs": 20.860626347049347,
+            "aifs": 19.716042308809087,
+            "ifs_ens": 18.64770513399126
           },
           "candidate_use_counts": {
             "uniform": 16
           },
           "deployment": {
+            "20260808_00": {
+              "candidate": "ewa-w3-e20",
+              "weights": {
+                "gfs": 0.023353801302184278,
+                "gefs": 0.33200465497070103,
+                "aifs": 0.28915383521761195,
+                "ifs_ens": 0.3554877085095028
+              },
+              "training_samples": 12,
+              "selection_rmse": 20.543827829841074
+            },
             "20260807_00": {
               "candidate": "uniform",
               "weights": {
@@ -443,8 +450,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 16,
-              "selection_rmse": 16.637509286319013
+              "training_samples": 12,
+              "selection_rmse": 17.670868076994985
             },
             "20260806_00": {
               "candidate": "uniform",
@@ -455,8 +462,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 12,
-              "selection_rmse": 14.109949180492086
+              "training_samples": 8,
+              "selection_rmse": 14.608625404234367
             },
             "20260805_00": {
               "candidate": "uniform",
@@ -467,8 +474,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 8,
-              "selection_rmse": 14.27427371938495
+              "training_samples": 4,
+              "selection_rmse": 15.396806656125912
             },
             "20260804_00": {
               "candidate": "uniform",
@@ -479,8 +486,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 13.055578318317593
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260803_00": {
               "candidate": "uniform",
@@ -495,18 +502,6 @@
               "selection_rmse": null
             },
             "20260802_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260801_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -522,19 +517,30 @@
         },
         "5": {
           "matched_points": 8,
-          "combined_prequential_rmse": 23.57828476701377,
-          "uniform_prequential_rmse": 23.57828476701377,
+          "combined_prequential_rmse": 26.095140945734414,
+          "uniform_prequential_rmse": 26.095140945734414,
           "source_rmse": {
-            "weathernext2": 26.151503162843948,
-            "gfs": 34.04056614141374,
-            "gefs": 27.245232083381424,
-            "aifs": 23.648703114100243,
-            "ifs_ens": 21.975765190743598
+            "weathernext2": 23.316806811153327,
+            "gfs": 41.04326402786945,
+            "gefs": 34.17872809938471,
+            "aifs": 24.471201215300326,
+            "ifs_ens": 23.653540510887304
           },
           "candidate_use_counts": {
             "uniform": 8
           },
           "deployment": {
+            "20260808_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.25,
+                "gefs": 0.25,
+                "aifs": 0.25,
+                "ifs_ens": 0.25
+              },
+              "training_samples": 8,
+              "selection_rmse": 26.095140945734414
+            },
             "20260807_00": {
               "candidate": "uniform",
               "weights": {
@@ -544,8 +550,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 8,
-              "selection_rmse": 23.57828476701377
+              "training_samples": 4,
+              "selection_rmse": 22.928579604492057
             },
             "20260806_00": {
               "candidate": "uniform",
@@ -556,8 +562,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 24.21056096890896
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260805_00": {
               "candidate": "uniform",
@@ -596,18 +602,6 @@
               "selection_rmse": null
             },
             "20260802_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260801_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -646,54 +640,54 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.6467559814453132,
-                "3": 0.9704238891601573,
-                "5": 1.3189636230468764
+                "1": 0.6904164632161466,
+                "3": 0.8679153442382823,
+                "5": 0.5011535644531264
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 2.116666666666666,
-                "3": 2.4749999999999996,
-                "5": 0.3500000000000014
+                "1": 1.679166666666666,
+                "3": 2.2562499999999996,
+                "5": 1.125
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 2.5198925654093416,
-                "3": 2.396774101257323,
-                "5": 1.9080642700195298
+                "1": 2.346505673726399,
+                "3": 2.1760080337524403,
+                "5": 2.3979839324951158
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.9708333333333327,
-                "3": 0.47499999999999964,
-                "5": 0.3125
+                "1": 0.8874999999999993,
+                "3": 0.44374999999999964,
+                "5": 0.6499999999999986
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.7526144663492845,
-                "3": 0.978799057006837,
-                "5": 0.9713235855102553
+                "1": 0.7215685526529955,
+                "3": 0.8895834922790531,
+                "5": 0.44730377197265625
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.8272203009483121,
-                "3": 0.7175300598144547,
-                "5": 0.18506526947021484
+                "1": 0.7044749364087277,
+                "3": 0.6759863853454604,
+                "5": 0.600983810424804
               }
             }
           }
@@ -705,70 +699,86 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 4.28362786769867,
-                "3": 16.236154651641847,
-                "5": 21.838997650146485
+                "1": 11.29024677276611,
+                "3": 26.38099765777588,
+                "5": 17.293859100341795
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 3.377823893229166,
-                "3": 16.748203659057616,
-                "5": 37.60574607849121
+                "1": 8.124650828043618,
+                "3": 26.762596893310544,
+                "5": 46.70829544067382
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 2.097056557740757,
-                "3": 6.530947717038372,
-                "5": 15.169042672666524
+                "1": 7.778442923844225,
+                "3": 15.290833796110027,
+                "5": 35.7825842371785
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 5.556509908040365,
-                "3": 16.977285194396977,
-                "5": 28.597815322875977
+                "1": 10.134056091308592,
+                "3": 22.074453353881836,
+                "5": 25.431296920776365
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 4.073715808035923,
-                "3": 10.329683389508865,
-                "5": 8.522922117929557
+                "1": 9.443199748762222,
+                "3": 22.07599661777931,
+                "5": 30.53314093396475
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 3.136710344092125,
-                "3": 10.571551523745292,
-                "5": 22.34690476842195
+                "1": 8.861676581175253,
+                "3": 20.042973174611905,
+                "5": 31.14983532658705
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260808_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260808_00/delhi-temperature.png",
+            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260808_00/delhi-precipitation.png",
+            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          }
+        },
         "20260807_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260807_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260807_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           }
         },
         "20260806_00": {
@@ -792,14 +802,16 @@
             "path": "assets/validation/timeseries/20260805_00/delhi-temperature.png",
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260805_00/delhi-precipitation.png",
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -827,7 +839,8 @@
             "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
@@ -835,7 +848,8 @@
             "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -856,26 +870,6 @@
               "2026-08-03T00:00:00Z",
               "2026-08-05T00:00:00Z",
               "2026-08-07T00:00:00Z"
-            ]
-          }
-        },
-        "20260801_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260801_00/delhi-temperature.png",
-            "alt": "Delhi temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260801_00/delhi-precipitation.png",
-            "alt": "Delhi precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
             ]
           }
         }
@@ -902,54 +896,54 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.939605712890625,
-                "3": 0.9299911499023441,
-                "5": 0.8331481933593761
+                "1": 0.9708028157552082,
+                "3": 0.770516967773438,
+                "5": 0.98223876953125
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.4583333333333333,
-                "3": 0.39374999999999893,
-                "5": 0.5499999999999989
+                "1": 0.5500000000000002,
+                "3": 0.49374999999999947,
+                "5": 0.5625
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.2856181462605794,
-                "3": 0.18810443878173722,
-                "5": 0.310080337524413
+                "1": 0.2939514795939129,
+                "3": 0.25987854003906197,
+                "5": 0.21169281005859375
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.25416666666666643,
-                "3": 0.1999999999999993,
-                "5": 0.23749999999999893
+                "1": 0.3458333333333332,
+                "3": 0.20624999999999982,
+                "5": 0.25
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.6294937133789062,
-                "3": 0.4300245285034183,
-                "5": 0.2759801864624034
+                "1": 0.6048204421997069,
+                "3": 0.2930146217346197,
+                "5": 0.15931415557861328
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.21508364002483424,
-                "3": 0.2330942153930664,
-                "5": 0.03326358795166051
+                "1": 0.1930863201872294,
+                "3": 0.1247750282287603,
+                "5": 0.023472023010253196
               }
             }
           }
@@ -961,70 +955,86 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 5.997027556101481,
-                "3": 14.113950824737548,
-                "5": 27.0960636138916
+                "1": 5.855456940333049,
+                "3": 10.160424518585206,
+                "5": 20.21397171020508
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 7.760739517211914,
-                "3": 6.345215225219727,
-                "5": 8.652198791503906
+                "1": 6.5560572306315095,
+                "3": 7.383157539367676,
+                "5": 9.094856643676756
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 6.481499868200626,
-                "3": 8.023709500476253,
-                "5": 11.026119849237148
+                "1": 5.502850518431903,
+                "3": 7.463283753383439,
+                "5": 13.594920088397338
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 5.110623677571614,
-                "3": 5.366376495361328,
-                "5": 13.271148681640625
+                "1": 4.6290649414062495,
+                "3": 5.057827758789062,
+                "5": 6.268881225585936
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 4.6492109170823825,
-                "3": 11.046433572331443,
-                "5": 25.881402927741874
+                "1": 4.7569645151534745,
+                "3": 5.950645817426266,
+                "5": 10.075355751067399
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 5.685791489147196,
-                "3": 7.403538724675309,
-                "5": 15.923200500267555
+                "1": 5.129753359772387,
+                "3": 6.049591125635199,
+                "5": 9.075096418196338
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260808_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260808_00/mumbai-temperature.png",
+            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260808_00/mumbai-precipitation.png",
+            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          }
+        },
         "20260807_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260807_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260807_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           }
         },
         "20260806_00": {
@@ -1048,14 +1058,16 @@
             "path": "assets/validation/timeseries/20260805_00/mumbai-temperature.png",
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260805_00/mumbai-precipitation.png",
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -1083,7 +1095,8 @@
             "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
@@ -1091,7 +1104,8 @@
             "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -1112,26 +1126,6 @@
               "2026-08-03T00:00:00Z",
               "2026-08-05T00:00:00Z",
               "2026-08-07T00:00:00Z"
-            ]
-          }
-        },
-        "20260801_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260801_00/mumbai-temperature.png",
-            "alt": "Mumbai temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260801_00/mumbai-precipitation.png",
-            "alt": "Mumbai precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
             ]
           }
         }
@@ -1158,54 +1152,54 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.2615915934244792,
-                "3": 0.2046783447265632,
-                "5": 0.06584472656250107
+                "1": 0.18986206054687513,
+                "3": 0.16579437255859464,
+                "5": 0.06778564453125036
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.5125000000000005,
-                "3": 0.31874999999999964,
-                "5": 0.07500000000000107
+                "1": 0.47916666666666724,
+                "3": 0.4562499999999998,
+                "5": 0.025000000000000355
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.941128857930502,
-                "3": 0.9913303375244151,
-                "5": 0.976209831237794
+                "1": 1.0235214233398444,
+                "3": 0.9637093544006357,
+                "5": 0.7447580337524418
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 1.4041666666666675,
-                "3": 1.543750000000001,
-                "5": 1.762500000000001
+                "1": 1.4791666666666672,
+                "3": 1.4062500000000009,
+                "5": 1.5875000000000004
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.21290880839029924,
-                "3": 0.137377834320068,
-                "5": 0.1549028396606449
+                "1": 0.16609497070312487,
+                "3": 0.26997594833374006,
+                "5": 0.2825981140136715
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.4694099059196777,
-                "3": 0.4574471473693862,
-                "5": 0.5531658172607461
+                "1": 0.467864104879497,
+                "3": 0.3781801223754888,
+                "5": 0.42848911285400604
               }
             }
           }
@@ -1217,70 +1211,86 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 6.88410697778066,
-                "3": 18.09616074562073,
-                "5": 33.7521993637085
+                "1": 6.606438565254212,
+                "3": 20.027189350128175,
+                "5": 32.738406562805174
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 10.294393920898438,
-                "3": 31.70557460784912,
-                "5": 52.758349609375
+                "1": 9.90236104329427,
+                "3": 35.75297794342041,
+                "5": 57.80181732177734
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 8.222558384622426,
-                "3": 23.57566633403926,
-                "5": 40.438193784334956
+                "1": 7.39643046314371,
+                "3": 27.08465687087503,
+                "5": 45.872648128582476
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 5.528322601318359,
-                "3": 15.051604723930359,
-                "5": 27.473969888687133
+                "1": 5.331089623769125,
+                "3": 16.655649757385255,
+                "5": 29.261825942993163
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 5.569289391132528,
-                "3": 10.694527990397864,
-                "5": 27.57799269449306
+                "1": 5.089710436098781,
+                "3": 13.191029502567835,
+                "5": 27.750855329648765
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 6.190926263341098,
-                "3": 19.824706880367465,
-                "5": 36.40014106811973
+                "1": 5.748000752275991,
+                "3": 22.542300684875343,
+                "5": 38.68511065716139
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260808_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260808_00/bengaluru-temperature.png",
+            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260808_00/bengaluru-precipitation.png",
+            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          }
+        },
         "20260807_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260807_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260807_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           }
         },
         "20260806_00": {
@@ -1304,14 +1314,16 @@
             "path": "assets/validation/timeseries/20260805_00/bengaluru-temperature.png",
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260805_00/bengaluru-precipitation.png",
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -1339,7 +1351,8 @@
             "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
@@ -1347,7 +1360,8 @@
             "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -1368,26 +1382,6 @@
               "2026-08-03T00:00:00Z",
               "2026-08-05T00:00:00Z",
               "2026-08-07T00:00:00Z"
-            ]
-          }
-        },
-        "20260801_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260801_00/bengaluru-temperature.png",
-            "alt": "Bengaluru temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260801_00/bengaluru-precipitation.png",
-            "alt": "Bengaluru precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
             ]
           }
         }
@@ -1414,54 +1408,54 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.956162516276042,
-                "3": 1.4163162231445314,
-                "5": 1.2595153808593746
+                "1": 0.9583028157552084,
+                "3": 1.1965194702148443,
+                "5": 0.7604125976562504
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.5541666666666666,
-                "3": 0.4500000000000002,
-                "5": 0.025000000000000355
+                "1": 0.5416666666666666,
+                "3": 0.6937500000000005,
+                "5": 0.6375000000000011
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.5310485204060876,
-                "3": 0.4973794937133791,
-                "5": 0.13225803375244105
+                "1": 0.5420699437459314,
+                "3": 0.5707665443420415,
+                "5": 0.5895160675048832
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.9916666666666666,
-                "3": 0.47500000000000053,
-                "5": 0.7125000000000004
+                "1": 0.8333333333333334,
+                "3": 0.7500000000000009,
+                "5": 1.325000000000001
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 1.1700163523356124,
-                "3": 1.313970756530762,
-                "5": 0.6453424453735348
+                "1": 1.2209968566894531,
+                "3": 1.05612735748291,
+                "5": 0.27500000000000036
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 0.610161430528643,
-                "3": 0.5356138229370107,
-                "5": 0.22605209350585653
+                "1": 0.534999335590045,
+                "3": 0.6896233558654794,
+                "5": 0.5724857330322273
               }
             }
           }
@@ -1473,70 +1467,86 @@
               "label": "WeatherNext 2 / FGN",
               "n": 12,
               "mae_by_lead": {
-                "1": 7.874465465545654,
-                "3": 16.120755004882813,
-                "5": 13.802188873291016
+                "1": 8.890672906239828,
+                "3": 15.934664344787599,
+                "5": 5.362681579589847
               }
             },
             "gfs": {
               "label": "GFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 17.15960604349772,
-                "3": 34.2199161529541,
-                "5": 12.784537887573237
+                "1": 19.695402908325196,
+                "3": 48.81139526367187,
+                "5": 25.95279960632324
               }
             },
             "gefs": {
               "label": "GEFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 9.187154715613966,
-                "3": 23.16533096945277,
-                "5": 27.32177969995027
+                "1": 11.90915801694282,
+                "3": 17.461292980467626,
+                "5": 23.789045442474887
               }
             },
             "aifs": {
               "label": "AIFS",
               "n": 12,
               "mae_by_lead": {
-                "1": 6.893295923868815,
-                "3": 12.388185691833495,
-                "5": 17.228308105468756
+                "1": 6.164415868123373,
+                "3": 19.076375007629395,
+                "5": 26.124541473388675
               }
             },
             "ifs_ens": {
               "label": "IFS-ENS",
               "n": 12,
               "mae_by_lead": {
-                "1": 6.250857436948233,
-                "3": 15.320519478739516,
-                "5": 17.17276083784745
+                "1": 5.5476662806072765,
+                "3": 16.081334109301316,
+                "5": 5.9598912361187075
               }
             },
             "combined": {
               "label": "Combined \u00b7 recent-error blend",
               "n": 12,
               "mae_by_lead": {
-                "1": 9.12115952891198,
-                "3": 19.60883455649637,
-                "5": 8.636397197525362
+                "1": 9.836201009493353,
+                "3": 22.838905438095388,
+                "5": 4.853780637110319
               }
             }
           }
         }
       },
       "timeseries": {
+        "20260808_00": {
+          "temperature": {
+            "path": "assets/validation/timeseries/20260808_00/kolkata-temperature.png",
+            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          },
+          "precipitation": {
+            "path": "assets/validation/timeseries/20260808_00/kolkata-precipitation.png",
+            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260808_00",
+            "matched_valid_times_utc": []
+          }
+        },
         "20260807_00": {
           "temperature": {
             "path": "assets/validation/timeseries/20260807_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260807_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260807_00",
-            "matched_valid_times_utc": []
+            "matched_valid_times_utc": [
+              "2026-08-08T00:00:00Z"
+            ]
           }
         },
         "20260806_00": {
@@ -1560,14 +1570,16 @@
             "path": "assets/validation/timeseries/20260805_00/kolkata-temperature.png",
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
             "path": "assets/validation/timeseries/20260805_00/kolkata-precipitation.png",
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260805_00",
             "matched_valid_times_utc": [
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -1595,7 +1607,8 @@
             "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           },
           "precipitation": {
@@ -1603,7 +1616,8 @@
             "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260803_00",
             "matched_valid_times_utc": [
               "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
+              "2026-08-06T00:00:00Z",
+              "2026-08-08T00:00:00Z"
             ]
           }
         },
@@ -1624,26 +1638,6 @@
               "2026-08-03T00:00:00Z",
               "2026-08-05T00:00:00Z",
               "2026-08-07T00:00:00Z"
-            ]
-          }
-        },
-        "20260801_00": {
-          "temperature": {
-            "path": "assets/validation/timeseries/20260801_00/kolkata-temperature.png",
-            "alt": "Kolkata temperature forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
-            ]
-          },
-          "precipitation": {
-            "path": "assets/validation/timeseries/20260801_00/kolkata-precipitation.png",
-            "alt": "Kolkata precipitation forecast and Open-Meteo ground truth for initialization 20260801_00",
-            "matched_valid_times_utc": [
-              "2026-08-02T00:00:00Z",
-              "2026-08-04T00:00:00Z",
-              "2026-08-06T00:00:00Z"
             ]
           }
         }
