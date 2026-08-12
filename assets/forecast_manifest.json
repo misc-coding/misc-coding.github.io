@@ -1,22 +1,22 @@
 {
-  "id": "20260811_00",
-  "initialization_utc": "2026-08-11T00:00:00Z",
-  "generated_at_utc": "2026-08-11T08:42:37.107657Z",
+  "id": "20260812_00",
+  "initialization_utc": "2026-08-12T00:00:00Z",
+  "generated_at_utc": "2026-08-12T08:42:45.460491Z",
   "lead_days": [
     {
       "day": 1,
       "lead_hours": 24,
-      "valid_time_utc": "2026-08-12T00:00:00Z"
+      "valid_time_utc": "2026-08-13T00:00:00Z"
     },
     {
       "day": 3,
       "lead_hours": 72,
-      "valid_time_utc": "2026-08-14T00:00:00Z"
+      "valid_time_utc": "2026-08-15T00:00:00Z"
     },
     {
       "day": 5,
       "lead_hours": 120,
-      "valid_time_utc": "2026-08-16T00:00:00Z"
+      "valid_time_utc": "2026-08-17T00:00:00Z"
     }
   ],
   "models": [
@@ -142,25 +142,25 @@
     {
       "kind": "grid",
       "model": "gfs",
-      "path": "assets/map_data/20260811_00/gfs.bin",
+      "path": "assets/map_data/20260812_00/gfs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "gefs",
-      "path": "assets/map_data/20260811_00/gefs.bin",
+      "path": "assets/map_data/20260812_00/gefs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "aifs",
-      "path": "assets/map_data/20260811_00/aifs.bin",
+      "path": "assets/map_data/20260812_00/aifs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "ifs_ens",
-      "path": "assets/map_data/20260811_00/ifs_ens.bin",
+      "path": "assets/map_data/20260812_00/ifs_ens.bin",
       "bytes": 399384
     }
   ],
