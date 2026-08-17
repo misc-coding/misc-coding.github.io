@@ -231,7 +231,7 @@ footer { padding: 26px 0; color: #5e6f7b; background: white; border-top: 1px sol
 footer a { color: var(--blue); }
 @media (max-width: 850px) {
   .header-row { align-items: flex-start; flex-direction: column; gap: 4px; padding-top: 10px; }
-  .brand-links { width: 100%; }
+  .brand-links { width: 100%; flex: 0 0 auto; }
   .brand img { height: 44px; }
   .tabs { width: 100%; min-height: 48px; overflow-x: auto; }
   .tabs button { flex: 1; min-width: 76px; }
