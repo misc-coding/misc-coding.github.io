@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-08-17T09:05:44.514997Z",
+  "generated_at_utc": "2026-08-18T08:48:04.082639Z",
   "variable": "2 m temperature",
   "units": "degree_Celsius",
   "definition": "Experimental online convex combination of city-level source-model forecasts. Weights are learned causally from the most recent 10-day matched history; the shaded range is the spread of contributing source-model forecasts.",
