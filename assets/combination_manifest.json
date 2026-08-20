@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at_utc": "2026-08-19T08:42:17.694681Z",
+  "generated_at_utc": "2026-08-20T08:47:52.004765Z",
   "model": {
     "id": "combined",
     "label": "Combined \u00b7 recent-error blend",
@@ -121,20 +121,30 @@
       "leads": {
         "1": {
           "matched_points": 24,
-          "combined_prequential_rmse": 0.8526681386713125,
-          "uniform_prequential_rmse": 0.8790857495753456,
+          "combined_prequential_rmse": 0.7609579751805187,
+          "uniform_prequential_rmse": 0.7787715585599068,
           "source_rmse": {
-            "weathernext2": 0.7916275797288239,
-            "gfs": 1.952028859076286,
-            "gefs": 1.9951310226529506,
-            "aifs": 1.1857443161716328,
-            "ifs_ens": 0.9152697430497445
+            "weathernext2": 0.8194957146699832,
+            "gfs": 1.680727149182758,
+            "gefs": 1.8664933460743747,
+            "aifs": 1.1181970234861716,
+            "ifs_ens": 0.9107820217788019
           },
           "candidate_use_counts": {
             "uniform": 8,
             "ewa-w3-e20": 16
           },
           "deployment": {
+            "20260820_00": {
+              "candidate": "ewa-w7-e20",
+              "weights": {
+                "gfs": 0.3251184518927605,
+                "gefs": 0.3096765574915567,
+                "aifs": 0.3652049906156827
+              },
+              "training_samples": 24,
+              "selection_rmse": 0.7439960512254288
+            },
             "20260819_00": {
               "candidate": "ewa-w3-e20",
               "weights": {
@@ -144,7 +154,7 @@
                 "ifs_ens": 0.25716591347330703
               },
               "training_samples": 12,
-              "selection_rmse": 0.8174207703083806
+              "selection_rmse": 0.6626155946742052
             },
             "20260818_00": {
               "candidate": "ewa-w3-e20",
@@ -156,7 +166,7 @@
                 "ifs_ens": 0.2072534367902431
               },
               "training_samples": 12,
-              "selection_rmse": 0.8860333419469044
+              "selection_rmse": 0.7265521750614294
             },
             "20260817_00": {
               "candidate": "ewa-w3-e20",
@@ -168,33 +178,21 @@
                 "ifs_ens": 0.21947241139009027
               },
               "training_samples": 12,
-              "selection_rmse": 0.9398237192724681
+              "selection_rmse": 0.7570361793130089
             },
             "20260816_00": {
               "candidate": "ewa-w3-e20",
               "weights": {
-                "weathernext2": 0.23331851009773896,
-                "gfs": 0.16506871921644217,
-                "gefs": 0.16103213801702107,
-                "aifs": 0.20924103548823045,
-                "ifs_ens": 0.23133959718056737
-              },
-              "training_samples": 12,
-              "selection_rmse": 1.0512980747905456
-            },
-            "20260815_00": {
-              "candidate": "ewa-w3-e20",
-              "weights": {
-                "weathernext2": 0.23908502178523536,
-                "gfs": 0.16069373921745497,
-                "gefs": 0.15471444745580684,
-                "aifs": 0.2059792246605097,
-                "ifs_ens": 0.2395275668809931
+                "weathernext2": 0.22375209218072167,
+                "gfs": 0.18295665451073587,
+                "gefs": 0.16570977564899625,
+                "aifs": 0.2076905567824129,
+                "ifs_ens": 0.2198909208771334
               },
               "training_samples": 8,
-              "selection_rmse": 1.2498871681512067
+              "selection_rmse": 0.8546622717578092
             },
-            "20260814_00": {
+            "20260815_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -204,9 +202,9 @@
                 "ifs_ens": 0.2
               },
               "training_samples": 4,
-              "selection_rmse": 1.4977833822750517
+              "selection_rmse": 1.110980755837255
             },
-            "20260813_00": {
+            "20260814_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -222,19 +220,29 @@
         },
         "3": {
           "matched_points": 16,
-          "combined_prequential_rmse": 0.49918901625541523,
-          "uniform_prequential_rmse": 0.49918901625541523,
+          "combined_prequential_rmse": 0.5536309506651442,
+          "uniform_prequential_rmse": 0.5536309506651442,
           "source_rmse": {
-            "weathernext2": 1.0301464576968085,
-            "gfs": 0.8954092988683998,
-            "gefs": 0.8863808064497913,
-            "aifs": 1.0000976514820938,
-            "ifs_ens": 1.3232117591907522
+            "weathernext2": 0.9084736920941582,
+            "gfs": 0.8980664994865356,
+            "gefs": 1.1397105683326159,
+            "aifs": 1.1060381153016385,
+            "ifs_ens": 1.2324496887542649
           },
           "candidate_use_counts": {
             "uniform": 16
           },
           "deployment": {
+            "20260820_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.3333333333333333,
+                "gefs": 0.3333333333333333,
+                "aifs": 0.3333333333333333
+              },
+              "training_samples": 16,
+              "selection_rmse": 0.5536309506651442
+            },
             "20260819_00": {
               "candidate": "uniform",
               "weights": {
@@ -243,8 +251,8 @@
                 "aifs": 0.25,
                 "ifs_ens": 0.25
               },
-              "training_samples": 16,
-              "selection_rmse": 0.49918901625541523
+              "training_samples": 12,
+              "selection_rmse": 0.5518323373394158
             },
             "20260818_00": {
               "candidate": "uniform",
@@ -255,8 +263,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 12,
-              "selection_rmse": 0.5175127993963832
+              "training_samples": 8,
+              "selection_rmse": 0.6001068998176471
             },
             "20260817_00": {
               "candidate": "uniform",
@@ -267,8 +275,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 8,
-              "selection_rmse": 0.4495522365596774
+              "training_samples": 4,
+              "selection_rmse": 0.5665620147802602
             },
             "20260816_00": {
               "candidate": "uniform",
@@ -279,8 +287,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 0.2884474132311614
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260815_00": {
               "candidate": "uniform",
@@ -295,18 +303,6 @@
               "selection_rmse": null
             },
             "20260814_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260813_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -322,19 +318,29 @@
         },
         "5": {
           "matched_points": 8,
-          "combined_prequential_rmse": 0.7400574650799572,
-          "uniform_prequential_rmse": 0.7400574650799572,
+          "combined_prequential_rmse": 0.44428058412955684,
+          "uniform_prequential_rmse": 0.44428058412955684,
           "source_rmse": {
-            "weathernext2": 1.0638909941866603,
-            "gfs": 1.1917358662891706,
-            "gefs": 0.6111608196235542,
-            "aifs": 0.9219120755256439,
-            "ifs_ens": 1.4916560338361833
+            "weathernext2": 0.7736656451836357,
+            "gfs": 0.6110953280790153,
+            "gefs": 0.8970768412079531,
+            "aifs": 1.1053845484717078,
+            "ifs_ens": 1.0752830853743156
           },
           "candidate_use_counts": {
             "uniform": 8
           },
           "deployment": {
+            "20260820_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.3333333333333333,
+                "gefs": 0.3333333333333333,
+                "aifs": 0.3333333333333333
+              },
+              "training_samples": 8,
+              "selection_rmse": 0.44428058412955684
+            },
             "20260819_00": {
               "candidate": "uniform",
               "weights": {
@@ -343,8 +349,8 @@
                 "aifs": 0.25,
                 "ifs_ens": 0.25
               },
-              "training_samples": 8,
-              "selection_rmse": 0.7400574650799572
+              "training_samples": 4,
+              "selection_rmse": 0.5711432451437135
             },
             "20260818_00": {
               "candidate": "uniform",
@@ -355,8 +361,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 0.8770208074885407
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260817_00": {
               "candidate": "uniform",
@@ -395,18 +401,6 @@
               "selection_rmse": null
             },
             "20260814_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260813_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -426,20 +420,30 @@
       "leads": {
         "1": {
           "matched_points": 24,
-          "combined_prequential_rmse": 3.361675781775037,
-          "uniform_prequential_rmse": 3.356115086416379,
+          "combined_prequential_rmse": 3.2434017565960604,
+          "uniform_prequential_rmse": 3.2314853888136517,
           "source_rmse": {
-            "weathernext2": 4.58067926649154,
-            "gfs": 5.3887362523464315,
-            "gefs": 4.37095640438358,
-            "aifs": 6.438604115888473,
-            "ifs_ens": 5.03161214759083
+            "weathernext2": 4.539921694652055,
+            "gfs": 5.464251018027788,
+            "gefs": 4.39887646223132,
+            "aifs": 6.395215433692615,
+            "ifs_ens": 4.88632382979738
           },
           "candidate_use_counts": {
-            "uniform": 16,
-            "ewa-w3-e20": 8
+            "uniform": 20,
+            "ewa-w3-e20": 4
           },
           "deployment": {
+            "20260820_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.3333333333333333,
+                "gefs": 0.3333333333333333,
+                "aifs": 0.3333333333333333
+              },
+              "training_samples": 24,
+              "selection_rmse": 3.2314853888136517
+            },
             "20260819_00": {
               "candidate": "uniform",
               "weights": {
@@ -448,8 +452,8 @@
                 "aifs": 0.25,
                 "ifs_ens": 0.25
               },
-              "training_samples": 24,
-              "selection_rmse": 3.356115086416379
+              "training_samples": 20,
+              "selection_rmse": 3.3148318167444777
             },
             "20260818_00": {
               "candidate": "uniform",
@@ -460,8 +464,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 20,
-              "selection_rmse": 3.612732529619895
+              "training_samples": 16,
+              "selection_rmse": 3.6269367474408263
             },
             "20260817_00": {
               "candidate": "uniform",
@@ -472,34 +476,22 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 16,
-              "selection_rmse": 3.2835788352087065
+              "training_samples": 12,
+              "selection_rmse": 3.1878445641216584
             },
             "20260816_00": {
               "candidate": "ewa-w3-e20",
               "weights": {
-                "weathernext2": 0.20225051604854666,
-                "gfs": 0.190615739239863,
-                "gefs": 0.19508689709087434,
-                "aifs": 0.20665986264923356,
-                "ifs_ens": 0.20538698497148244
-              },
-              "training_samples": 12,
-              "selection_rmse": 3.3102894873404773
-            },
-            "20260815_00": {
-              "candidate": "ewa-w3-e20",
-              "weights": {
-                "weathernext2": 0.2018864093442396,
-                "gfs": 0.18939937691043868,
-                "gefs": 0.1937771633534507,
-                "aifs": 0.20773937479612936,
-                "ifs_ens": 0.20719767559574173
+                "weathernext2": 0.20528142163677923,
+                "gfs": 0.1877197623242785,
+                "gefs": 0.19265607722782488,
+                "aifs": 0.2076747238309763,
+                "ifs_ens": 0.20666801498014112
               },
               "training_samples": 8,
-              "selection_rmse": 3.908556388193539
+              "selection_rmse": 3.1800425409939943
             },
-            "20260814_00": {
+            "20260815_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -509,9 +501,9 @@
                 "ifs_ens": 0.2
               },
               "training_samples": 4,
-              "selection_rmse": 3.555348221077965
+              "selection_rmse": 4.243366442745438
             },
-            "20260813_00": {
+            "20260814_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -527,19 +519,29 @@
         },
         "3": {
           "matched_points": 16,
-          "combined_prequential_rmse": 5.294994850776736,
-          "uniform_prequential_rmse": 5.294994850776736,
+          "combined_prequential_rmse": 5.837403542037879,
+          "uniform_prequential_rmse": 5.837403542037879,
           "source_rmse": {
-            "weathernext2": 7.911958576700926,
-            "gfs": 9.619774470987052,
-            "gefs": 7.944191687244757,
-            "aifs": 16.4187544132975,
-            "ifs_ens": 10.056186103997012
+            "weathernext2": 9.396821737779096,
+            "gfs": 8.254082567861293,
+            "gefs": 7.328773491977538,
+            "aifs": 18.551550741392504,
+            "ifs_ens": 11.41932112663894
           },
           "candidate_use_counts": {
             "uniform": 16
           },
           "deployment": {
+            "20260820_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.3333333333333333,
+                "gefs": 0.3333333333333333,
+                "aifs": 0.3333333333333333
+              },
+              "training_samples": 16,
+              "selection_rmse": 5.837403542037879
+            },
             "20260819_00": {
               "candidate": "uniform",
               "weights": {
@@ -548,8 +550,8 @@
                 "aifs": 0.25,
                 "ifs_ens": 0.25
               },
-              "training_samples": 16,
-              "selection_rmse": 5.294994850776736
+              "training_samples": 12,
+              "selection_rmse": 5.248271256895583
             },
             "20260818_00": {
               "candidate": "uniform",
@@ -560,8 +562,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 12,
-              "selection_rmse": 3.752817100481366
+              "training_samples": 8,
+              "selection_rmse": 2.523497597369227
             },
             "20260817_00": {
               "candidate": "uniform",
@@ -572,8 +574,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 8,
-              "selection_rmse": 4.38129057783224
+              "training_samples": 4,
+              "selection_rmse": 2.9793599872562453
             },
             "20260816_00": {
               "candidate": "uniform",
@@ -584,8 +586,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 5.43275513171168
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260815_00": {
               "candidate": "uniform",
@@ -600,18 +602,6 @@
               "selection_rmse": null
             },
             "20260814_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260813_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -627,19 +617,29 @@
         },
         "5": {
           "matched_points": 8,
-          "combined_prequential_rmse": 11.159661594522609,
-          "uniform_prequential_rmse": 11.159661594522609,
+          "combined_prequential_rmse": 9.522675214056417,
+          "uniform_prequential_rmse": 9.522675214056417,
           "source_rmse": {
-            "weathernext2": 8.487713763829547,
-            "gfs": 26.89388478487783,
-            "gefs": 20.889719445310615,
-            "aifs": 26.05117320106126,
-            "ifs_ens": 18.294891942067622
+            "weathernext2": 9.99937386132207,
+            "gfs": 26.548164562713374,
+            "gefs": 18.638842982152955,
+            "aifs": 28.244116646464132,
+            "ifs_ens": 16.195691722707057
           },
           "candidate_use_counts": {
             "uniform": 8
           },
           "deployment": {
+            "20260820_00": {
+              "candidate": "uniform",
+              "weights": {
+                "gfs": 0.3333333333333333,
+                "gefs": 0.3333333333333333,
+                "aifs": 0.3333333333333333
+              },
+              "training_samples": 8,
+              "selection_rmse": 9.522675214056417
+            },
             "20260819_00": {
               "candidate": "uniform",
               "weights": {
@@ -648,8 +648,8 @@
                 "aifs": 0.25,
                 "ifs_ens": 0.25
               },
-              "training_samples": 8,
-              "selection_rmse": 11.159661594522609
+              "training_samples": 4,
+              "selection_rmse": 9.142708530683354
             },
             "20260818_00": {
               "candidate": "uniform",
@@ -660,8 +660,8 @@
                 "aifs": 0.2,
                 "ifs_ens": 0.2
               },
-              "training_samples": 4,
-              "selection_rmse": 12.864174071097437
+              "training_samples": 0,
+              "selection_rmse": null
             },
             "20260817_00": {
               "candidate": "uniform",
@@ -700,18 +700,6 @@
               "selection_rmse": null
             },
             "20260814_00": {
-              "candidate": "uniform",
-              "weights": {
-                "weathernext2": 0.2,
-                "gfs": 0.2,
-                "gefs": 0.2,
-                "aifs": 0.2,
-                "ifs_ens": 0.2
-              },
-              "training_samples": 0,
-              "selection_rmse": null
-            },
-            "20260813_00": {
               "candidate": "uniform",
               "weights": {
                 "weathernext2": 0.2,
@@ -729,6 +717,76 @@
     }
   },
   "runs": {
+    "20260820_00": {
+      "initialization_utc": "2026-08-20T00:00:00Z",
+      "available_models": [
+        "gfs",
+        "gefs",
+        "aifs"
+      ],
+      "weights": {
+        "temperature": {
+          "1": {
+            "gfs": 0.3251184518927605,
+            "gefs": 0.3096765574915567,
+            "aifs": 0.3652049906156827
+          },
+          "3": {
+            "gfs": 0.3333333333333333,
+            "gefs": 0.3333333333333333,
+            "aifs": 0.3333333333333333
+          },
+          "5": {
+            "gfs": 0.3333333333333333,
+            "gefs": 0.3333333333333333,
+            "aifs": 0.3333333333333333
+          }
+        },
+        "precipitation": {
+          "1": {
+            "gfs": 0.3333333333333333,
+            "gefs": 0.3333333333333333,
+            "aifs": 0.3333333333333333
+          },
+          "3": {
+            "gfs": 0.3333333333333333,
+            "gefs": 0.3333333333333333,
+            "aifs": 0.3333333333333333
+          },
+          "5": {
+            "gfs": 0.3333333333333333,
+            "gefs": 0.3333333333333333,
+            "aifs": 0.3333333333333333
+          }
+        }
+      },
+      "selected_candidates": {
+        "temperature": {
+          "1": "ewa-w7-e20",
+          "3": "uniform",
+          "5": "uniform"
+        },
+        "precipitation": {
+          "1": "uniform",
+          "3": "uniform",
+          "5": "uniform"
+        }
+      },
+      "training_samples": {
+        "temperature": {
+          "1": 24,
+          "3": 16,
+          "5": 8
+        },
+        "precipitation": {
+          "1": 24,
+          "3": 16,
+          "5": 8
+        }
+      },
+      "map_payload": "assets/map_data/20260820_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260820_00/simple_average.bin"
+    },
     "20260819_00": {
       "initialization_utc": "2026-08-19T00:00:00Z",
       "available_models": [
@@ -794,13 +852,13 @@
       "training_samples": {
         "temperature": {
           "1": 12,
-          "3": 16,
-          "5": 8
+          "3": 12,
+          "5": 4
         },
         "precipitation": {
-          "1": 24,
-          "3": 16,
-          "5": 8
+          "1": 20,
+          "3": 12,
+          "5": 4
         }
       },
       "map_payload": "assets/map_data/20260819_00/combined.bin",
@@ -878,13 +936,13 @@
       "training_samples": {
         "temperature": {
           "1": 12,
-          "3": 12,
-          "5": 4
+          "3": 8,
+          "5": 0
         },
         "precipitation": {
-          "1": 20,
-          "3": 12,
-          "5": 4
+          "1": 16,
+          "3": 8,
+          "5": 0
         }
       },
       "map_payload": "assets/map_data/20260818_00/combined.bin",
@@ -962,12 +1020,12 @@
       "training_samples": {
         "temperature": {
           "1": 12,
-          "3": 8,
+          "3": 4,
           "5": 0
         },
         "precipitation": {
-          "1": 16,
-          "3": 8,
+          "1": 12,
+          "3": 4,
           "5": 0
         }
       },
@@ -986,11 +1044,11 @@
       "weights": {
         "temperature": {
           "1": {
-            "weathernext2": 0.23331851009773896,
-            "gfs": 0.16506871921644217,
-            "gefs": 0.16103213801702107,
-            "aifs": 0.20924103548823045,
-            "ifs_ens": 0.23133959718056737
+            "weathernext2": 0.22375209218072167,
+            "gfs": 0.18295665451073587,
+            "gefs": 0.16570977564899625,
+            "aifs": 0.2076905567824129,
+            "ifs_ens": 0.2198909208771334
           },
           "3": {
             "weathernext2": 0.2,
@@ -1009,95 +1067,11 @@
         },
         "precipitation": {
           "1": {
-            "weathernext2": 0.20225051604854666,
-            "gfs": 0.190615739239863,
-            "gefs": 0.19508689709087434,
-            "aifs": 0.20665986264923356,
-            "ifs_ens": 0.20538698497148244
-          },
-          "3": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          },
-          "5": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          }
-        }
-      },
-      "selected_candidates": {
-        "temperature": {
-          "1": "ewa-w3-e20",
-          "3": "uniform",
-          "5": "uniform"
-        },
-        "precipitation": {
-          "1": "ewa-w3-e20",
-          "3": "uniform",
-          "5": "uniform"
-        }
-      },
-      "training_samples": {
-        "temperature": {
-          "1": 12,
-          "3": 4,
-          "5": 0
-        },
-        "precipitation": {
-          "1": 12,
-          "3": 4,
-          "5": 0
-        }
-      },
-      "map_payload": "assets/map_data/20260816_00/combined.bin",
-      "simple_average_map_payload": "assets/map_data/20260816_00/simple_average.bin"
-    },
-    "20260815_00": {
-      "initialization_utc": "2026-08-15T00:00:00Z",
-      "available_models": [
-        "weathernext2",
-        "gfs",
-        "gefs",
-        "aifs",
-        "ifs_ens"
-      ],
-      "weights": {
-        "temperature": {
-          "1": {
-            "weathernext2": 0.23908502178523536,
-            "gfs": 0.16069373921745497,
-            "gefs": 0.15471444745580684,
-            "aifs": 0.2059792246605097,
-            "ifs_ens": 0.2395275668809931
-          },
-          "3": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          },
-          "5": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          }
-        },
-        "precipitation": {
-          "1": {
-            "weathernext2": 0.2018864093442396,
-            "gfs": 0.18939937691043868,
-            "gefs": 0.1937771633534507,
-            "aifs": 0.20773937479612936,
-            "ifs_ens": 0.20719767559574173
+            "weathernext2": 0.20528142163677923,
+            "gfs": 0.1877197623242785,
+            "gefs": 0.19265607722782488,
+            "aifs": 0.2076747238309763,
+            "ifs_ens": 0.20666801498014112
           },
           "3": {
             "weathernext2": 0.2,
@@ -1135,6 +1109,90 @@
         },
         "precipitation": {
           "1": 8,
+          "3": 0,
+          "5": 0
+        }
+      },
+      "map_payload": "assets/map_data/20260816_00/combined.bin",
+      "simple_average_map_payload": "assets/map_data/20260816_00/simple_average.bin"
+    },
+    "20260815_00": {
+      "initialization_utc": "2026-08-15T00:00:00Z",
+      "available_models": [
+        "weathernext2",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "weights": {
+        "temperature": {
+          "1": {
+            "weathernext2": 0.2,
+            "gfs": 0.2,
+            "gefs": 0.2,
+            "aifs": 0.2,
+            "ifs_ens": 0.2
+          },
+          "3": {
+            "weathernext2": 0.2,
+            "gfs": 0.2,
+            "gefs": 0.2,
+            "aifs": 0.2,
+            "ifs_ens": 0.2
+          },
+          "5": {
+            "weathernext2": 0.2,
+            "gfs": 0.2,
+            "gefs": 0.2,
+            "aifs": 0.2,
+            "ifs_ens": 0.2
+          }
+        },
+        "precipitation": {
+          "1": {
+            "weathernext2": 0.2,
+            "gfs": 0.2,
+            "gefs": 0.2,
+            "aifs": 0.2,
+            "ifs_ens": 0.2
+          },
+          "3": {
+            "weathernext2": 0.2,
+            "gfs": 0.2,
+            "gefs": 0.2,
+            "aifs": 0.2,
+            "ifs_ens": 0.2
+          },
+          "5": {
+            "weathernext2": 0.2,
+            "gfs": 0.2,
+            "gefs": 0.2,
+            "aifs": 0.2,
+            "ifs_ens": 0.2
+          }
+        }
+      },
+      "selected_candidates": {
+        "temperature": {
+          "1": "uniform",
+          "3": "uniform",
+          "5": "uniform"
+        },
+        "precipitation": {
+          "1": "uniform",
+          "3": "uniform",
+          "5": "uniform"
+        }
+      },
+      "training_samples": {
+        "temperature": {
+          "1": 4,
+          "3": 0,
+          "5": 0
+        },
+        "precipitation": {
+          "1": 4,
           "3": 0,
           "5": 0
         }
@@ -1213,102 +1271,18 @@
       },
       "training_samples": {
         "temperature": {
-          "1": 4,
+          "1": 0,
           "3": 0,
           "5": 0
         },
         "precipitation": {
-          "1": 4,
+          "1": 0,
           "3": 0,
           "5": 0
         }
       },
       "map_payload": "assets/map_data/20260814_00/combined.bin",
       "simple_average_map_payload": "assets/map_data/20260814_00/simple_average.bin"
-    },
-    "20260813_00": {
-      "initialization_utc": "2026-08-13T00:00:00Z",
-      "available_models": [
-        "weathernext2",
-        "gfs",
-        "gefs",
-        "aifs",
-        "ifs_ens"
-      ],
-      "weights": {
-        "temperature": {
-          "1": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          },
-          "3": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          },
-          "5": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          }
-        },
-        "precipitation": {
-          "1": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          },
-          "3": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          },
-          "5": {
-            "weathernext2": 0.2,
-            "gfs": 0.2,
-            "gefs": 0.2,
-            "aifs": 0.2,
-            "ifs_ens": 0.2
-          }
-        }
-      },
-      "selected_candidates": {
-        "temperature": {
-          "1": "uniform",
-          "3": "uniform",
-          "5": "uniform"
-        },
-        "precipitation": {
-          "1": "uniform",
-          "3": "uniform",
-          "5": "uniform"
-        }
-      },
-      "training_samples": {
-        "temperature": {
-          "1": 0,
-          "3": 0,
-          "5": 0
-        },
-        "precipitation": {
-          "1": 0,
-          "3": 0,
-          "5": 0
-        }
-      },
-      "map_payload": "assets/map_data/20260813_00/combined.bin",
-      "simple_average_map_payload": "assets/map_data/20260813_00/simple_average.bin"
     }
   }
 }

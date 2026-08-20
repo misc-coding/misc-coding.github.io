@@ -1,22 +1,22 @@
 {
-  "id": "20260819_00",
-  "initialization_utc": "2026-08-19T00:00:00Z",
-  "generated_at_utc": "2026-08-19T08:42:15.055931Z",
+  "id": "20260820_00",
+  "initialization_utc": "2026-08-20T00:00:00Z",
+  "generated_at_utc": "2026-08-20T08:47:49.746150Z",
   "lead_days": [
     {
       "day": 1,
       "lead_hours": 24,
-      "valid_time_utc": "2026-08-20T00:00:00Z"
+      "valid_time_utc": "2026-08-21T00:00:00Z"
     },
     {
       "day": 3,
       "lead_hours": 72,
-      "valid_time_utc": "2026-08-22T00:00:00Z"
+      "valid_time_utc": "2026-08-23T00:00:00Z"
     },
     {
       "day": 5,
       "lead_hours": 120,
-      "valid_time_utc": "2026-08-24T00:00:00Z"
+      "valid_time_utc": "2026-08-25T00:00:00Z"
     }
   ],
   "models": [
@@ -49,16 +49,6 @@
       "members_used": 1,
       "members_total": 1,
       "aggregation": "deterministic"
-    },
-    {
-      "id": "ifs_ens",
-      "label": "IFS-ENS",
-      "provider": "dynamical.org / ECMWF",
-      "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
-      "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
-      "members_used": 51,
-      "members_total": 51,
-      "aggregation": "all-member ensemble mean"
     }
   ],
   "variables": {
@@ -142,37 +132,31 @@
     {
       "kind": "grid",
       "model": "gfs",
-      "path": "assets/map_data/20260819_00/gfs.bin",
+      "path": "assets/map_data/20260820_00/gfs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "gefs",
-      "path": "assets/map_data/20260819_00/gefs.bin",
+      "path": "assets/map_data/20260820_00/gefs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "aifs",
-      "path": "assets/map_data/20260819_00/aifs.bin",
-      "bytes": 399384
-    },
-    {
-      "kind": "grid",
-      "model": "ifs_ens",
-      "path": "assets/map_data/20260819_00/ifs_ens.bin",
+      "path": "assets/map_data/20260820_00/aifs.bin",
       "bytes": 399384
     }
   ],
   "available_models": [
     "gfs",
     "gefs",
-    "aifs",
-    "ifs_ens"
+    "aifs"
   ],
   "missing_models": [
     "weathernext2",
-    "gencast"
+    "gencast",
+    "ifs_ens"
   ],
   "status": "partial"
 }
