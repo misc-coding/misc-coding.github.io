@@ -1,22 +1,22 @@
 {
-  "id": "20260822_00",
-  "initialization_utc": "2026-08-22T00:00:00Z",
-  "generated_at_utc": "2026-08-22T08:43:29.242454Z",
+  "id": "20260823_00",
+  "initialization_utc": "2026-08-23T00:00:00Z",
+  "generated_at_utc": "2026-08-23T08:44:41.541374Z",
   "lead_days": [
     {
       "day": 1,
       "lead_hours": 24,
-      "valid_time_utc": "2026-08-23T00:00:00Z"
+      "valid_time_utc": "2026-08-24T00:00:00Z"
     },
     {
       "day": 3,
       "lead_hours": 72,
-      "valid_time_utc": "2026-08-25T00:00:00Z"
+      "valid_time_utc": "2026-08-26T00:00:00Z"
     },
     {
       "day": 5,
       "lead_hours": 120,
-      "valid_time_utc": "2026-08-27T00:00:00Z"
+      "valid_time_utc": "2026-08-28T00:00:00Z"
     }
   ],
   "models": [
@@ -152,31 +152,31 @@
     {
       "kind": "grid",
       "model": "weathernext2",
-      "path": "assets/map_data/20260822_00/weathernext2.bin",
+      "path": "assets/map_data/20260823_00/weathernext2.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "gfs",
-      "path": "assets/map_data/20260822_00/gfs.bin",
+      "path": "assets/map_data/20260823_00/gfs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "gefs",
-      "path": "assets/map_data/20260822_00/gefs.bin",
+      "path": "assets/map_data/20260823_00/gefs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "aifs",
-      "path": "assets/map_data/20260822_00/aifs.bin",
+      "path": "assets/map_data/20260823_00/aifs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "ifs_ens",
-      "path": "assets/map_data/20260822_00/ifs_ens.bin",
+      "path": "assets/map_data/20260823_00/ifs_ens.bin",
       "bytes": 399384
     }
   ],
