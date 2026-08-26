@@ -1,32 +1,42 @@
 {
   "schema_version": 2,
   "title": "India Multi-Model Forecast Archive",
-  "generated_at_utc": "2026-08-25T08:42:23.472594Z",
+  "generated_at_utc": "2026-08-26T09:06:04.973841Z",
   "retention_runs": 7,
-  "latest_initialization_utc": "2026-08-25T00:00:00Z",
+  "latest_initialization_utc": "2026-08-26T00:00:00Z",
   "runs": [
     {
-      "id": "20260825_00",
-      "initialization_utc": "2026-08-25T00:00:00Z",
-      "generated_at_utc": "2026-08-25T08:42:23.472096Z",
+      "id": "20260826_00",
+      "initialization_utc": "2026-08-26T00:00:00Z",
+      "generated_at_utc": "2026-08-26T08:44:30.289789Z",
       "lead_days": [
         {
           "day": 1,
           "lead_hours": 24,
-          "valid_time_utc": "2026-08-26T00:00:00Z"
+          "valid_time_utc": "2026-08-27T00:00:00Z"
         },
         {
           "day": 3,
           "lead_hours": 72,
-          "valid_time_utc": "2026-08-28T00:00:00Z"
+          "valid_time_utc": "2026-08-29T00:00:00Z"
         },
         {
           "day": 5,
           "lead_hours": 120,
-          "valid_time_utc": "2026-08-30T00:00:00Z"
+          "valid_time_utc": "2026-08-31T00:00:00Z"
         }
       ],
       "models": [
+        {
+          "id": "weathernext2",
+          "label": "WeatherNext 2 / FGN",
+          "provider": "Google WeatherNext",
+          "source_id": "weathernext/weathernext_2_0_0/zarr/2025_to_present",
+          "source_url": "https://developers.google.com/weathernext/guides/model-specs-vmg",
+          "members_used": 8,
+          "members_total": 64,
+          "aggregation": "evenly spaced member-subset mean"
+        },
         {
           "id": "gfs",
           "label": "GFS",
@@ -148,6 +158,206 @@
       "artifacts": [
         {
           "kind": "grid",
+          "model": "weathernext2",
+          "path": "assets/map_data/20260826_00/weathernext2.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gfs",
+          "path": "assets/map_data/20260826_00/gfs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "gefs",
+          "path": "assets/map_data/20260826_00/gefs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "aifs",
+          "path": "assets/map_data/20260826_00/aifs.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
+          "model": "ifs_ens",
+          "path": "assets/map_data/20260826_00/ifs_ens.bin",
+          "bytes": 399384
+        }
+      ],
+      "available_models": [
+        "weathernext2",
+        "gfs",
+        "gefs",
+        "aifs",
+        "ifs_ens"
+      ],
+      "missing_models": [
+        "gencast"
+      ],
+      "status": "partial"
+    },
+    {
+      "id": "20260825_00",
+      "initialization_utc": "2026-08-25T00:00:00Z",
+      "generated_at_utc": "2026-08-26T08:45:40.375368Z",
+      "lead_days": [
+        {
+          "day": 1,
+          "lead_hours": 24,
+          "valid_time_utc": "2026-08-26T00:00:00Z"
+        },
+        {
+          "day": 3,
+          "lead_hours": 72,
+          "valid_time_utc": "2026-08-28T00:00:00Z"
+        },
+        {
+          "day": 5,
+          "lead_hours": 120,
+          "valid_time_utc": "2026-08-30T00:00:00Z"
+        }
+      ],
+      "models": [
+        {
+          "id": "weathernext2",
+          "label": "WeatherNext 2 / FGN",
+          "provider": "Google WeatherNext",
+          "source_id": "weathernext/weathernext_2_0_0/zarr/2025_to_present",
+          "source_url": "https://developers.google.com/weathernext/guides/model-specs-vmg",
+          "members_used": 8,
+          "members_total": 64,
+          "aggregation": "evenly spaced member-subset mean"
+        },
+        {
+          "id": "gfs",
+          "label": "GFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gfs-forecast",
+          "source_url": "https://dynamical.org/catalog/noaa-gfs-forecast/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "gefs",
+          "label": "GEFS",
+          "provider": "dynamical.org / NOAA",
+          "source_id": "noaa-gefs-forecast-35-day",
+          "source_url": "https://dynamical.org/catalog/noaa-gefs/",
+          "members_used": 31,
+          "members_total": 31,
+          "aggregation": "all-member ensemble mean"
+        },
+        {
+          "id": "aifs",
+          "label": "AIFS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-aifs-single-forecast",
+          "source_url": "https://dynamical.org/catalog/ecmwf-aifs/",
+          "members_used": 1,
+          "members_total": 1,
+          "aggregation": "deterministic"
+        },
+        {
+          "id": "ifs_ens",
+          "label": "IFS-ENS",
+          "provider": "dynamical.org / ECMWF",
+          "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
+          "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
+          "members_used": 51,
+          "members_total": 51,
+          "aggregation": "all-member ensemble mean"
+        }
+      ],
+      "variables": {
+        "temperature": {
+          "source_field": "2 m air temperature",
+          "units": "degree_Celsius",
+          "plot_scale": {
+            "minimum": 0.0,
+            "maximum": 45.0
+          }
+        },
+        "precipitation": {
+          "source_field": "surface precipitation",
+          "units": "mm accumulated since previous published endpoint",
+          "plot_levels": [
+            0.0,
+            1.0,
+            5.0,
+            10.0,
+            25.0,
+            50.0,
+            100.0,
+            200.0,
+            300.0
+          ],
+          "accumulation_windows": [
+            "init-to-day-1",
+            "day-1-to-day-3",
+            "day-3-to-day-5"
+          ]
+        }
+      },
+      "lead_semantics": {
+        "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
+        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
+        "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
+        "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
+      },
+      "grid_metadata": {
+        "variables": [
+          "temperature",
+          "precipitation",
+          "temperature_high",
+          "temperature_low"
+        ],
+        "lead_days": [
+          1,
+          3,
+          5
+        ],
+        "shape": [
+          3,
+          129,
+          129
+        ],
+        "bounding_box": {
+          "lat_min": 6.0,
+          "lat_max": 38.0,
+          "lon_min": 67.0,
+          "lon_max": 99.0
+        },
+        "encoding": {
+          "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
+          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
+        },
+        "precipitation_accumulation": "previous_endpoint_interval",
+        "precipitation_windows": [
+          "init-to-day-1",
+          "day-1-to-day-3",
+          "day-3-to-day-5"
+        ]
+      },
+      "bounding_box": {
+        "lat_min": 6.0,
+        "lat_max": 38.0,
+        "lon_min": 67.0,
+        "lon_max": 99.0
+      },
+      "disclaimer": "Experimental model guidance for visualization and research. Not an official warning or public-safety product.",
+      "artifacts": [
+        {
+          "kind": "grid",
+          "model": "weathernext2",
+          "path": "assets/map_data/20260825_00/weathernext2.bin",
+          "bytes": 399384
+        },
+        {
+          "kind": "grid",
           "model": "gfs",
           "path": "assets/map_data/20260825_00/gfs.bin",
           "bytes": 399384
@@ -172,13 +382,13 @@
         }
       ],
       "available_models": [
+        "weathernext2",
         "gfs",
         "gefs",
         "aifs",
         "ifs_ens"
       ],
       "missing_models": [
-        "weathernext2",
         "gencast"
       ],
       "status": "partial"
@@ -1152,225 +1362,31 @@
         "gencast"
       ],
       "status": "partial"
-    },
-    {
-      "id": "20260819_00",
-      "initialization_utc": "2026-08-19T00:00:00Z",
-      "generated_at_utc": "2026-08-21T09:18:02.205984Z",
-      "lead_days": [
-        {
-          "day": 1,
-          "lead_hours": 24,
-          "valid_time_utc": "2026-08-20T00:00:00Z"
-        },
-        {
-          "day": 3,
-          "lead_hours": 72,
-          "valid_time_utc": "2026-08-22T00:00:00Z"
-        },
-        {
-          "day": 5,
-          "lead_hours": 120,
-          "valid_time_utc": "2026-08-24T00:00:00Z"
-        }
-      ],
-      "models": [
-        {
-          "id": "weathernext2",
-          "label": "WeatherNext 2 / FGN",
-          "provider": "Google WeatherNext",
-          "source_id": "weathernext/weathernext_2_0_0/zarr/2025_to_present",
-          "source_url": "https://developers.google.com/weathernext/guides/model-specs-vmg",
-          "members_used": 8,
-          "members_total": 64,
-          "aggregation": "evenly spaced member-subset mean"
-        },
-        {
-          "id": "gfs",
-          "label": "GFS",
-          "provider": "dynamical.org / NOAA",
-          "source_id": "noaa-gfs-forecast",
-          "source_url": "https://dynamical.org/catalog/noaa-gfs-forecast/",
-          "members_used": 1,
-          "members_total": 1,
-          "aggregation": "deterministic"
-        },
-        {
-          "id": "gefs",
-          "label": "GEFS",
-          "provider": "dynamical.org / NOAA",
-          "source_id": "noaa-gefs-forecast-35-day",
-          "source_url": "https://dynamical.org/catalog/noaa-gefs/",
-          "members_used": 31,
-          "members_total": 31,
-          "aggregation": "all-member ensemble mean"
-        },
-        {
-          "id": "aifs",
-          "label": "AIFS",
-          "provider": "dynamical.org / ECMWF",
-          "source_id": "ecmwf-aifs-single-forecast",
-          "source_url": "https://dynamical.org/catalog/ecmwf-aifs/",
-          "members_used": 1,
-          "members_total": 1,
-          "aggregation": "deterministic"
-        },
-        {
-          "id": "ifs_ens",
-          "label": "IFS-ENS",
-          "provider": "dynamical.org / ECMWF",
-          "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
-          "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
-          "members_used": 51,
-          "members_total": 51,
-          "aggregation": "all-member ensemble mean"
-        }
-      ],
-      "variables": {
-        "temperature": {
-          "source_field": "2 m air temperature",
-          "units": "degree_Celsius",
-          "plot_scale": {
-            "minimum": 0.0,
-            "maximum": 45.0
-          }
-        },
-        "precipitation": {
-          "source_field": "surface precipitation",
-          "units": "mm accumulated since previous published endpoint",
-          "plot_levels": [
-            0.0,
-            1.0,
-            5.0,
-            10.0,
-            25.0,
-            50.0,
-            100.0,
-            200.0,
-            300.0
-          ],
-          "accumulation_windows": [
-            "init-to-day-1",
-            "day-1-to-day-3",
-            "day-3-to-day-5"
-          ]
-        }
-      },
-      "lead_semantics": {
-        "temperature": "Exact 2 m temperature snapshot at T+24, T+72, and T+120 hours.",
-        "precipitation": "Interval precipitation: initialization to T+24, T+24 to T+72, and T+72 to T+120 hours.",
-        "temperature_high": "Maximum native-step 2 m temperature during the 24 hours ending at each selected lead.",
-        "temperature_low": "Minimum native-step 2 m temperature during the 24 hours ending at each selected lead."
-      },
-      "grid_metadata": {
-        "variables": [
-          "temperature",
-          "precipitation",
-          "temperature_high",
-          "temperature_low"
-        ],
-        "lead_days": [
-          1,
-          3,
-          5
-        ],
-        "shape": [
-          3,
-          129,
-          129
-        ],
-        "bounding_box": {
-          "lat_min": 6.0,
-          "lat_max": 38.0,
-          "lon_min": 67.0,
-          "lon_max": 99.0
-        },
-        "encoding": {
-          "temperature": "uint16: (value - 5000) / 100 \u00b0C; 65535 = missing",
-          "precipitation": "uint16: value / 10 mm accumulated since previous published endpoint; 65535 = missing"
-        },
-        "precipitation_accumulation": "previous_endpoint_interval",
-        "precipitation_windows": [
-          "init-to-day-1",
-          "day-1-to-day-3",
-          "day-3-to-day-5"
-        ]
-      },
-      "bounding_box": {
-        "lat_min": 6.0,
-        "lat_max": 38.0,
-        "lon_min": 67.0,
-        "lon_max": 99.0
-      },
-      "disclaimer": "Experimental model guidance for visualization and research. Not an official warning or public-safety product.",
-      "artifacts": [
-        {
-          "kind": "grid",
-          "model": "weathernext2",
-          "path": "assets/map_data/20260819_00/weathernext2.bin",
-          "bytes": 399384
-        },
-        {
-          "kind": "grid",
-          "model": "gfs",
-          "path": "assets/map_data/20260819_00/gfs.bin",
-          "bytes": 399384
-        },
-        {
-          "kind": "grid",
-          "model": "gefs",
-          "path": "assets/map_data/20260819_00/gefs.bin",
-          "bytes": 399384
-        },
-        {
-          "kind": "grid",
-          "model": "aifs",
-          "path": "assets/map_data/20260819_00/aifs.bin",
-          "bytes": 399384
-        },
-        {
-          "kind": "grid",
-          "model": "ifs_ens",
-          "path": "assets/map_data/20260819_00/ifs_ens.bin",
-          "bytes": 399384
-        }
-      ],
-      "available_models": [
-        "weathernext2",
-        "gfs",
-        "gefs",
-        "aifs",
-        "ifs_ens"
-      ],
-      "missing_models": [
-        "gencast"
-      ],
-      "status": "partial"
     }
   ],
   "source_status": {
     "weathernext2": {
-      "newest_initialization_utc": null,
-      "error": "TimeoutError: source lookup timed out"
+      "newest_initialization_utc": "2026-08-26T00:00:00Z",
+      "error": null
     },
     "gencast": {
-      "newest_initialization_utc": null,
-      "error": "TimeoutError: source lookup timed out"
+      "newest_initialization_utc": "2026-07-29T00:00:00Z",
+      "error": null
     },
     "gfs": {
-      "newest_initialization_utc": "2026-08-25T00:00:00Z",
+      "newest_initialization_utc": "2026-08-26T00:00:00Z",
       "error": null
     },
     "gefs": {
-      "newest_initialization_utc": "2026-08-25T00:00:00Z",
+      "newest_initialization_utc": "2026-08-26T00:00:00Z",
       "error": null
     },
     "aifs": {
-      "newest_initialization_utc": "2026-08-25T00:00:00Z",
+      "newest_initialization_utc": "2026-08-26T00:00:00Z",
       "error": null
     },
     "ifs_ens": {
-      "newest_initialization_utc": "2026-08-25T00:00:00Z",
+      "newest_initialization_utc": "2026-08-26T00:00:00Z",
       "error": null
     }
   }
