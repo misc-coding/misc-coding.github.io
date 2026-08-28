@@ -1,25 +1,35 @@
 {
-  "id": "20260827_00",
-  "initialization_utc": "2026-08-27T00:00:00Z",
-  "generated_at_utc": "2026-08-27T08:45:59.880407Z",
+  "id": "20260828_00",
+  "initialization_utc": "2026-08-28T00:00:00Z",
+  "generated_at_utc": "2026-08-28T08:45:55.015418Z",
   "lead_days": [
     {
       "day": 1,
       "lead_hours": 24,
-      "valid_time_utc": "2026-08-28T00:00:00Z"
+      "valid_time_utc": "2026-08-29T00:00:00Z"
     },
     {
       "day": 3,
       "lead_hours": 72,
-      "valid_time_utc": "2026-08-30T00:00:00Z"
+      "valid_time_utc": "2026-08-31T00:00:00Z"
     },
     {
       "day": 5,
       "lead_hours": 120,
-      "valid_time_utc": "2026-09-01T00:00:00Z"
+      "valid_time_utc": "2026-09-02T00:00:00Z"
     }
   ],
   "models": [
+    {
+      "id": "weathernext2",
+      "label": "WeatherNext 2 / FGN",
+      "provider": "Google WeatherNext",
+      "source_id": "weathernext/weathernext_2_0_0/zarr/2025_to_present",
+      "source_url": "https://developers.google.com/weathernext/guides/model-specs-vmg",
+      "members_used": 8,
+      "members_total": 64,
+      "aggregation": "evenly spaced member-subset mean"
+    },
     {
       "id": "gfs",
       "label": "GFS",
@@ -49,6 +59,16 @@
       "members_used": 1,
       "members_total": 1,
       "aggregation": "deterministic"
+    },
+    {
+      "id": "ifs_ens",
+      "label": "IFS-ENS",
+      "provider": "dynamical.org / ECMWF",
+      "source_id": "ecmwf-ifs-ens-forecast-15-day-0-25-degree",
+      "source_url": "https://dynamical.org/catalog/ecmwf-ifs/",
+      "members_used": 51,
+      "members_total": 51,
+      "aggregation": "all-member ensemble mean"
     }
   ],
   "variables": {
@@ -131,32 +151,44 @@
   "artifacts": [
     {
       "kind": "grid",
+      "model": "weathernext2",
+      "path": "assets/map_data/20260828_00/weathernext2.bin",
+      "bytes": 399384
+    },
+    {
+      "kind": "grid",
       "model": "gfs",
-      "path": "assets/map_data/20260827_00/gfs.bin",
+      "path": "assets/map_data/20260828_00/gfs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "gefs",
-      "path": "assets/map_data/20260827_00/gefs.bin",
+      "path": "assets/map_data/20260828_00/gefs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "aifs",
-      "path": "assets/map_data/20260827_00/aifs.bin",
+      "path": "assets/map_data/20260828_00/aifs.bin",
+      "bytes": 399384
+    },
+    {
+      "kind": "grid",
+      "model": "ifs_ens",
+      "path": "assets/map_data/20260828_00/ifs_ens.bin",
       "bytes": 399384
     }
   ],
   "available_models": [
+    "weathernext2",
     "gfs",
     "gefs",
-    "aifs"
+    "aifs",
+    "ifs_ens"
   ],
   "missing_models": [
-    "weathernext2",
-    "gencast",
-    "ifs_ens"
+    "gencast"
   ],
   "status": "partial"
 }
