@@ -1,22 +1,22 @@
 {
-  "id": "20260901_00",
-  "initialization_utc": "2026-09-01T00:00:00Z",
-  "generated_at_utc": "2026-09-01T08:46:47.212293Z",
+  "id": "20260902_00",
+  "initialization_utc": "2026-09-02T00:00:00Z",
+  "generated_at_utc": "2026-09-02T08:45:53.580237Z",
   "lead_days": [
     {
       "day": 1,
       "lead_hours": 24,
-      "valid_time_utc": "2026-09-02T00:00:00Z"
+      "valid_time_utc": "2026-09-03T00:00:00Z"
     },
     {
       "day": 3,
       "lead_hours": 72,
-      "valid_time_utc": "2026-09-04T00:00:00Z"
+      "valid_time_utc": "2026-09-05T00:00:00Z"
     },
     {
       "day": 5,
       "lead_hours": 120,
-      "valid_time_utc": "2026-09-06T00:00:00Z"
+      "valid_time_utc": "2026-09-07T00:00:00Z"
     }
   ],
   "models": [
@@ -29,6 +29,16 @@
       "members_used": 8,
       "members_total": 64,
       "aggregation": "evenly spaced member-subset mean"
+    },
+    {
+      "id": "gfs",
+      "label": "GFS",
+      "provider": "dynamical.org / NOAA",
+      "source_id": "noaa-gfs-forecast",
+      "source_url": "https://dynamical.org/catalog/noaa-gfs-forecast/",
+      "members_used": 1,
+      "members_total": 1,
+      "aggregation": "deterministic"
     },
     {
       "id": "gefs",
@@ -142,37 +152,43 @@
     {
       "kind": "grid",
       "model": "weathernext2",
-      "path": "assets/map_data/20260901_00/weathernext2.bin",
+      "path": "assets/map_data/20260902_00/weathernext2.bin",
+      "bytes": 399384
+    },
+    {
+      "kind": "grid",
+      "model": "gfs",
+      "path": "assets/map_data/20260902_00/gfs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "gefs",
-      "path": "assets/map_data/20260901_00/gefs.bin",
+      "path": "assets/map_data/20260902_00/gefs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "aifs",
-      "path": "assets/map_data/20260901_00/aifs.bin",
+      "path": "assets/map_data/20260902_00/aifs.bin",
       "bytes": 399384
     },
     {
       "kind": "grid",
       "model": "ifs_ens",
-      "path": "assets/map_data/20260901_00/ifs_ens.bin",
+      "path": "assets/map_data/20260902_00/ifs_ens.bin",
       "bytes": 399384
     }
   ],
   "available_models": [
     "weathernext2",
+    "gfs",
     "gefs",
     "aifs",
     "ifs_ens"
   ],
   "missing_models": [
-    "gencast",
-    "gfs"
+    "gencast"
   ],
   "status": "partial"
 }
